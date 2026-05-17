@@ -1,0 +1,126 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Phlex\Shared\Hub;
+
+use InvalidArgumentException;
+
+/**
+ * Hub-side projection of an enrolled server, returned from
+ * `GET /api/v1/users/{id}/servers` (Phase C.4 dashboard).
+ *
+ * @package Phlex\Shared\Hub
+ * @since 0.2.0
+ */
+final class ServerInfoDto
+{
+    public const STATUS_ONLINE = 'online';
+    public const STATUS_OFFLINE = 'offline';
+    public const STATUS_CLAIMING = 'claiming';
+    public const STATUS_DISABLED = 'disabled';
+
+    /**
+     * @param string         $serverId           UUID minted by the hub on successful claim.
+     * @param string         $userId             Owner UUID.
+     * @param string         $serverName         From the original ClaimRequest.
+     * @param string         $version            Server semver, refreshed on heartbeat.
+     * @param int|null       $lastSeenAt         UNIX seconds. Null when never reached out.
+     * @param string         $status             One of self::STATUS_*.
+     * @param list<string>   $hostnameCandidates Last known reachable hostnames.
+     * @param bool           $relayActive        Whether a WSS reverse tunnel is currently open (Phase C.6).
+     */
+    public function __construct(
+        public readonly string $serverId,
+        public readonly string $userId,
+        public readonly string $serverName,
+        public readonly string $version,
+        public readonly ?int $lastSeenAt,
+        public readonly string $status,
+        public readonly array $hostnameCandidates,
+        public readonly bool $relayActive,
+    ) {
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     *
+     * @throws InvalidArgumentException When a required field is missing or wrong-typed.
+     */
+    public static function fromPayload(array $payload): self
+    {
+        $serverId = self::requireString($payload, 'serverId');
+        $userId = self::requireString($payload, 'userId');
+        $serverName = self::requireString($payload, 'serverName');
+        $version = self::requireString($payload, 'version');
+        $status = self::requireString($payload, 'status');
+
+        $lastSeenAt = null;
+        if (array_key_exists('lastSeenAt', $payload) && $payload['lastSeenAt'] !== null) {
+            if (!is_int($payload['lastSeenAt'])) {
+                throw new InvalidArgumentException('ServerInfoDto "lastSeenAt" must be an integer when present.');
+            }
+            $lastSeenAt = $payload['lastSeenAt'];
+        }
+
+        $hostnameCandidates = [];
+        if (array_key_exists('hostnameCandidates', $payload)) {
+            if (!is_array($payload['hostnameCandidates'])) {
+                throw new InvalidArgumentException('ServerInfoDto "hostnameCandidates" must be a list of strings.');
+            }
+            foreach ($payload['hostnameCandidates'] as $candidate) {
+                if (!is_string($candidate)) {
+                    throw new InvalidArgumentException('ServerInfoDto "hostnameCandidates" must contain only strings.');
+                }
+                $hostnameCandidates[] = $candidate;
+            }
+        }
+
+        if (!array_key_exists('relayActive', $payload) || !is_bool($payload['relayActive'])) {
+            throw new InvalidArgumentException('ServerInfoDto "relayActive" must be a boolean.');
+        }
+
+        return new self(
+            serverId: $serverId,
+            userId: $userId,
+            serverName: $serverName,
+            version: $version,
+            lastSeenAt: $lastSeenAt,
+            status: $status,
+            hostnameCandidates: $hostnameCandidates,
+            relayActive: $payload['relayActive'],
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toPayload(): array
+    {
+        return [
+            'serverId' => $this->serverId,
+            'userId' => $this->userId,
+            'serverName' => $this->serverName,
+            'version' => $this->version,
+            'lastSeenAt' => $this->lastSeenAt,
+            'status' => $this->status,
+            'hostnameCandidates' => $this->hostnameCandidates,
+            'relayActive' => $this->relayActive,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private static function requireString(array $payload, string $key): string
+    {
+        if (!array_key_exists($key, $payload)) {
+            throw new InvalidArgumentException(sprintf('ServerInfoDto "%s" is required.', $key));
+        }
+        $value = $payload[$key];
+        if (!is_string($value)) {
+            throw new InvalidArgumentException(sprintf('ServerInfoDto "%s" must be a string.', $key));
+        }
+        return $value;
+    }
+}

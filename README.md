@@ -7,11 +7,16 @@ PHP 8.3+, zero I/O — pure interfaces and value objects only.
 
 ## Status
 
-**v0.1.0 — scaffolding.** This release ships the package skeleton, CI
-pipeline, and a single `Phlex\Shared\Version` marker class so the
-Composer package resolves cleanly. The real interfaces and DTOs land in
-**v0.2.0** (Step B.3 of the `PHLEX_EXPANSION_PLAN` in
-[`detain/phlex`](https://github.com/detain/phlex)).
+**v0.2.0 — Plugin / Events / Auth / Hub namespaces.** Shipped:
+
+- `Phlex\Shared\Plugin\{LifecycleInterface, Manifest, ManifestType, ManifestValidationError, EventNameMap}`
+- `Phlex\Shared\Events\{AbstractEvent, Playback\*, Library\*, Auth\*}` — 12 event DTOs.
+- `Phlex\Shared\Auth\JwtClaims`
+- `Phlex\Shared\Hub\{ClaimRequest, ClaimResponse, ServerInfoDto, HeartbeatDto}`
+- `Phlex\Shared\Arr\` — namespace reserved for Phase K.1.
+
+The PSR-14 dispatcher wiring (Tukio) and the manifest JSON-Schema
+validator stay in `phlex-server` and consume this package via Composer.
 
 ## Requirements
 
