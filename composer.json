@@ -1,0 +1,38 @@
+{
+    "name": "detain/phlex-shared",
+    "description": "Shared interfaces, DTOs, event names, and protocol types used by both phlex-server and phlex-hub. Composer-installable, PHP 8.3+, zero I/O.",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": "^8.3",
+        "psr/container": "^2.0",
+        "psr/event-dispatcher": "^1.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.0",
+        "phpstan/phpstan": "^2.0",
+        "squizlabs/php_codesniffer": "^3.10",
+        "vimeo/psalm": "^5.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Phlex\\Shared\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Phlex\\Shared\\Tests\\": "tests/"
+        }
+    },
+    "minimum-stability": "stable",
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true
+    },
+    "scripts": {
+        "test": "phpunit",
+        "stan": "phpstan analyze --no-progress",
+        "cs": "phpcs --standard=PSR12 src/",
+        "psalm": "psalm --no-progress"
+    }
+}

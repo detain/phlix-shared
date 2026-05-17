@@ -1,0 +1,70 @@
+# detain/phlex-shared
+
+Shared interfaces, DTOs, event names, and protocol types used by both
+[`detain/phlex-server`](https://github.com/detain/phlex) (the media server)
+and `detain/phlex-hub` (the multi-server hub, forthcoming). Composer-installable,
+PHP 8.3+, zero I/O — pure interfaces and value objects only.
+
+## Status
+
+**v0.1.0 — scaffolding.** This release ships the package skeleton, CI
+pipeline, and a single `Phlex\Shared\Version` marker class so the
+Composer package resolves cleanly. The real interfaces and DTOs land in
+**v0.2.0** (Step B.3 of the `PHLEX_EXPANSION_PLAN` in
+[`detain/phlex`](https://github.com/detain/phlex)).
+
+## Requirements
+
+- PHP `^8.3`
+- Composer 2.x
+- `psr/container ^2.0`
+- `psr/event-dispatcher ^1.0`
+
+The package has zero framework dependencies — no Workerman, no Monolog,
+no Smarty. It is intended to be safely required by any PHP 8.3+ codebase.
+
+## Installation
+
+Until `detain/phlex-shared` is published to Packagist (planned post-v1.0),
+consumers require it via a Composer VCS repository entry:
+
+```json
+{
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "git@github.com:detain/phlex-shared.git"
+        }
+    ],
+    "require": {
+        "detain/phlex-shared": "^0.2"
+    }
+}
+```
+
+Then:
+
+```bash
+composer update detain/phlex-shared
+```
+
+## Related repositories
+
+- [`detain/phlex`](https://github.com/detain/phlex) — the Phlex media server (consumes this package from B.3 onward).
+- `detain/phlex-hub` — the multi-server hub (forthcoming, B.5+).
+
+## Development
+
+```bash
+composer install
+./vendor/bin/phpunit
+./vendor/bin/phpstan analyze --no-progress
+./vendor/bin/phpcs --standard=PSR12 src/
+./vendor/bin/psalm --no-progress
+composer validate --strict
+composer audit --no-dev
+```
+
+## License
+
+MIT — see [`LICENSE`](LICENSE).
