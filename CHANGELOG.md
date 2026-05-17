@@ -6,6 +6,21 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-05-17
+
+### Added
+- `Phlex\Shared\Auth\ProviderInterface` — core interface for pluggable external
+  authentication providers (OIDC, LDAP, SAML, passkeys). Zero I/O dependencies
+  so both phlex-server and phlex-hub can implement providers without pulling in
+  server/runtime dependencies.
+- `Phlex\Shared\Auth\AuthResult` — immutable value object returned by
+  `ProviderInterface::authenticate()`. Captures success/failure, local userId,
+  provider externalId, error code, and arbitrary attributes (email, name,
+  avatarUrl …).
+- `Phlex\Shared\Auth\UserInfo` — immutable value object returned by
+  `ProviderInterface::getUserInfo()`. Describes an external identity for
+  account linking and profile display.
+
 ## [0.2.0] — 2026-05-17
 
 ### Added
