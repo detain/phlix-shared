@@ -6,6 +6,44 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-05-18
+
+### Added
+- `Phlex\Shared\Arr\ArrClientInterface` — common interface for Sonarr/Radarr
+  HTTP clients (queue, quality profiles, tags, test-connection).
+- `Phlex\Shared\Arr\ArrClientFactory` — factory that instantiates Sonarr/Radarr
+  clients from instance config arrays.
+- `Phlex\Shared\Arr\SyncResult` — immutable value object returned by sync flows.
+- `Phlex\Shared\Arr\SonarrClient` — typed Sonarr v3 HTTP client.
+- `Phlex\Shared\Arr\RadarrClient` — typed Radarr v3 HTTP client.
+- `Phlex\Shared\Arr\BazarrClient` — typed Bazarr HTTP client.
+- `Phlex\Shared\Arr\ProwlarrClient` — typed Prowlarr HTTP client.
+- `Phlex\Shared\Arr\TrashGuidesProvider` — fetches TRaSH-Guides quality
+  profile + custom format JSON.
+- `psr/log` runtime dependency to allow optional PSR-3 loggers on the arr
+  clients without pulling phlex-server's concrete `StructuredLogger`.
+
+### Changed
+- Arr classes now type-hint `Psr\Log\LoggerInterface` instead of phlex-server's
+  `StructuredLogger`, allowing the hub and any other PSR-3 consumer to inject
+  its own logger. Required for Step K.1 (arr clients shared between
+  phlex-server and phlex-hub) and K.3 (hub-side request fulfillment).
+
+## [0.3.0] — 2026-05-17
+
+### Added
+- `Phlex\Shared\Auth\ProviderInterface` — core interface for pluggable external
+  authentication providers (OIDC, LDAP, SAML, passkeys). Zero I/O dependencies
+  so both phlex-server and phlex-hub can implement providers without pulling in
+  server/runtime dependencies.
+- `Phlex\Shared\Auth\AuthResult` — immutable value object returned by
+  `ProviderInterface::authenticate()`. Captures success/failure, local userId,
+  provider externalId, error code, and arbitrary attributes (email, name,
+  avatarUrl …).
+- `Phlex\Shared\Auth\UserInfo` — immutable value object returned by
+  `ProviderInterface::getUserInfo()`. Describes an external identity for
+  account linking and profile display.
+
 ## [0.2.0] — 2026-05-17
 
 ### Added
