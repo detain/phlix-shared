@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Tests\Hub;
+namespace Phlix\Shared\Tests\Hub;
 
 use InvalidArgumentException;
-use Phlex\Shared\Hub\ServerInfoDto;
+use Phlix\Shared\Hub\ServerInfoDto;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \Phlex\Shared\Hub\ServerInfoDto
+ * @covers \Phlix\Shared\Hub\ServerInfoDto
  */
 final class ServerInfoDtoTest extends TestCase
 {

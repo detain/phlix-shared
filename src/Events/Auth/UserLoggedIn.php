@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Events\Auth;
+namespace Phlix\Shared\Events\Auth;
 
-use Phlex\Shared\Events\AbstractEvent;
+use Phlix\Shared\Events\AbstractEvent;
 
 /**
  * Fired after a successful login.
  *
- * Fired by: `\Phlex\Auth\AuthManager::login()` after credential
+ * Fired by: `\Phlix\Auth\AuthManager::login()` after credential
  * verification succeeds and the audit-log entry is written.
  * Typical listener: presence integrations, security-anomaly detector
  * (new IP / new device alerts), device-registry updater, hub session
  * mirror.
  *
- * Manifest alias: `phlex.user.logged_in`.
+ * Manifest alias: `phlix.user.logged_in`.
  *
- * @package Phlex\Shared\Events\Auth
+ * @package Phlix\Shared\Events\Auth
  * @since 0.2.0
  */
 final class UserLoggedIn extends AbstractEvent

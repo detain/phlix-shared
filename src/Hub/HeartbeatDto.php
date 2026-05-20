@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Hub;
+namespace Phlix\Shared\Hub;
 
 use InvalidArgumentException;
 
@@ -11,7 +11,7 @@ use InvalidArgumentException;
  *
  * Master plan §6 step 5.
  *
- * @package Phlex\Shared\Hub
+ * @package Phlix\Shared\Hub
  * @since 0.2.0
  */
 final class HeartbeatDto

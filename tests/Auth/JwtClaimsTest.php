@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Tests\Auth;
+namespace Phlix\Shared\Tests\Auth;
 
 use InvalidArgumentException;
-use Phlex\Shared\Auth\JwtClaims;
+use Phlix\Shared\Auth\JwtClaims;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \Phlex\Shared\Auth\JwtClaims
+ * @covers \Phlix\Shared\Auth\JwtClaims
  */
 final class JwtClaimsTest extends TestCase
 {
     public function test_fromPayload_with_full_payload_roundtrips(): void
     {
         $payload = [
-            'iss' => JwtClaims::ISS_PHLEX_HUB,
+            'iss' => JwtClaims::ISS_PHLIX_HUB,
             'aud' => JwtClaims::AUD_CLIENT,
             'sub' => 'user-uuid',
             'iat' => 1700000000,
@@ -35,7 +35,7 @@ final class JwtClaimsTest extends TestCase
     public function test_fromPayload_with_minimal_legacy_payload(): void
     {
         $claims = JwtClaims::fromPayload([
-            'iss' => JwtClaims::ISS_PHLEX,
+            'iss' => JwtClaims::ISS_PHLIX,
             'sub' => 'user-uuid',
             'iat' => 1700000000,
             'exp' => 1700003600,
@@ -63,7 +63,7 @@ final class JwtClaimsTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('JWT claim "iat" must be an integer.');
         JwtClaims::fromPayload([
-            'iss' => 'phlex', 'sub' => 'u', 'iat' => 'not-int', 'exp' => 2, 'type' => 'access',
+            'iss' => 'phlix', 'sub' => 'u', 'iat' => 'not-int', 'exp' => 2, 'type' => 'access',
         ]);
     }
 
@@ -72,7 +72,7 @@ final class JwtClaimsTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('JWT claim "aud" must be a string.');
         JwtClaims::fromPayload([
-            'iss' => 'phlex', 'aud' => 42, 'sub' => 'u', 'iat' => 1, 'exp' => 2, 'type' => 'access',
+            'iss' => 'phlix', 'aud' => 42, 'sub' => 'u', 'iat' => 1, 'exp' => 2, 'type' => 'access',
         ]);
     }
 
@@ -81,7 +81,7 @@ final class JwtClaimsTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('JWT claim "nbf"');
         JwtClaims::fromPayload([
-            'iss' => 'phlex', 'sub' => 'u', 'iat' => 1, 'exp' => 2, 'type' => 'access', 'nbf' => 'oops',
+            'iss' => 'phlix', 'sub' => 'u', 'iat' => 1, 'exp' => 2, 'type' => 'access', 'nbf' => 'oops',
         ]);
     }
 
@@ -90,7 +90,7 @@ final class JwtClaimsTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('JWT claim "jti"');
         JwtClaims::fromPayload([
-            'iss' => 'phlex', 'sub' => 'u', 'iat' => 1, 'exp' => 2, 'type' => 'access', 'jti' => 42,
+            'iss' => 'phlix', 'sub' => 'u', 'iat' => 1, 'exp' => 2, 'type' => 'access', 'jti' => 42,
         ]);
     }
 
@@ -99,7 +99,7 @@ final class JwtClaimsTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('JWT claim "scope"');
         JwtClaims::fromPayload([
-            'iss' => 'phlex', 'sub' => 'u', 'iat' => 1, 'exp' => 2, 'type' => 'access', 'scope' => 'oops',
+            'iss' => 'phlix', 'sub' => 'u', 'iat' => 1, 'exp' => 2, 'type' => 'access', 'scope' => 'oops',
         ]);
     }
 
@@ -108,7 +108,7 @@ final class JwtClaimsTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('only strings');
         JwtClaims::fromPayload([
-            'iss' => 'phlex', 'sub' => 'u', 'iat' => 1, 'exp' => 2, 'type' => 'access', 'scope' => ['ok', 42],
+            'iss' => 'phlix', 'sub' => 'u', 'iat' => 1, 'exp' => 2, 'type' => 'access', 'scope' => ['ok', 42],
         ]);
     }
 
@@ -117,14 +117,14 @@ final class JwtClaimsTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('JWT claim "serverId"');
         JwtClaims::fromPayload([
-            'iss' => 'phlex', 'sub' => 'u', 'iat' => 1, 'exp' => 2, 'type' => 'access', 'serverId' => 99,
+            'iss' => 'phlix', 'sub' => 'u', 'iat' => 1, 'exp' => 2, 'type' => 'access', 'serverId' => 99,
         ]);
     }
 
     public function test_isExpired_compares_exp_to_now(): void
     {
         $claims = JwtClaims::fromPayload([
-            'iss' => 'phlex', 'sub' => 'u', 'iat' => 1, 'exp' => 100, 'type' => 'access',
+            'iss' => 'phlix', 'sub' => 'u', 'iat' => 1, 'exp' => 100, 'type' => 'access',
         ]);
 
         $this->assertTrue($claims->isExpired(200));
@@ -136,7 +136,7 @@ final class JwtClaimsTest extends TestCase
     public function test_hasScope_true_when_scope_present(): void
     {
         $claims = JwtClaims::fromPayload([
-            'iss' => 'phlex', 'sub' => 'u', 'iat' => 1, 'exp' => 200, 'type' => 'access',
+            'iss' => 'phlix', 'sub' => 'u', 'iat' => 1, 'exp' => 200, 'type' => 'access',
             'scope' => ['library:read'],
         ]);
 
@@ -147,7 +147,7 @@ final class JwtClaimsTest extends TestCase
     public function test_toPayload_omits_optional_null_fields(): void
     {
         $claims = JwtClaims::fromPayload([
-            'iss' => 'phlex', 'sub' => 'u', 'iat' => 1, 'exp' => 2, 'type' => 'access',
+            'iss' => 'phlix', 'sub' => 'u', 'iat' => 1, 'exp' => 2, 'type' => 'access',
         ]);
 
         $payload = $claims->toPayload();

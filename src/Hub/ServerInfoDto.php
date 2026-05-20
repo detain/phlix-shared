@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Hub;
+namespace Phlix\Shared\Hub;
 
 use InvalidArgumentException;
 
@@ -10,7 +10,7 @@ use InvalidArgumentException;
  * Hub-side projection of an enrolled server, returned from
  * `GET /api/v1/users/{id}/servers` (Phase C.4 dashboard).
  *
- * @package Phlex\Shared\Hub
+ * @package Phlix\Shared\Hub
  * @since 0.2.0
  */
 final class ServerInfoDto

@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Plugin;
+namespace Phlix\Shared\Plugin;
 
 /**
  * Enumeration of supported plugin categories.
  *
  * Each case maps to one of the eleven plugin types listed in
- * `PHLEX_EXPANSION_PLAN.md` §5. The string `value` is the kebab-case form
+ * `PHLIX_EXPANSION_PLAN.md` §5. The string `value` is the kebab-case form
  * that appears in `plugin.json` and in `docs/plugins/manifest.schema.json`
- * shipped with `phlex-server`.
+ * shipped with `phlix-server`.
  *
- * @package Phlex\Shared\Plugin
+ * @package Phlix\Shared\Plugin
  * @since 0.2.0
  */
 enum ManifestType: string

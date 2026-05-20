@@ -2,28 +2,28 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Auth;
+namespace Phlix\Shared\Auth;
 
 use InvalidArgumentException;
 
 /**
- * Immutable claim shape for Phlex JWTs (access and refresh).
+ * Immutable claim shape for Phlix JWTs (access and refresh).
  *
- * Captures the payload `Phlex\Auth\JwtHandler::createAccessToken()` and
+ * Captures the payload `Phlix\Auth\JwtHandler::createAccessToken()` and
  * `createRefreshToken()` produce today, plus the additional `aud` and
  * `scope` fields the hub will emit starting in Phase C.5.
  *
  * Phase C.5 wires `JwtHandler::validateToken()` to deserialize the
  * decoded payload into this DTO so server and hub share one definition
- * of "what's in a Phlex JWT".
+ * of "what's in a Phlix JWT".
  *
- * @package Phlex\Shared\Auth
+ * @package Phlix\Shared\Auth
  * @since 0.2.0
  */
 final class JwtClaims
 {
-    public const ISS_PHLEX = 'phlex';
-    public const ISS_PHLEX_HUB = 'phlex-hub';
+    public const ISS_PHLIX = 'phlix';
+    public const ISS_PHLIX_HUB = 'phlix-hub';
     public const AUD_SERVER = 'server';
     public const AUD_HUB    = 'hub';
     public const AUD_CLIENT = 'client';
@@ -31,7 +31,7 @@ final class JwtClaims
     public const TYPE_REFRESH = 'refresh';
 
     /**
-     * @param string         $iss   Issuer. `phlex` for server-minted, `phlex-hub` for hub-minted.
+     * @param string         $iss   Issuer. `phlix` for server-minted, `phlix-hub` for hub-minted.
      * @param string         $aud   Audience. One of self::AUD_*.
      * @param string         $sub   Subject — user UUID.
      * @param int            $iat   Issued-at, UNIX seconds.

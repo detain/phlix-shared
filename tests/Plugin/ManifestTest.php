@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Tests\Plugin;
+namespace Phlix\Shared\Tests\Plugin;
 
-use Phlex\Shared\Plugin\Manifest;
-use Phlex\Shared\Plugin\ManifestType;
+use Phlix\Shared\Plugin\Manifest;
+use Phlix\Shared\Plugin\ManifestType;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
 /**
- * @covers \Phlex\Shared\Plugin\Manifest
+ * @covers \Phlix\Shared\Plugin\Manifest
  */
 final class ManifestTest extends TestCase
 {
@@ -31,24 +31,24 @@ final class ManifestTest extends TestCase
     public function test_fromArray_populates_readonly_props(): void
     {
         $manifest = Manifest::fromArray([
-            'name' => 'phlex-plugin-example',
+            'name' => 'phlix-plugin-example',
             'version' => '1.0.0',
-            'phlex_min_server_version' => '0.10.0',
+            'phlix_min_server_version' => '0.10.0',
             'type' => 'notifier',
             'entry' => 'Acme\\Plugin\\Entry',
-            'events' => ['phlex.playback.started', 'phlex.user.created'],
+            'events' => ['phlix.playback.started', 'phlix.user.created'],
             'settings' => [
                 'api_key' => ['type' => 'string', 'required' => true, 'secret' => true],
             ],
             'signature' => 'sha256:deadbeef',
         ]);
 
-        $this->assertSame('phlex-plugin-example', $manifest->name);
+        $this->assertSame('phlix-plugin-example', $manifest->name);
         $this->assertSame('1.0.0', $manifest->version);
-        $this->assertSame('0.10.0', $manifest->phlexMinServerVersion);
+        $this->assertSame('0.10.0', $manifest->phlixMinServerVersion);
         $this->assertSame('notifier', $manifest->type);
         $this->assertSame('Acme\\Plugin\\Entry', $manifest->entry);
-        $this->assertSame(['phlex.playback.started', 'phlex.user.created'], $manifest->events);
+        $this->assertSame(['phlix.playback.started', 'phlix.user.created'], $manifest->events);
         $this->assertSame(
             ['api_key' => ['type' => 'string', 'required' => true, 'secret' => true]],
             $manifest->settings,
@@ -60,7 +60,7 @@ final class ManifestTest extends TestCase
     public function test_fromArray_records_unknown_fields(): void
     {
         $manifest = Manifest::fromArray([
-            'name' => 'phlex-plugin-x',
+            'name' => 'phlix-plugin-x',
             'extra' => 'unexpected',
             'another' => 42,
         ]);
@@ -95,7 +95,7 @@ final class ManifestTest extends TestCase
     public function test_toArray_round_trips_raw_data(): void
     {
         $data = [
-            'name' => 'phlex-plugin-x',
+            'name' => 'phlix-plugin-x',
             'version' => '0.1.0',
             'type' => 'notifier',
         ];
@@ -112,9 +112,9 @@ final class ManifestTest extends TestCase
     public function test_fromArray_ignores_non_string_events(): void
     {
         $manifest = Manifest::fromArray([
-            'events' => ['phlex.x', 42, true, 'phlex.y'],
+            'events' => ['phlix.x', 42, true, 'phlix.y'],
         ]);
-        $this->assertSame(['phlex.x', 'phlex.y'], $manifest->events);
+        $this->assertSame(['phlix.x', 'phlix.y'], $manifest->events);
     }
 
     public function test_fromArray_ignores_non_array_settings_entries(): void

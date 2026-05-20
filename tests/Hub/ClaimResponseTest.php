@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Tests\Hub;
+namespace Phlix\Shared\Tests\Hub;
 
 use InvalidArgumentException;
-use Phlex\Shared\Hub\ClaimResponse;
+use Phlix\Shared\Hub\ClaimResponse;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \Phlex\Shared\Hub\ClaimResponse
+ * @covers \Phlix\Shared\Hub\ClaimResponse
  */
 final class ClaimResponseTest extends TestCase
 {

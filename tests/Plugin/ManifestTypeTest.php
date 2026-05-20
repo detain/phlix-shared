@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Tests\Plugin;
+namespace Phlix\Shared\Tests\Plugin;
 
-use Phlex\Shared\Plugin\ManifestType;
+use Phlix\Shared\Plugin\ManifestType;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \Phlex\Shared\Plugin\ManifestType
+ * @covers \Phlix\Shared\Plugin\ManifestType
  */
 final class ManifestTypeTest extends TestCase
 {

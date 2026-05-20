@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Tests\Plugin;
+namespace Phlix\Shared\Tests\Plugin;
 
-use Phlex\Shared\Plugin\ManifestValidationError;
+use Phlix\Shared\Plugin\ManifestValidationError;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \Phlex\Shared\Plugin\ManifestValidationError
+ * @covers \Phlix\Shared\Plugin\ManifestValidationError
  */
 final class ManifestValidationErrorTest extends TestCase
 {
