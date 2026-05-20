@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Events\Playback;
+namespace Phlix\Shared\Events\Playback;
 
-use Phlex\Shared\Events\AbstractEvent;
+use Phlix\Shared\Events\AbstractEvent;
 
 /**
  * Fired when a previously paused playback session resumes playing.
  *
- * Fired by: `\Phlex\Session\PlaybackController::reportProgress()` when
+ * Fired by: `\Phlix\Session\PlaybackController::reportProgress()` when
  * the reported `isPaused` flag flips from true to false for an existing
  * session.
  * Typical listener: scrobble plugins (re-start the scrobble timer), now-
  * playing dashboard updaters, smart-bulb / "movie mode" integrations.
  *
- * Manifest alias: `phlex.playback.resumed`.
+ * Manifest alias: `phlix.playback.resumed`.
  *
- * @package Phlex\Shared\Events\Playback
+ * @package Phlix\Shared\Events\Playback
  * @since 0.2.0
  */
 final class PlaybackResumed extends AbstractEvent

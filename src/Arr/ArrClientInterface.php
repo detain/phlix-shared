@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Arr;
+namespace Phlix\Shared\Arr;
 
 /**
  * Common interface for Sonarr/Radarr API clients.
  *
- * @package Phlex\Shared\Arr
+ * @package Phlix\Shared\Arr
  * @since 0.12.0
  */
 interface ArrClientInterface

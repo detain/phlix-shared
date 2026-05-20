@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Plugin;
+namespace Phlix\Shared\Plugin;
 
 use Psr\Container\ContainerInterface;
 
 /**
- * Contract every Phlex plugin entry class implements.
+ * Contract every Phlix plugin entry class implements.
  *
  * The entry class is whatever FQCN appears in `plugin.json#/entry`. The
  * loader instantiates it through the host PSR-11 container — so the
@@ -35,7 +35,7 @@ use Psr\Container\ContainerInterface;
  * ## Subscribed events
  *
  * {@see self::subscribedEvents()} returns a map keyed by **event FQCN**
- * (e.g. `\Phlex\Shared\Events\Playback\PlaybackStarted::class`) to
+ * (e.g. `\Phlix\Shared\Events\Playback\PlaybackStarted::class`) to
  * either:
  *
  * - A PHP `callable` (closure, `[$plugin, 'methodName']`, invokable
@@ -43,11 +43,11 @@ use Psr\Container\ContainerInterface;
  * - A method name (string), which the loader binds as
  *   `[$pluginInstance, $methodName]` for convenience.
  *
- * The loader translates manifest aliases (`phlex.playback.started`) to
- * FQCNs via {@see \Phlex\Shared\Plugin\EventNameMap} before calling this
+ * The loader translates manifest aliases (`phlix.playback.started`) to
+ * FQCNs via {@see \Phlix\Shared\Plugin\EventNameMap} before calling this
  * method, so plugin authors deal exclusively with FQCNs at runtime.
  *
- * @package Phlex\Shared\Plugin
+ * @package Phlix\Shared\Plugin
  * @since 0.2.0
  */
 interface LifecycleInterface

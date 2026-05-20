@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Tests\Events;
+namespace Phlix\Shared\Tests\Events;
 
-use Phlex\Shared\Events\AbstractEvent;
+use Phlix\Shared\Events\AbstractEvent;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \Phlex\Shared\Events\AbstractEvent
+ * @covers \Phlix\Shared\Events\AbstractEvent
  */
 final class AbstractEventTest extends TestCase
 {

@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Auth;
+namespace Phlix\Shared\Auth;
 
 /**
  * Immutable value object returned by {@see ProviderInterface::getUserInfo()}.
  *
  * Describes an external identity (email, display name, avatar, raw claims)
- * independent of any local Phlex user record. Used for account linking
+ * independent of any local Phlix user record. Used for account linking
  * and profile display.
  *
- * @package Phlex\Auth
- * @author Phlex Team
+ * @package Phlix\Auth
+ * @author Phlix Team
  * @version 1.0.0
  * @description User information from an external authentication provider.
  *

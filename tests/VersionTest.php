@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Tests;
+namespace Phlix\Shared\Tests;
 
-use Phlex\Shared\Version;
+use Phlix\Shared\Version;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
 /**
- * @covers \Phlex\Shared\Version
+ * @covers \Phlix\Shared\Version
  */
 final class VersionTest extends TestCase
 {

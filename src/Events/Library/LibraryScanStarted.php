@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Events\Library;
+namespace Phlix\Shared\Events\Library;
 
-use Phlex\Shared\Events\AbstractEvent;
+use Phlix\Shared\Events\AbstractEvent;
 
 /**
  * Fired when a library scan begins.
  *
- * Fired by: `\Phlex\Media\Library\MediaScanner::scan()` at the top of
+ * Fired by: `\Phlix\Media\Library\MediaScanner::scan()` at the top of
  * the scan, after path validation.
  * Typical listener: progress dashboard (start spinner), webhook
  * notification framework (notify "scan started"), maintenance window
  * coordinator (pause other heavy jobs).
  *
- * Manifest alias: `phlex.library.scan.started`.
+ * Manifest alias: `phlix.library.scan.started`.
  *
- * @package Phlex\Shared\Events\Library
+ * @package Phlix\Shared\Events\Library
  * @since 0.2.0
  */
 final class LibraryScanStarted extends AbstractEvent

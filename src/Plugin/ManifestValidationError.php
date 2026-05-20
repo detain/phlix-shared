@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Plugin;
+namespace Phlix\Shared\Plugin;
 
 /**
  * Immutable DTO describing a single validation problem found while
  * checking a parsed {@see Manifest} against the JSON Schema at
- * `docs/plugins/manifest.schema.json` shipped with `phlex-server` (or
+ * `docs/plugins/manifest.schema.json` shipped with `phlix-server` (or
  * against any soft rule, such as "unknown field", that the schema
  * cannot express).
  *
@@ -16,12 +16,12 @@ namespace Phlex\Shared\Plugin;
  * `type`, `unknown_field`, …). `message` is the human-readable
  * description suitable for surfacing in admin UI tooltips.
  *
- * The validator producing these objects lives in `phlex-server` as
- * `Phlex\Plugins\Manifest\ManifestSchema`; the DTO itself is shared so
- * that future tooling (e.g. `phlex-hub` plugin auditing) can interpret
+ * The validator producing these objects lives in `phlix-server` as
+ * `Phlix\Plugins\Manifest\ManifestSchema`; the DTO itself is shared so
+ * that future tooling (e.g. `phlix-hub` plugin auditing) can interpret
  * validation results without depending on the server's schema file.
  *
- * @package Phlex\Shared\Plugin
+ * @package Phlix\Shared\Plugin
  * @since 0.2.0
  */
 final class ManifestValidationError

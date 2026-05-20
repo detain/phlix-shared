@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Events\Auth;
+namespace Phlix\Shared\Events\Auth;
 
-use Phlex\Shared\Events\AbstractEvent;
+use Phlix\Shared\Events\AbstractEvent;
 
 /**
  * Fired when a user session ends.
  *
- * Fired by: explicit logout handler in `\Phlex\Auth\AuthManager`, plus
+ * Fired by: explicit logout handler in `\Phlix\Auth\AuthManager`, plus
  * the session-expiry / token-revocation paths added in subsequent
  * phases. The `reason` field disambiguates the three paths so listeners
  * can react appropriately (e.g., only notify the user on "revoked").
@@ -17,9 +17,9 @@ use Phlex\Shared\Events\AbstractEvent;
  * writer, security-alert notifier ("your session was revoked"), hub-side
  * session mirror.
  *
- * Manifest alias: `phlex.user.logged_out`.
+ * Manifest alias: `phlix.user.logged_out`.
  *
- * @package Phlex\Shared\Events\Auth
+ * @package Phlix\Shared\Events\Auth
  * @since 0.2.0
  */
 final class UserLoggedOut extends AbstractEvent

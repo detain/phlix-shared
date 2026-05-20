@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Events\Playback;
+namespace Phlix\Shared\Events\Playback;
 
-use Phlex\Shared\Events\AbstractEvent;
+use Phlix\Shared\Events\AbstractEvent;
 
 /**
  * Fired when a playback session ends, either at user request or end-of-media.
  *
- * Fired by: `\Phlex\Session\PlaybackController::markAsWatched()` and the
+ * Fired by: `\Phlix\Session\PlaybackController::markAsWatched()` and the
  * `clearProgress()` lifecycle hook.
  * Typical listener: scrobble plugins (final scrobble), watch-history
  * "complete" markers, recommendation refreshers, post-credits skip
  * removers, smart-home "movie mode" deactivators.
  *
- * Manifest alias: `phlex.playback.stopped`.
+ * Manifest alias: `phlix.playback.stopped`.
  *
- * @package Phlex\Shared\Events\Playback
+ * @package Phlix\Shared\Events\Playback
  * @since 0.2.0
  */
 final class PlaybackStopped extends AbstractEvent
@@ -31,7 +31,7 @@ final class PlaybackStopped extends AbstractEvent
      *                                   session ended, in 100-ns ticks.
      * @param bool   $reachedEnd         True when the listener should treat
      *                                   the item as fully watched (>= 90 %
-     *                                   per Phlex convention); false when
+     *                                   per Phlix convention); false when
      *                                   the user stopped mid-stream.
      */
     public function __construct(

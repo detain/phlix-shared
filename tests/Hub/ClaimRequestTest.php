@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Tests\Hub;
+namespace Phlix\Shared\Tests\Hub;
 
 use InvalidArgumentException;
-use Phlex\Shared\Hub\ClaimRequest;
+use Phlix\Shared\Hub\ClaimRequest;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \Phlex\Shared\Hub\ClaimRequest
+ * @covers \Phlix\Shared\Hub\ClaimRequest
  */
 final class ClaimRequestTest extends TestCase
 {
@@ -22,7 +22,7 @@ final class ClaimRequestTest extends TestCase
             'serverName' => "Alice's NAS",
             'version' => '0.11.0',
             'publicKeysJwk' => ['keys' => []],
-            'hostnameCandidates' => ['10.0.0.5', 'phlex.local'],
+            'hostnameCandidates' => ['10.0.0.5', 'phlix.local'],
             'protocolVersion' => 'v1',
         ];
     }

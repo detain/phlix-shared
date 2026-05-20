@@ -1,6 +1,6 @@
-# AGENTS.md — detain/phlex-shared
+# AGENTS.md — detain/phlix-shared
 
-Agent brief for the `phlex-shared` package. This package is **pure
+Agent brief for the `phlix-shared` package. This package is **pure
 interfaces and value objects**. Keep it that way.
 
 ## Conventions
@@ -9,8 +9,8 @@ interfaces and value objects**. Keep it that way.
   first-class callable syntax, etc.) where they aid clarity.
 - **`declare(strict_types=1);`** at the top of every PHP file.
 - **PSR-12** coding standard, enforced by phpcs.
-- **PSR-4 autoload** — `Phlex\Shared\` → `src/`,
-  `Phlex\Shared\Tests\` → `tests/`. Namespaces mirror directories.
+- **PSR-4 autoload** — `Phlix\Shared\` → `src/`,
+  `Phlix\Shared\Tests\` → `tests/`. Namespaces mirror directories.
 - **Static analysis bar:** PHPStan level 9 and Psalm errorLevel 1, both
   green from day 1. No baselines.
 - **Zero I/O.** No filesystem reads, no network, no DB, no logging
@@ -28,11 +28,11 @@ interfaces and value objects**. Keep it that way.
 
 ```
 src/
-  Plugin/    # Phlex\Shared\Plugin\* — lifecycle, manifest, types
-  Events/    # Phlex\Shared\Events\* — event name constants & DTOs
-  Auth/      # Phlex\Shared\Auth\* — token, identity, claim types
-  Hub/       # Phlex\Shared\Hub\* — phlex ↔ phlex-hub protocol types
-  Arr/       # Phlex\Shared\Arr\* — typed array helpers (PHPStan-friendly)
+  Plugin/    # Phlix\Shared\Plugin\* — lifecycle, manifest, types
+  Events/    # Phlix\Shared\Events\* — event name constants & DTOs
+  Auth/      # Phlix\Shared\Auth\* — token, identity, claim types
+  Hub/       # Phlix\Shared\Hub\* — phlix ↔ phlix-hub protocol types
+  Arr/       # Phlix\Shared\Arr\* — typed array helpers (PHPStan-friendly)
   Version.php
 tests/
   (mirror of src/ — PHPUnit 10)
@@ -44,10 +44,10 @@ Subdirectories materialise as B.3 lands real interfaces.
 ## Layout rationale
 
 See `plans/expansion/b.1-shared-design.md` in
-[`detain/phlex`](https://github.com/detain/phlex) for the full WHAT
+[`detain/phlix`](https://github.com/detain/phlix) for the full WHAT
 MOVES WHERE table and the design rationale for the namespace split.
 Do not re-litigate that design here — propose changes in a new plan
-step against `detain/phlex` if needed.
+step against `detain/phlix` if needed.
 
 ## Before committing
 
@@ -64,5 +64,5 @@ If any tool emits warnings, fix the code — do not add to a baseline.
 ## Versioning
 
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Bump the
-`Phlex\Shared\Version::VERSION` constant in lockstep with the git tag
+`Phlix\Shared\Version::VERSION` constant in lockstep with the git tag
 and the `CHANGELOG.md` heading.

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Events;
+namespace Phlix\Shared\Events;
 
 /**
- * Common base for all Phlex PSR-14 events.
+ * Common base for all Phlix PSR-14 events.
  *
  * Provides a single readonly `timestamp` (UNIX epoch seconds) captured at
  * construction time so listeners can correlate dispatch order without
@@ -17,7 +17,7 @@ namespace Phlex\Shared\Events;
  * populated. They MUST NOT add mutator methods or write to inherited
  * properties.
  *
- * @package Phlex\Shared\Events
+ * @package Phlix\Shared\Events
  * @since 0.2.0
  */
 abstract class AbstractEvent

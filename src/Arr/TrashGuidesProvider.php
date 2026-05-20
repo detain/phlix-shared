@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Arr;
+namespace Phlix\Shared\Arr;
 
 use Psr\Log\LoggerInterface;
 use RuntimeException;
@@ -10,7 +10,7 @@ use RuntimeException;
 /**
  * Fetches and parses TRaSH-Guides quality profiles and custom formats JSON.
  *
- * @package Phlex\Shared\Arr
+ * @package Phlix\Shared\Arr
  * @since 0.12.0
  */
 class TrashGuidesProvider
@@ -241,7 +241,7 @@ class TrashGuidesProvider
                 'max_redirects' => 5,
                 'header' => [
                     'Accept: application/json',
-                    'User-Agent: Phlex-Media-Server/0.12.0',
+                    'User-Agent: Phlix-Media-Server/0.12.0',
                 ],
             ],
         ]);

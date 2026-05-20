@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Tests\Events\Auth;
+namespace Phlix\Shared\Tests\Events\Auth;
 
-use Phlex\Shared\Events\AbstractEvent;
-use Phlex\Shared\Events\Auth\UserCreated;
-use Phlex\Shared\Events\Auth\UserLoggedIn;
-use Phlex\Shared\Events\Auth\UserLoggedOut;
+use Phlix\Shared\Events\AbstractEvent;
+use Phlix\Shared\Events\Auth\UserCreated;
+use Phlix\Shared\Events\Auth\UserLoggedIn;
+use Phlix\Shared\Events\Auth\UserLoggedOut;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \Phlex\Shared\Events\Auth\UserCreated
- * @covers \Phlex\Shared\Events\Auth\UserLoggedIn
- * @covers \Phlex\Shared\Events\Auth\UserLoggedOut
+ * @covers \Phlix\Shared\Events\Auth\UserCreated
+ * @covers \Phlix\Shared\Events\Auth\UserLoggedIn
+ * @covers \Phlix\Shared\Events\Auth\UserLoggedOut
  */
 final class UserCreatedTest extends TestCase
 {

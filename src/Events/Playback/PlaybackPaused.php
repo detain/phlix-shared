@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Events\Playback;
+namespace Phlix\Shared\Events\Playback;
 
-use Phlex\Shared\Events\AbstractEvent;
+use Phlix\Shared\Events\AbstractEvent;
 
 /**
  * Fired when an active playback session transitions to the paused state.
  *
- * Fired by: `\Phlex\Session\PlaybackController::reportProgress()` when
+ * Fired by: `\Phlix\Session\PlaybackController::reportProgress()` when
  * the reported `isPaused` flag flips from false to true for an existing
  * session.
  * Typical listener: scrobble plugins (mark "stopped" mid-stream so they
  * can resume), now-playing dashboard updaters, away-from-keyboard
  * presence integrations.
  *
- * Manifest alias: `phlex.playback.paused`.
+ * Manifest alias: `phlix.playback.paused`.
  *
- * @package Phlex\Shared\Events\Playback
+ * @package Phlix\Shared\Events\Playback
  * @since 0.2.0
  */
 final class PlaybackPaused extends AbstractEvent

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Plugin;
+namespace Phlix\Shared\Plugin;
 
 use JsonException;
 use RuntimeException;
@@ -18,8 +18,8 @@ use RuntimeException;
  *     including unknown {@see ManifestType} values and missing required
  *     fields, are deferred so the caller sees every problem at once via
  *     a separate validator pass.
- *  2. Validation is performed by `Phlex\Plugins\Manifest\ManifestSchema`
- *     in `phlex-server` (which owns the JSON Schema file). The validator
+ *  2. Validation is performed by `Phlix\Plugins\Manifest\ManifestSchema`
+ *     in `phlix-server` (which owns the JSON Schema file). The validator
  *     consumes a `Manifest` via {@see self::getRawData()} and
  *     {@see self::getUnknownFields()} and emits a list of
  *     {@see ManifestValidationError}.
@@ -30,12 +30,12 @@ use RuntimeException;
  *
  * ## Subclassing
  *
- * This class is **not** `final` so the `phlex-server` deprecation
- * wrapper at `Phlex\Plugins\Manifest` can extend it for one release.
+ * This class is **not** `final` so the `phlix-server` deprecation
+ * wrapper at `Phlix\Plugins\Manifest` can extend it for one release.
  * Other callers should not subclass — treat the class as effectively
  * final.
  *
- * @package Phlex\Shared\Plugin
+ * @package Phlix\Shared\Plugin
  * @since 0.2.0
  */
 class Manifest
@@ -49,7 +49,7 @@ class Manifest
     public const array KNOWN_TOP_LEVEL_KEYS = [
         'name',
         'version',
-        'phlex_min_server_version',
+        'phlix_min_server_version',
         'type',
         'entry',
         'events',
@@ -58,9 +58,9 @@ class Manifest
     ];
 
     /**
-     * @param string $name Plugin identifier, kebab-case, prefixed `phlex-plugin-`.
+     * @param string $name Plugin identifier, kebab-case, prefixed `phlix-plugin-`.
      * @param string $version Plugin semver.
-     * @param string $phlexMinServerVersion Minimum Phlex server semver.
+     * @param string $phlixMinServerVersion Minimum Phlix server semver.
      * @param string $type Raw type string. Resolve via {@see self::manifestType()}.
      * @param string $entry Fully-qualified entry-class name.
      * @param list<string> $events Manifest event aliases.
@@ -73,7 +73,7 @@ class Manifest
     final protected function __construct(
         public readonly string $name,
         public readonly string $version,
-        public readonly string $phlexMinServerVersion,
+        public readonly string $phlixMinServerVersion,
         public readonly string $type,
         public readonly string $entry,
         public readonly array $events,
@@ -126,8 +126,8 @@ class Manifest
 
         $name = is_string($data['name'] ?? null) ? (string) $data['name'] : '';
         $version = is_string($data['version'] ?? null) ? (string) $data['version'] : '';
-        $minVersion = is_string($data['phlex_min_server_version'] ?? null)
-            ? (string) $data['phlex_min_server_version']
+        $minVersion = is_string($data['phlix_min_server_version'] ?? null)
+            ? (string) $data['phlix_min_server_version']
             : '';
         $entry = is_string($data['entry'] ?? null) ? (string) $data['entry'] : '';
 
@@ -167,7 +167,7 @@ class Manifest
         return new static(
             name: $name,
             version: $version,
-            phlexMinServerVersion: $minVersion,
+            phlixMinServerVersion: $minVersion,
             type: $rawType,
             entry: $entry,
             events: $events,
@@ -205,7 +205,7 @@ class Manifest
 
     /**
      * Access the original decoded manifest payload. Used by the
-     * `phlex-server` validator (`Phlex\Plugins\Manifest\ManifestSchema`)
+     * `phlix-server` validator (`Phlix\Plugins\Manifest\ManifestSchema`)
      * to feed the JSON Schema engine.
      *
      * @return array<string, mixed>

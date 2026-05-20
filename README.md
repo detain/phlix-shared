@@ -1,22 +1,22 @@
-# detain/phlex-shared
+# detain/phlix-shared
 
 Shared interfaces, DTOs, event names, and protocol types used by both
-[`detain/phlex-server`](https://github.com/detain/phlex) (the media server)
-and `detain/phlex-hub` (the multi-server hub, forthcoming). Composer-installable,
+[`detain/phlix-server`](https://github.com/detain/phlix) (the media server)
+and `detain/phlix-hub` (the multi-server hub, forthcoming). Composer-installable,
 PHP 8.3+, zero I/O — pure interfaces and value objects only.
 
 ## Status
 
 **v0.2.0 — Plugin / Events / Auth / Hub namespaces.** Shipped:
 
-- `Phlex\Shared\Plugin\{LifecycleInterface, Manifest, ManifestType, ManifestValidationError, EventNameMap}`
-- `Phlex\Shared\Events\{AbstractEvent, Playback\*, Library\*, Auth\*}` — 12 event DTOs.
-- `Phlex\Shared\Auth\JwtClaims`
-- `Phlex\Shared\Hub\{ClaimRequest, ClaimResponse, ServerInfoDto, HeartbeatDto}`
-- `Phlex\Shared\Arr\` — namespace reserved for Phase K.1.
+- `Phlix\Shared\Plugin\{LifecycleInterface, Manifest, ManifestType, ManifestValidationError, EventNameMap}`
+- `Phlix\Shared\Events\{AbstractEvent, Playback\*, Library\*, Auth\*}` — 12 event DTOs.
+- `Phlix\Shared\Auth\JwtClaims`
+- `Phlix\Shared\Hub\{ClaimRequest, ClaimResponse, ServerInfoDto, HeartbeatDto}`
+- `Phlix\Shared\Arr\` — namespace reserved for Phase K.1.
 
 The PSR-14 dispatcher wiring (Tukio) and the manifest JSON-Schema
-validator stay in `phlex-server` and consume this package via Composer.
+validator stay in `phlix-server` and consume this package via Composer.
 
 ## Requirements
 
@@ -30,7 +30,7 @@ no Smarty. It is intended to be safely required by any PHP 8.3+ codebase.
 
 ## Installation
 
-Until `detain/phlex-shared` is published to Packagist (planned post-v1.0),
+Until `detain/phlix-shared` is published to Packagist (planned post-v1.0),
 consumers require it via a Composer VCS repository entry:
 
 ```json
@@ -38,11 +38,11 @@ consumers require it via a Composer VCS repository entry:
     "repositories": [
         {
             "type": "vcs",
-            "url": "git@github.com:detain/phlex-shared.git"
+            "url": "git@github.com:detain/phlix-shared.git"
         }
     ],
     "require": {
-        "detain/phlex-shared": "^0.2"
+        "detain/phlix-shared": "^0.2"
     }
 }
 ```
@@ -50,13 +50,13 @@ consumers require it via a Composer VCS repository entry:
 Then:
 
 ```bash
-composer update detain/phlex-shared
+composer update detain/phlix-shared
 ```
 
 ## Related repositories
 
-- [`detain/phlex`](https://github.com/detain/phlex) — the Phlex media server (consumes this package from B.3 onward).
-- `detain/phlex-hub` — the multi-server hub (forthcoming, B.5+).
+- [`detain/phlix`](https://github.com/detain/phlix) — the Phlix media server (consumes this package from B.3 onward).
+- `detain/phlix-hub` — the multi-server hub (forthcoming, B.5+).
 
 ## Development
 
