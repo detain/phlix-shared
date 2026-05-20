@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Hub;
+namespace Phlix\Shared\Hub;
 
 use InvalidArgumentException;
 
@@ -12,7 +12,7 @@ use InvalidArgumentException;
  * Master plan §6 step 2. Shipped in v0.2.0 with the locked field shape;
  * actually wired in Phase C.1 (hub registry) / C.2 (server's HubClient).
  *
- * @package Phlex\Shared\Hub
+ * @package Phlix\Shared\Hub
  * @since 0.2.0
  */
 final class ClaimRequest
@@ -25,7 +25,7 @@ final class ClaimRequest
      * @param list<string>        $hostnameCandidates Hostnames/IPs the server thinks it's reachable at
      *                                                (for relay-or-direct decisions).
      * @param string              $protocolVersion    Spec version — start at "v1"; check via
-     *                                                Accept-Phlex-Protocol header.
+     *                                                Accept-Phlix-Protocol header.
      */
     public function __construct(
         public readonly string $serverName,

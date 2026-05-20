@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Events\Library;
+namespace Phlix\Shared\Events\Library;
 
-use Phlex\Shared\Events\AbstractEvent;
+use Phlix\Shared\Events\AbstractEvent;
 
 /**
  * Fired when a media item is removed from a library.
  *
- * Fired by: cleanup passes inside `\Phlex\Media\Library\ItemRepository`
+ * Fired by: cleanup passes inside `\Phlix\Media\Library\ItemRepository`
  * and `MediaScanner` when the backing file is gone.
  * Typical listener: search-index cleaner, "your file is gone" notifier,
  * watch-history archiver, recommendation cache invalidator.
  *
- * Manifest alias: `phlex.library.item.removed`.
+ * Manifest alias: `phlix.library.item.removed`.
  *
- * @package Phlex\Shared\Events\Library
+ * @package Phlix\Shared\Events\Library
  * @since 0.2.0
  */
 final class MediaItemRemoved extends AbstractEvent

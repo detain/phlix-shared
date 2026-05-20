@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Tests\Hub;
+namespace Phlix\Shared\Tests\Hub;
 
 use InvalidArgumentException;
-use Phlex\Shared\Hub\HeartbeatDto;
+use Phlix\Shared\Hub\HeartbeatDto;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \Phlex\Shared\Hub\HeartbeatDto
+ * @covers \Phlix\Shared\Hub\HeartbeatDto
  */
 final class HeartbeatDtoTest extends TestCase
 {

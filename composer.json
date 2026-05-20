@@ -1,6 +1,6 @@
 {
-    "name": "detain/phlex-shared",
-    "description": "Shared interfaces, DTOs, event names, and protocol types used by both phlex-server and phlex-hub. Composer-installable, PHP 8.3+, zero I/O.",
+    "name": "detain/phlix-shared",
+    "description": "Shared interfaces, DTOs, event names, and protocol types used by both phlix-server and phlix-hub. Composer-installable, PHP 8.3+, zero I/O.",
     "type": "library",
     "license": "MIT",
     "require": {
@@ -18,12 +18,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Phlex\\Shared\\": "src/"
+            "Phlix\\Shared\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Phlex\\Shared\\Tests\\": "tests/"
+            "Phlix\\Shared\\Tests\\": "tests/"
         }
     },
     "minimum-stability": "stable",

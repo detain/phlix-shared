@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Auth;
+namespace Phlix\Shared\Auth;
 
 /**
  * Immutable value object returned by {@see ProviderInterface::authenticate()}.
@@ -11,8 +11,8 @@ namespace Phlex\Shared\Auth;
  * provider. On success, the caller uses userId to issue a local JWT and
  * stores externalId on the user row for future lookups.
  *
- * @package Phlex\Auth
- * @author Phlex Team
+ * @package Phlix\Auth
+ * @author Phlix Team
  * @version 1.0.0
  * @description Result of an external provider authentication attempt.
  *
@@ -41,7 +41,7 @@ final readonly class AuthResult
 {
     /**
      * @param bool                          $success    True when authentication succeeded.
-     * @param string|null                   $userId     Local Phlex user UUID (null on failure).
+     * @param string|null                   $userId     Local Phlix user UUID (null on failure).
      * @param string|null                   $externalId Provider-specific ID (null on failure).
      * @param string|null                   $error      Machine-readable error code (null on success).
      * @param array<string, mixed>         $attributes Arbitrary provider-returned claims

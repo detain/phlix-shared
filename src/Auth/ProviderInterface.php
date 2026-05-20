@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Auth;
+namespace Phlix\Shared\Auth;
 
 /**
  * Interface for external authentication providers.
@@ -10,11 +10,11 @@ namespace Phlex\Shared\Auth;
  * This interface must be implemented by OIDC, LDAP, SAML, and passkey
  * auth providers. It has ZERO I/O dependencies — no HTTP calls, no DB,
  * no filesystem. All I/O is the responsibility of the concrete
- * implementation (typically a thin adapter in phlex-server that
+ * implementation (typically a thin adapter in phlix-server that
  * delegates to an external library).
  *
- * @package Phlex\Auth
- * @author Phlex Team
+ * @package Phlix\Auth
+ * @author Phlix Team
  * @version 1.0.0
  * @description Contract for pluggable external authentication providers.
  *
@@ -86,14 +86,14 @@ interface ProviderInterface
     public function getUserInfo(string $externalId): ?UserInfo;
 
     /**
-     * Link an existing local Phlex user account to this provider.
+     * Link an existing local Phlix user account to this provider.
      *
      * Called when a user who already has a local account chooses to
      * connect it to an external identity (e.g. after first login via OIDC).
      * Implementations may store linkage metadata in $externalIds for later
      * use during authentication.
      *
-     * @param string $localUserId The local Phlex user UUID.
+     * @param string $localUserId The local Phlix user UUID.
      * @param array<string, string> $externalIds Map of provider names to their external IDs.
      * @return void
      */

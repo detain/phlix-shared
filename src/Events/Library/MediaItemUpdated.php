@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Events\Library;
+namespace Phlix\Shared\Events\Library;
 
-use Phlex\Shared\Events\AbstractEvent;
+use Phlix\Shared\Events\AbstractEvent;
 
 /**
  * Fired when an existing media item's metadata changes.
  *
  * Fired by: metadata-refresh writes inside
- * `\Phlex\Media\Library\ItemRepository`.
+ * `\Phlix\Media\Library\ItemRepository`.
  * Typical listener: search-index re-indexer, recommendation cache
  * invalidator, "updated metadata" notifier, integrations that mirror
- * Phlex metadata into another tool (Notion, Airtable, etc.).
+ * Phlix metadata into another tool (Notion, Airtable, etc.).
  *
- * Manifest alias: `phlex.library.item.updated`.
+ * Manifest alias: `phlix.library.item.updated`.
  *
- * @package Phlex\Shared\Events\Library
+ * @package Phlix\Shared\Events\Library
  * @since 0.2.0
  */
 final class MediaItemUpdated extends AbstractEvent

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Arr;
+namespace Phlix\Shared\Arr;
 
 use Psr\Log\LoggerInterface;
 use RuntimeException;
@@ -10,7 +10,7 @@ use RuntimeException;
 /**
  * Prowlarr API client for indexer management.
  *
- * @package Phlex\Shared\Arr
+ * @package Phlix\Shared\Arr
  * @since 0.12.0
  */
 class ProwlarrClient
