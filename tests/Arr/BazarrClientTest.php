@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Tests\Arr;
+namespace Phlix\Shared\Tests\Arr;
 
 use PHPUnit\Framework\TestCase;
-use Phlex\Shared\Arr\BazarrClient;
+use Phlix\Shared\Arr\BazarrClient;
 
 /**
  * Unit tests for BazarrClient.
  *
- * @package Phlex\Tests\Unit\Arr
+ * @package Phlix\Tests\Unit\Arr
  * @since 0.12.0
  */
 class BazarrClientTest extends TestCase

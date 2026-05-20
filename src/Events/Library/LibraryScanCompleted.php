@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Events\Library;
+namespace Phlix\Shared\Events\Library;
 
-use Phlex\Shared\Events\AbstractEvent;
+use Phlix\Shared\Events\AbstractEvent;
 
 /**
  * Fired when a library scan finishes.
  *
- * Fired by: `\Phlex\Media\Library\MediaScanner::scan()` after the
+ * Fired by: `\Phlix\Media\Library\MediaScanner::scan()` after the
  * recursive walk completes, with the final tally of added / updated /
  * removed items and the wall-clock duration.
  * Typical listener: webhook notification framework ("scan complete"),
  * dashboard refreshers, recommendation cache invalidators, "what's new"
  * digest mailers.
  *
- * Manifest alias: `phlex.library.scan.completed`.
+ * Manifest alias: `phlix.library.scan.completed`.
  *
- * @package Phlex\Shared\Events\Library
+ * @package Phlix\Shared\Events\Library
  * @since 0.2.0
  */
 final class LibraryScanCompleted extends AbstractEvent

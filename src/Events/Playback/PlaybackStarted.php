@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Events\Playback;
+namespace Phlix\Shared\Events\Playback;
 
-use Phlex\Shared\Events\AbstractEvent;
+use Phlix\Shared\Events\AbstractEvent;
 
 /**
  * Fired when a user begins playback of a media item.
  *
- * Fired by: `\Phlex\Session\PlaybackController::reportProgress()` the
+ * Fired by: `\Phlix\Session\PlaybackController::reportProgress()` the
  * first time progress is recorded for a `(sessionId, mediaItemId)` pair.
  * Typical listener: scrobble plugins (Trakt, Last.fm), analytics
  * collectors, presence integrations (Discord rich presence), watch-history
  * recorders, parental-control auditors.
  *
- * Manifest alias: `phlex.playback.started`.
+ * Manifest alias: `phlix.playback.started`.
  *
- * @package Phlex\Shared\Events\Playback
+ * @package Phlix\Shared\Events\Playback
  * @since 0.2.0
  */
 final class PlaybackStarted extends AbstractEvent

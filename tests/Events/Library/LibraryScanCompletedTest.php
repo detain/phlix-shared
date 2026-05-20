@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Tests\Events\Library;
+namespace Phlix\Shared\Tests\Events\Library;
 
-use Phlex\Shared\Events\AbstractEvent;
-use Phlex\Shared\Events\Library\LibraryScanCompleted;
-use Phlex\Shared\Events\Library\LibraryScanStarted;
-use Phlex\Shared\Events\Library\MediaItemAdded;
-use Phlex\Shared\Events\Library\MediaItemRemoved;
-use Phlex\Shared\Events\Library\MediaItemUpdated;
+use Phlix\Shared\Events\AbstractEvent;
+use Phlix\Shared\Events\Library\LibraryScanCompleted;
+use Phlix\Shared\Events\Library\LibraryScanStarted;
+use Phlix\Shared\Events\Library\MediaItemAdded;
+use Phlix\Shared\Events\Library\MediaItemRemoved;
+use Phlix\Shared\Events\Library\MediaItemUpdated;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \Phlex\Shared\Events\Library\LibraryScanCompleted
- * @covers \Phlex\Shared\Events\Library\LibraryScanStarted
- * @covers \Phlex\Shared\Events\Library\MediaItemAdded
- * @covers \Phlex\Shared\Events\Library\MediaItemUpdated
- * @covers \Phlex\Shared\Events\Library\MediaItemRemoved
+ * @covers \Phlix\Shared\Events\Library\LibraryScanCompleted
+ * @covers \Phlix\Shared\Events\Library\LibraryScanStarted
+ * @covers \Phlix\Shared\Events\Library\MediaItemAdded
+ * @covers \Phlix\Shared\Events\Library\MediaItemUpdated
+ * @covers \Phlix\Shared\Events\Library\MediaItemRemoved
  */
 final class LibraryScanCompletedTest extends TestCase
 {

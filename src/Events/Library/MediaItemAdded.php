@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Events\Library;
+namespace Phlix\Shared\Events\Library;
 
-use Phlex\Shared\Events\AbstractEvent;
+use Phlix\Shared\Events\AbstractEvent;
 
 /**
  * Fired when a new media item is added to a library.
  *
- * Fired by: `\Phlex\Media\Library\MediaScanner::processFile()` after a
+ * Fired by: `\Phlix\Media\Library\MediaScanner::processFile()` after a
  * previously-unseen file is successfully persisted via `ItemRepository`.
  * Typical listener: metadata-refresh queue worker (kick off TMDb /
  * MusicBrainz lookup), "what's new" notifier, recommendation index
  * updater, intro-detection job queuer.
  *
- * Manifest alias: `phlex.library.item.added`.
+ * Manifest alias: `phlix.library.item.added`.
  *
- * @package Phlex\Shared\Events\Library
+ * @package Phlix\Shared\Events\Library
  * @since 0.2.0
  */
 final class MediaItemAdded extends AbstractEvent

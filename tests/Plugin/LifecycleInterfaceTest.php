@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Tests\Plugin;
+namespace Phlix\Shared\Tests\Plugin;
 
-use Phlex\Shared\Plugin\LifecycleInterface;
+use Phlix\Shared\Plugin\LifecycleInterface;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 use ReflectionClass;

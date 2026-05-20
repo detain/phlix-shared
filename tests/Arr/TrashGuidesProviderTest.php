@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Tests\Arr;
+namespace Phlix\Shared\Tests\Arr;
 
 use PHPUnit\Framework\TestCase;
-use Phlex\Shared\Arr\TrashGuidesProvider;
+use Phlix\Shared\Arr\TrashGuidesProvider;
 use Psr\Log\LoggerInterface;
 
 /**
  * Unit tests for TrashGuidesProvider.
  *
- * @package Phlex\Tests\Unit\Arr
+ * @package Phlix\Tests\Unit\Arr
  * @since 0.12.0
  */
 class TrashGuidesProviderTest extends TestCase
@@ -34,7 +34,7 @@ class TrashGuidesProviderTest extends TestCase
 
     public function testSyncResultConstructor(): void
     {
-        $result = new \Phlex\Shared\Arr\SyncResult(
+        $result = new \Phlix\Shared\Arr\SyncResult(
             customFormatsAdded: 5,
             customFormatsUpdated: 2,
             qualityProfilesAdded: 1,
@@ -52,7 +52,7 @@ class TrashGuidesProviderTest extends TestCase
 
     public function testSyncResultGetTotalChanges(): void
     {
-        $result = new \Phlex\Shared\Arr\SyncResult(
+        $result = new \Phlix\Shared\Arr\SyncResult(
             customFormatsAdded: 5,
             customFormatsUpdated: 2,
             qualityProfilesAdded: 1,
@@ -66,7 +66,7 @@ class TrashGuidesProviderTest extends TestCase
 
     public function testSyncResultGetTotalCustomFormatsChanged(): void
     {
-        $result = new \Phlex\Shared\Arr\SyncResult(
+        $result = new \Phlix\Shared\Arr\SyncResult(
             customFormatsAdded: 5,
             customFormatsUpdated: 2,
             qualityProfilesAdded: 0,
@@ -80,7 +80,7 @@ class TrashGuidesProviderTest extends TestCase
 
     public function testSyncResultGetTotalQualityProfilesChanged(): void
     {
-        $result = new \Phlex\Shared\Arr\SyncResult(
+        $result = new \Phlix\Shared\Arr\SyncResult(
             customFormatsAdded: 0,
             customFormatsUpdated: 0,
             qualityProfilesAdded: 3,
@@ -94,7 +94,7 @@ class TrashGuidesProviderTest extends TestCase
 
     public function testSyncResultIsEmptyWhenNoChanges(): void
     {
-        $result = new \Phlex\Shared\Arr\SyncResult(
+        $result = new \Phlix\Shared\Arr\SyncResult(
             customFormatsAdded: 0,
             customFormatsUpdated: 0,
             qualityProfilesAdded: 0,
@@ -108,7 +108,7 @@ class TrashGuidesProviderTest extends TestCase
 
     public function testSyncResultIsNotEmptyWhenChanges(): void
     {
-        $result = new \Phlex\Shared\Arr\SyncResult(
+        $result = new \Phlix\Shared\Arr\SyncResult(
             customFormatsAdded: 1,
             customFormatsUpdated: 0,
             qualityProfilesAdded: 0,
@@ -123,7 +123,7 @@ class TrashGuidesProviderTest extends TestCase
     public function testSyncResultToArray(): void
     {
         $syncedAt = new \DateTimeImmutable('2024-01-15 12:00:00');
-        $result = new \Phlex\Shared\Arr\SyncResult(
+        $result = new \Phlix\Shared\Arr\SyncResult(
             customFormatsAdded: 5,
             customFormatsUpdated: 2,
             qualityProfilesAdded: 1,

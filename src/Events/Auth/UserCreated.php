@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Events\Auth;
+namespace Phlix\Shared\Events\Auth;
 
-use Phlex\Shared\Events\AbstractEvent;
+use Phlix\Shared\Events\AbstractEvent;
 
 /**
  * Fired immediately after a new user account is created.
  *
- * Fired by: `\Phlex\Auth\AuthManager::register()` after the user row is
+ * Fired by: `\Phlix\Auth\AuthManager::register()` after the user row is
  * persisted and before the response JWT is generated.
  * Typical listener: welcome-email sender, audit-log writer, default-
  * library-permissions bootstrap, hub-side "user came from server X"
  * mirror.
  *
- * Manifest alias: `phlex.user.created`.
+ * Manifest alias: `phlix.user.created`.
  *
- * @package Phlex\Shared\Events\Auth
+ * @package Phlix\Shared\Events\Auth
  * @since 0.2.0
  */
 final class UserCreated extends AbstractEvent

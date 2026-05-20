@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ruleset name="phlex-shared">
-    <description>PSR-12 coding standard for detain/phlex-shared.</description>
+<ruleset name="phlix-shared">
+    <description>PSR-12 coding standard for detain/phlix-shared.</description>
 
     <file>src</file>
 

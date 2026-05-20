@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Phlex\Shared\Arr;
+namespace Phlix\Shared\Arr;
 
 use Psr\Log\LoggerInterface;
 
 /**
  * Factory for creating Sonarr/Radarr API clients from config.
  *
- * @package Phlex\Shared\Arr
+ * @package Phlix\Shared\Arr
  * @since 0.12.0
  */
 class ArrClientFactory
