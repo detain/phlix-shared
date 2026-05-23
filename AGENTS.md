@@ -15,6 +15,18 @@ interfaces and value objects**. Keep it that way.
   green from day 1. No baselines.
 - **Zero I/O.** No filesystem reads, no network, no DB, no logging
   side-effects. Interfaces and DTOs only.
+  > **Exception — `Arr/` namespace.** The eight classes under `src/Arr/`
+  > (`ArrClientInterface`, `ArrClientFactory`, `SonarrClient`,
+  > `RadarrClient`, `ProwlarrClient`, `BazarrClient`, `SyncResult`,
+  > `TrashGuidesProvider`) perform real HTTP/cURL calls. This is the sole
+  > I/O exception to the zero-I/O policy. Both `phlix-server` and the
+  > `phlix-hub` daemon need Sonarr/Radarr/Prowlarr/Bazarr integration; keeping
+  > it in `phlix-shared` avoids duplicating HTTP wiring across repos. A future
+  > refactor may extract these into a dedicated `phlix-arr-client` package.
+  > See [`arr-clients.md`](https://github.com/detain/phlix-shared/blob/main/AGENTS.md)
+  > in this repo and the full developer guide at
+  > [`docs/dev/arr-clients.md`](https://github.com/detain/phlix-docs/blob/main/docs/dev/arr-clients.md)
+  > in `detain/phlix-docs`.
 - **Zero Workerman dependency.** This package must remain consumable
   outside the Workerman runtime.
 - **Framework-neutral PSRs only.** `psr/container` and
