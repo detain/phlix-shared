@@ -6,6 +6,23 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Fixed
+- `Phlix\Shared\Arr\{RadarrClient,SonarrClient,BazarrClient,ProwlarrClient}::get()`
+  now returns `[]` on an empty HTTP response body instead of throwing
+  `RuntimeException('Invalid JSON response from …')`. Matches the existing
+  `post()` / `put()` / `delete()` behaviour. *arr APIs legitimately return
+  `200 OK` with an empty body for collection endpoints when no rows exist
+  (e.g. `GET /api/v3/customformat` on a fresh Radarr install), which used
+  to break `CustomFormatSyncer` and any other consumer of `getCustomFormats()`,
+  `getMovies()`, `getQueue()`, etc.
+
+### Changed
+- `Phlix\Shared\Plugin\EventNameMap::toAlias()` now caches the inverted
+  alias map in a private static property instead of calling `array_flip()`
+  on every invocation. Behaviour is unchanged; the optimisation matters for
+  callers that resolve aliases in tight loops (doc generators, debug
+  serialisers).
+
 ## [0.4.0] — 2026-05-18
 
 ### Added

@@ -153,6 +153,10 @@ class ProwlarrClient
             throw new RuntimeException('Prowlarr API error: HTTP ' . $httpCode);
         }
 
+        if ($responseBody === '') {
+            return [];
+        }
+
         /** @var array<mixed, mixed> */
         $decoded = json_decode($responseBody, true);
         if (!is_array($decoded)) {
