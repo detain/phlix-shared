@@ -273,6 +273,10 @@ class RadarrClient implements ArrClientInterface
             throw new RuntimeException('Radarr API error: HTTP ' . $httpCode);
         }
 
+        if ($responseBody === '') {
+            return [];
+        }
+
         /** @var array<mixed, mixed> */
         $decoded = json_decode($responseBody, true);
         if (!is_array($decoded)) {

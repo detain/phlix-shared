@@ -58,6 +58,14 @@ final class EventNameMap
     ];
 
     /**
+     * Lazily-computed inverse of ALIAS_TO_FQCN. Cached so reverse lookups
+     * don't allocate a fresh flipped array on every call.
+     *
+     * @var array<class-string, string>|null
+     */
+    private static ?array $fqcnToAlias = null;
+
+    /**
      * Prevent instantiation — this class is a static lookup table only.
      */
     private function __construct()
@@ -90,8 +98,12 @@ final class EventNameMap
      */
     public static function toAlias(string $fqcn): ?string
     {
-        $flipped = array_flip(self::ALIAS_TO_FQCN);
-        return $flipped[$fqcn] ?? null;
+        if (self::$fqcnToAlias === null) {
+            /** @var array<class-string, string> $flipped */
+            $flipped = array_flip(self::ALIAS_TO_FQCN);
+            self::$fqcnToAlias = $flipped;
+        }
+        return self::$fqcnToAlias[$fqcn] ?? null;
     }
 
     /**

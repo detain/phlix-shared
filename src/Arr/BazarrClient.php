@@ -161,6 +161,10 @@ class BazarrClient
             throw new RuntimeException('Bazarr API error: HTTP ' . $httpCode);
         }
 
+        if ($responseBody === '') {
+            return [];
+        }
+
         /** @var array<mixed, mixed> */
         $decoded = json_decode($responseBody, true);
         if (!is_array($decoded)) {
