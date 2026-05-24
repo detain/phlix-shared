@@ -6,6 +6,18 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-05-24
+
+### Added
+- `Phlix\Shared\Relay\RelayFrameType` — PHP 8.3 backed enum with 8 frame type
+  constants (HELLO=0x01 through ERROR=0x08) for the multiplexed WS relay
+  protocol.
+- `Phlix\Shared\Relay\RelayWireCodecInterface` — interface for encode/decode
+  operations on relay frames. Defines `encode()`, `encodeHello()`,
+  `encodeHelloAck()`, and `decode()`.
+- `Phlix\Shared\Relay\RelayFrame` — immutable value object representing a
+  relay frame: `type (RelayFrameType)`, `seq (int)`, `payload (string)`.
+
 ### Fixed
 - `Phlix\Shared\Arr\{RadarrClient,SonarrClient,BazarrClient,ProwlarrClient}::get()`
   now returns `[]` on an empty HTTP response body instead of throwing
