@@ -11,7 +11,7 @@ use RuntimeException;
  * Bazarr API client for subtitle management.
  *
  * @package Phlix\Shared\Arr
- * @since 0.12.0
+ * @since 0.4.0
  */
 class BazarrClient
 {

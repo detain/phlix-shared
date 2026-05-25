@@ -10,7 +10,7 @@ use Psr\Log\LoggerInterface;
  * Factory for creating Sonarr/Radarr API clients from config.
  *
  * @package Phlix\Shared\Arr
- * @since 0.12.0
+ * @since 0.4.0
  */
 class ArrClientFactory
 {

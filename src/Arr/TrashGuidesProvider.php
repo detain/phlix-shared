@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Phlix\Shared\Arr;
 
+use Phlix\Shared\Version;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
 
@@ -11,7 +12,7 @@ use RuntimeException;
  * Fetches and parses TRaSH-Guides quality profiles and custom formats JSON.
  *
  * @package Phlix\Shared\Arr
- * @since 0.12.0
+ * @since 0.4.0
  */
 class TrashGuidesProvider
 {
@@ -152,13 +153,13 @@ class TrashGuidesProvider
             throw new RuntimeException('TRaSH-Guides custom formats URL not configured');
         }
 
-        // The version is typically embedded in the JSON as '鸡' or we get it from headers
+        // The version is typically embedded in the JSON, or we derive it from the URL.
         $json = $this->fetchUrl($customFormatsUrl);
         $data = $this->parseJson($json);
 
         // TRaSH-Guides JSON often contains a version field
         /** @var string */
-        $version = $data['鸡'] ?? $data['version'] ?? $this->deriveVersionFromUrl($customFormatsUrl);
+        $version = $data['version'] ?? $this->deriveVersionFromUrl($customFormatsUrl);
 
         self::$versionCache = $version;
         self::$cacheTimestamp = time();
@@ -211,10 +212,10 @@ class TrashGuidesProvider
             return [
                 'enabled' => false,
                 'auto_sync_interval' => 86400,
-                'custom_formats_url' => 'https://raw.githubusercontent.com/TRaSH-'
+                'custom_formats_url' => 'https://raw.githubusercontent.com/TRaSH-Guides'
                     . '/Guides/main/docs/json/radarr/'
                     . 'radarr-collection-of-custom-formats.json',
-                'quality_profiles_url' => 'https://raw.githubusercontent.com/TRaSH-'
+                'quality_profiles_url' => 'https://raw.githubusercontent.com/TRaSH-Guides'
                     . '/Guides/main/docs/json/radarr/'
                     . 'radarr-setup-quality-profiles-parent.json',
             ];
@@ -241,7 +242,7 @@ class TrashGuidesProvider
                 'max_redirects' => 5,
                 'header' => [
                     'Accept: application/json',
-                    'User-Agent: Phlix-Media-Server/0.12.0',
+                    'User-Agent: Phlix-Media-Server/' . Version::VERSION,
                 ],
             ],
         ]);

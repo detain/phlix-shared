@@ -11,7 +11,7 @@ use RuntimeException;
  * Radarr v3 API client for movie management.
  *
  * @package Phlix\Shared\Arr
- * @since 0.12.0
+ * @since 0.4.0
  */
 class RadarrClient implements ArrClientInterface
 {
@@ -204,7 +204,7 @@ class RadarrClient implements ArrClientInterface
     public function triggerDownload(int $movieId): bool
     {
         try {
-            $this->post('/api/v3/release/' . $movieId, []);
+            $this->post('/api/v3/command', ['name' => 'MoviesSearch', 'movieIds' => [$movieId]]);
             return true;
         } catch (RuntimeException $e) {
             $this->logger?->warning('Radarr trigger download failed: ' . $e->getMessage());

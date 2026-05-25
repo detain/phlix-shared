@@ -11,7 +11,7 @@ use Phlix\Shared\Arr\RadarrClient;
  * Unit tests for RadarrClient.
  *
  * @package Phlix\Tests\Unit\Arr
- * @since 0.12.0
+ * @since 0.4.0
  */
 class RadarrClientTest extends TestCase
 {
@@ -139,7 +139,7 @@ class RadarrClientTest extends TestCase
         $this->assertEquals('/api/v3/movie', $this->mockableClient->getLastPathCalled());
     }
 
-    public function testTriggerDownloadSendsPost(): void
+    public function testTriggerDownloadSendsMoviesSearchCommand(): void
     {
         $this->mockableClient->setMockResponse(['result' => true]);
 
@@ -147,7 +147,11 @@ class RadarrClientTest extends TestCase
 
         $this->assertTrue($result);
         $this->assertEquals('post', $this->mockableClient->getLastMethodCalled());
-        $this->assertEquals('/api/v3/release/100', $this->mockableClient->getLastPathCalled());
+        $this->assertEquals('/api/v3/command', $this->mockableClient->getLastPathCalled());
+        $this->assertEquals(
+            ['name' => 'MoviesSearch', 'movieIds' => [100]],
+            $this->mockableClient->getLastBodyCalled()
+        );
     }
 
     public function testTestConnectionReturnsTrueOnSuccess(): void
@@ -197,6 +201,8 @@ class MockableRadarrClient extends RadarrClient
     private bool $mockThrowsException = false;
     private ?string $lastMethodCalled = null;
     private ?string $lastPathCalled = null;
+    /** @var array<string, mixed>|null */
+    private ?array $lastBodyCalled = null;
 
     public function setMockResponse(mixed $response): void
     {
@@ -212,6 +218,14 @@ class MockableRadarrClient extends RadarrClient
     public function getLastPathCalled(): ?string
     {
         return $this->lastPathCalled;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function getLastBodyCalled(): ?array
+    {
+        return $this->lastBodyCalled;
     }
 
     protected function get(string $path): array
@@ -230,6 +244,7 @@ class MockableRadarrClient extends RadarrClient
     {
         $this->lastMethodCalled = 'post';
         $this->lastPathCalled = $path;
+        $this->lastBodyCalled = $body;
 
         if ($this->mockThrowsException && $this->mockResponse instanceof \Throwable) {
             throw $this->mockResponse;
