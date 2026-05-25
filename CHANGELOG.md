@@ -4,7 +4,7 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.5.1] - 2026-05-25
 
 ### Changed
 - **Relay protocol (multi-client / "relay-mux"):** the 4-byte leading field of
