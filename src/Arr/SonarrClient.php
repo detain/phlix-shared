@@ -11,7 +11,7 @@ use RuntimeException;
  * Sonarr v3 API client for TV series management.
  *
  * @package Phlix\Shared\Arr
- * @since 0.12.0
+ * @since 0.4.0
  */
 class SonarrClient implements ArrClientInterface
 {
@@ -152,7 +152,7 @@ class SonarrClient implements ArrClientInterface
     public function triggerDownload(int $episodeId): bool
     {
         try {
-            $this->post('/api/v3/release/' . $episodeId, []);
+            $this->post('/api/v3/command', ['name' => 'EpisodeSearch', 'episodeIds' => [$episodeId]]);
             return true;
         } catch (RuntimeException $e) {
             $this->logger?->warning('Sonarr trigger download failed: ' . $e->getMessage());

@@ -12,10 +12,43 @@ use Psr\Log\LoggerInterface;
  * Unit tests for TrashGuidesProvider.
  *
  * @package Phlix\Tests\Unit\Arr
- * @since 0.12.0
+ * @since 0.4.0
  */
 class TrashGuidesProviderTest extends TestCase
 {
+    public function testDefaultConfigUrlsUseTrashGuidesOrg(): void
+    {
+        $provider = new TrashGuidesProvider();
+
+        $reflection = new \ReflectionClass($provider);
+        $loadConfig = $reflection->getMethod('loadConfig');
+        $loadConfig->setAccessible(true);
+
+        /** @var array<string, mixed> $config */
+        $config = $loadConfig->invoke($provider);
+
+        $this->assertIsString($config['custom_formats_url']);
+        $this->assertIsString($config['quality_profiles_url']);
+
+        // The org path segment must be `TRaSH-Guides/Guides`, never the
+        // malformed `TRaSH-/Guides`.
+        $this->assertStringContainsString('TRaSH-Guides/Guides', $config['custom_formats_url']);
+        $this->assertStringContainsString('TRaSH-Guides/Guides', $config['quality_profiles_url']);
+        $this->assertStringNotContainsString('TRaSH-/Guides', $config['custom_formats_url']);
+        $this->assertStringNotContainsString('TRaSH-/Guides', $config['quality_profiles_url']);
+
+        $this->assertSame(
+            'https://raw.githubusercontent.com/TRaSH-Guides/Guides/main/docs/json/radarr/'
+                . 'radarr-collection-of-custom-formats.json',
+            $config['custom_formats_url']
+        );
+        $this->assertSame(
+            'https://raw.githubusercontent.com/TRaSH-Guides/Guides/main/docs/json/radarr/'
+                . 'radarr-setup-quality-profiles-parent.json',
+            $config['quality_profiles_url']
+        );
+    }
+
     public function testConstructorAcceptsLogger(): void
     {
         // Test that logger parameter is accepted without error

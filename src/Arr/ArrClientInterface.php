@@ -8,7 +8,7 @@ namespace Phlix\Shared\Arr;
  * Common interface for Sonarr/Radarr API clients.
  *
  * @package Phlix\Shared\Arr
- * @since 0.12.0
+ * @since 0.4.0
  */
 interface ArrClientInterface
 {

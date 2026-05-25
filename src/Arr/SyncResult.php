@@ -10,7 +10,7 @@ use DateTimeImmutable;
  * Value object representing the result of a TRaSH-Guides sync operation.
  *
  * @package Phlix\Shared\Arr
- * @since 0.12.0
+ * @since 0.4.0
  */
 class SyncResult
 {

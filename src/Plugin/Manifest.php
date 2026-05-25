@@ -196,6 +196,11 @@ class Manifest
     /**
      * Serialise the manifest back to its original decoded shape.
      *
+     * Note: this returns the original decoded payload (`$this->rawData`)
+     * verbatim — it is NOT a re-serialisation of the mutated typed
+     * properties. Any changes made to typed props after construction are
+     * not reflected here.
+     *
      * @return array<string, mixed>
      */
     public function toArray(): array

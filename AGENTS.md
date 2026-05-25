@@ -23,9 +23,14 @@ interfaces and value objects**. Keep it that way.
   > `phlix-hub` daemon need Sonarr/Radarr/Prowlarr/Bazarr integration; keeping
   > it in `phlix-shared` avoids duplicating HTTP wiring across repos. A future
   > refactor may extract these into a dedicated `phlix-arr-client` package.
-  > See [`arr-clients.md`](https://github.com/detain/phlix-shared/blob/main/AGENTS.md)
-  > in this repo and the full developer guide at
-  > [`docs/dev/arr-clients.md`](https://github.com/detain/phlix-docs/blob/main/docs/dev/arr-clients.md)
+  > Note: `TrashGuidesProvider` additionally performs a filesystem
+  > `include`/read (it looks for an optional `config/trash_guides.php`
+  > override), so this exception also covers local file reads — not just
+  > HTTP/cURL.
+  > See the full developer guide
+  > [`arr-clients.md`](../phlix-docs/docs/dev/arr-clients.md)
+  > (also published at
+  > [`docs/dev/arr-clients.md`](https://github.com/detain/phlix-docs/blob/main/docs/dev/arr-clients.md))
   > in `detain/phlix-docs`.
 - **Zero Workerman dependency.** This package must remain consumable
   outside the Workerman runtime.
