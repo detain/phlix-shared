@@ -6,6 +6,23 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Changed
+- **Relay protocol (multi-client / "relay-mux"):** the 4-byte leading field of
+  a binary relay frame (`RelayFrame::$seq`) is now defined as a per-client
+  **channel id (uint32)** for the client-scoped frame types
+  (`CLIENT_CONNECT`, `CLIENT_DISCONNECT`, `DATA`) instead of a per-tunnel
+  sequence counter. The tunnel runs over a single reliable WS/TCP stream, so
+  no ack/reordering counter is needed and the field is repurposed for
+  multiplexing. Tunnel-scoped frames (`HEARTBEAT`, `HELLO_ACK`,
+  `DISCONNECTED`, `ERROR`) use channel 0. The binary header layout is
+  unchanged — only the semantics of the leading field. This lets the hub and
+  server demultiplex multiple concurrent remote clients over one tunnel, fixing
+  the previous single-active-client cross-talk limitation. Pre-release change,
+  no backward compatibility (no flags/shims).
+- `Phlix\Shared\Relay\RelayFrame::channelId()` — new accessor that reads the
+  `seq` field as a channel id. Docblocks on `RelayFrame`, `RelayFrameType`, and
+  `RelayWireCodecInterface` updated to define the channel-multiplexing contract.
+
 ## [0.5.0] — 2026-05-24
 
 ### Added

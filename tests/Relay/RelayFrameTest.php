@@ -30,6 +30,27 @@ final class RelayFrameTest extends TestCase
         $this->assertSame(0, $frame->seq);
     }
 
+    public function test_channel_id_aliases_seq_for_client_scoped_frames(): void
+    {
+        // For client-scoped frames the leading field IS the channel id.
+        $data = new RelayFrame(RelayFrameType::DATA, 7, 'payload');
+        $this->assertSame(7, $data->channelId());
+        $this->assertSame($data->seq, $data->channelId());
+
+        $connect = new RelayFrame(RelayFrameType::CLIENT_CONNECT, 3, '{"client_id":"c"}');
+        $this->assertSame(3, $connect->channelId());
+
+        $disconnect = new RelayFrame(RelayFrameType::CLIENT_DISCONNECT, 3, '{"client_id":"c"}');
+        $this->assertSame(3, $disconnect->channelId());
+    }
+
+    public function test_channel_id_is_zero_for_tunnel_scoped_frames(): void
+    {
+        $this->assertSame(0, (new RelayFrame(RelayFrameType::HEARTBEAT, 0, ''))->channelId());
+        $this->assertSame(0, (new RelayFrame(RelayFrameType::DISCONNECTED, 0, '{}'))->channelId());
+        $this->assertSame(0, (new RelayFrame(RelayFrameType::ERROR, 0, '{}'))->channelId());
+    }
+
     /**
      * @return array<array{RelayFrameType::*, bool}>
      */

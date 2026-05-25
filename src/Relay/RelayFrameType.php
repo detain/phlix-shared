@@ -11,19 +11,29 @@ use InvalidArgumentException;
  *
  * Wire format (all integers are big-endian):
  *
- *   [4-byte sequence (uint32)][1-byte frame type][2-byte payload length (uint16)][N payload bytes]
+ *   [4-byte channel/seq (uint32)][1-byte frame type][2-byte payload length (uint16)][N payload bytes]
  *
  * Maximum frame payload: 65535 bytes.
  *
+ * ## Channel multiplexing (the 4-byte field)
+ *
+ * The tunnel is a single reliable WS/TCP stream, so the leading 4-byte field
+ * is NOT an ack/sequence counter. For client-scoped frames it carries a
+ * per-client **channel id (uint32)** so multiple concurrent clients are
+ * demultiplexed over one tunnel; tunnel-scoped frames use channel 0. See
+ * {@see RelayFrame} for the full description.
+ *
  * Types:
- *   HELLO            = 0x01 — S→H: JSON text sent immediately after WS upgrade
- *   HELLO_ACK        = 0x02 — H→S: JSON text response to HELLO
- *   CLIENT_CONNECT   = 0x03 — H→S: notification that a client connected to the tunnel
- *   CLIENT_DISCONNECT= 0x04 — H→S: notification that a client disconnected from the tunnel
- *   DATA             = 0x05 — S↔H↔C: raw bytes forwarded verbatim
- *   HEARTBEAT        = 0x06 — either→either: keep-alive probe/ack
- *   DISCONNECTED      = 0x07 — H→C: server tunnel closed, client should reconnect
- *   ERROR            = 0x08 — H↔any: error condition
+ *   HELLO            = 0x01 — S→H: JSON text sent immediately after WS upgrade (channel 0)
+ *   HELLO_ACK        = 0x02 — H→S: JSON text response to HELLO (channel 0)
+ *   CLIENT_CONNECT   = 0x03 — H→S: a client connected; channel = the client's channel id;
+ *                                  payload {"client_id","session_id"} (observability only)
+ *   CLIENT_DISCONNECT= 0x04 — H→S: a client disconnected; channel = that client's channel id;
+ *                                  payload {"client_id"} (observability only)
+ *   DATA             = 0x05 — S↔H↔C: raw bytes forwarded verbatim; channel = owning client
+ *   HEARTBEAT        = 0x06 — either→either: keep-alive probe/ack (channel 0)
+ *   DISCONNECTED     = 0x07 — H→C: server tunnel closed, client should reconnect (channel 0)
+ *   ERROR            = 0x08 — H↔any: error condition (channel 0)
  *
  * @package Phlix\Shared\Relay
  * @since 0.5.0

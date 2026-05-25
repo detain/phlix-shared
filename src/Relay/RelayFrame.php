@@ -11,6 +11,31 @@ namespace Phlix\Shared\Relay;
  * The HELLO/HELLO_ACK handshake uses JSON text and is handled separately
  * by the codec's encodeHello / encodeHelloAck methods.
  *
+ * ## The `seq` field carries a per-client CHANNEL ID (multiplexing)
+ *
+ * The relay tunnel runs over a single reliable WebSocket/TCP connection, so
+ * the 4-byte `seq` field is NOT used for acknowledgements or reordering.
+ * Instead it is repurposed as a per-client **channel id (uint32)** for the
+ * client-scoped frame types, so multiple concurrent clients can be
+ * demultiplexed over one tunnel:
+ *
+ *   - CLIENT_CONNECT    — `seq` = the channel id the hub assigns to this client.
+ *   - CLIENT_DISCONNECT — `seq` = the channel id of the client that left.
+ *   - DATA              — `seq` = the channel id the bytes belong to (both
+ *                          server→hub→client and client→hub→server directions).
+ *
+ * Tunnel-scoped frames carry no channel and use channel id 0:
+ *
+ *   - HEARTBEAT, HELLO_ACK, DISCONNECTED, ERROR — `seq` = 0.
+ *
+ * The hub allocates channel ids (1, 2, 3, …) at CLIENT_CONNECT time and the
+ * server maps each channel to a local connection. The JSON `client_id` /
+ * `session_id` payload on CLIENT_CONNECT / CLIENT_DISCONNECT is retained for
+ * logging/observability only — routing is keyed on the channel id.
+ *
+ * Use {@see RelayFrame::channelId()} when reading the field as a channel id;
+ * it is exactly the value of {@see RelayFrame::$seq}.
+ *
  * @package Phlix\Shared\Relay
  * @since 0.5.0
  */
@@ -18,7 +43,10 @@ final readonly class RelayFrame
 {
     /**
      * @param RelayFrameType $type    Frame type.
-     * @param int            $seq    32-bit unsigned sequence number.
+     * @param int            $seq     32-bit unsigned value. For client-scoped
+     *                                frames (CLIENT_CONNECT, CLIENT_DISCONNECT,
+     *                                DATA) this is the per-client channel id;
+     *                                tunnel-scoped frames use 0. See class doc.
      * @param string         $payload Raw byte payload (may be empty).
      */
     public function __construct(
@@ -26,6 +54,22 @@ final readonly class RelayFrame
         public int $seq,
         public string $payload,
     ) {
+    }
+
+    /**
+     * Returns the per-client channel id carried by this frame.
+     *
+     * The channel id is stored in the {@see RelayFrame::$seq} field (the tunnel
+     * is reliable, so `seq` is not an ack/sequence counter — see class doc). For
+     * tunnel-scoped frames (HEARTBEAT, HELLO_ACK, DISCONNECTED, ERROR) this is 0.
+     *
+     * @return int Channel id (uint32), or 0 for tunnel-scoped frames.
+     *
+     * @since 0.5.0
+     */
+    public function channelId(): int
+    {
+        return $this->seq;
     }
 
     /**
