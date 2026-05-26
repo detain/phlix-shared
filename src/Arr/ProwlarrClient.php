@@ -59,6 +59,7 @@ class ProwlarrClient
      */
     public function getIndexerStats(int $indexerId): array
     {
+        /** @var array<string, mixed> */
         return $this->get('/api/v1/indexer/' . $indexerId);
     }
 
@@ -132,7 +133,7 @@ class ProwlarrClient
 
         /** @var string|false */
         $responseBody = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $curlErrno = curl_errno($ch);
         $curlError = curl_error($ch);
         curl_close($ch);
@@ -157,7 +158,6 @@ class ProwlarrClient
             return [];
         }
 
-        /** @var array<mixed, mixed> */
         $decoded = json_decode($responseBody, true);
         if (!is_array($decoded)) {
             throw new RuntimeException('Invalid JSON response from Prowlarr');
@@ -200,7 +200,7 @@ class ProwlarrClient
 
         /** @var string|false */
         $responseBody = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $curlErrno = curl_errno($ch);
         $curlError = curl_error($ch);
         curl_close($ch);
@@ -225,7 +225,6 @@ class ProwlarrClient
             return [];
         }
 
-        /** @var array<mixed, mixed> */
         $decoded = json_decode($responseBody, true);
         if (!is_array($decoded)) {
             throw new RuntimeException('Invalid JSON response from Prowlarr');

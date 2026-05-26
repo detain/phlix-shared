@@ -69,6 +69,7 @@ class SonarrClient implements ArrClientInterface
      */
     public function getSeriesById(int $sonarrSeriesId): array
     {
+        /** @var array<string, mixed> */
         return $this->get('/api/v3/series/' . $sonarrSeriesId);
     }
 
@@ -80,6 +81,7 @@ class SonarrClient implements ArrClientInterface
      */
     public function getEpisodeFile(int $episodeId): array
     {
+        /** @var array<string, mixed> */
         return $this->get('/api/v3/episodefile/' . $episodeId);
     }
 
@@ -140,6 +142,7 @@ class SonarrClient implements ArrClientInterface
             'monitor' => $monitor ?? 'all',
         ];
 
+        /** @var array<string, mixed> */
         return $this->post('/api/v3/series', $payload);
     }
 
@@ -200,7 +203,7 @@ class SonarrClient implements ArrClientInterface
 
         /** @var string|false */
         $responseBody = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $curlErrno = curl_errno($ch);
         $curlError = curl_error($ch);
         curl_close($ch);
@@ -225,7 +228,6 @@ class SonarrClient implements ArrClientInterface
             return [];
         }
 
-        /** @var array<mixed, mixed> */
         $decoded = json_decode($responseBody, true);
         if (!is_array($decoded)) {
             throw new RuntimeException('Invalid JSON response from Sonarr');
@@ -268,7 +270,7 @@ class SonarrClient implements ArrClientInterface
 
         /** @var string|false */
         $responseBody = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $curlErrno = curl_errno($ch);
         $curlError = curl_error($ch);
         curl_close($ch);
@@ -293,7 +295,6 @@ class SonarrClient implements ArrClientInterface
             return [];
         }
 
-        /** @var array<mixed, mixed> */
         $decoded = json_decode($responseBody, true);
         if (!is_array($decoded)) {
             throw new RuntimeException('Invalid JSON response from Sonarr');

@@ -69,6 +69,7 @@ class RadarrClient implements ArrClientInterface
      */
     public function getMovieById(int $radarrId): array
     {
+        /** @var array<string, mixed> */
         return $this->get('/api/v3/movie/' . $radarrId);
     }
 
@@ -101,6 +102,7 @@ class RadarrClient implements ArrClientInterface
     public function createCustomFormat(array $payload): int
     {
         $response = $this->post('/api/v3/customformat', $payload);
+        /** @psalm-suppress MixedAssignment $response is array<mixed, mixed> from JSON */
         $id = $response['id'] ?? null;
 
         return is_numeric($id) ? (int) $id : 0;
@@ -140,6 +142,7 @@ class RadarrClient implements ArrClientInterface
     public function createQualityProfile(array $payload): int
     {
         $response = $this->post('/api/v3/qualityprofile', $payload);
+        /** @psalm-suppress MixedAssignment $response is array<mixed, mixed> from JSON */
         $id = $response['id'] ?? null;
 
         return is_numeric($id) ? (int) $id : 0;
@@ -192,6 +195,7 @@ class RadarrClient implements ArrClientInterface
             ],
         ];
 
+        /** @var array<string, mixed> */
         return $this->post('/api/v3/movie', $payload);
     }
 
@@ -252,7 +256,7 @@ class RadarrClient implements ArrClientInterface
 
         /** @var string|false */
         $responseBody = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $curlErrno = curl_errno($ch);
         $curlError = curl_error($ch);
         curl_close($ch);
@@ -277,7 +281,6 @@ class RadarrClient implements ArrClientInterface
             return [];
         }
 
-        /** @var array<mixed, mixed> */
         $decoded = json_decode($responseBody, true);
         if (!is_array($decoded)) {
             throw new RuntimeException('Invalid JSON response from Radarr');
@@ -320,7 +323,7 @@ class RadarrClient implements ArrClientInterface
 
         /** @var string|false */
         $responseBody = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $curlErrno = curl_errno($ch);
         $curlError = curl_error($ch);
         curl_close($ch);
@@ -345,7 +348,6 @@ class RadarrClient implements ArrClientInterface
             return [];
         }
 
-        /** @var array<mixed, mixed> */
         $decoded = json_decode($responseBody, true);
         if (!is_array($decoded)) {
             throw new RuntimeException('Invalid JSON response from Radarr');
@@ -388,7 +390,7 @@ class RadarrClient implements ArrClientInterface
 
         /** @var string|false */
         $responseBody = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $curlErrno = curl_errno($ch);
         $curlError = curl_error($ch);
         curl_close($ch);
@@ -413,7 +415,6 @@ class RadarrClient implements ArrClientInterface
             return [];
         }
 
-        /** @var array<mixed, mixed> */
         $decoded = json_decode($responseBody, true);
         if (!is_array($decoded)) {
             throw new RuntimeException('Invalid JSON response from Radarr');
@@ -449,7 +450,7 @@ class RadarrClient implements ArrClientInterface
 
         /** @var string|false */
         $responseBody = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $curlErrno = curl_errno($ch);
         $curlError = curl_error($ch);
         curl_close($ch);
@@ -474,7 +475,6 @@ class RadarrClient implements ArrClientInterface
             return [];
         }
 
-        /** @var array<mixed, mixed> */
         $decoded = json_decode($responseBody, true);
         if (!is_array($decoded)) {
             throw new RuntimeException('Invalid JSON response from Radarr');

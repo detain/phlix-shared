@@ -1,6 +1,5 @@
 {
     "name": "detain/phlix-shared",
-    "version": "0.6.0",
     "description": "Shared interfaces, DTOs, event names, and protocol types used by both phlix-server and phlix-hub. Composer-installable, PHP 8.3+, zero I/O.",
     "type": "library",
     "license": "MIT",
