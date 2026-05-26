@@ -4,6 +4,48 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] — 2026-05-26
+
+### Added
+- `schemas/manifest.schema.json` — the JSON Schema (draft 2020-12) for plugin
+  `plugin.json` manifests, now bundled with the shared package. Previously the
+  canonical copy lived in `phlix-server` at `docs/plugins/manifest.schema.json`
+  (then briefly in `phlix-docs`); moving it here lets every consumer load it
+  via Composer's `vendor/` rather than depending on a sibling docs checkout.
+  Phlix-server's `Phlix\Plugins\Manifest\ManifestSchema::resolveSchemaPath()`
+  now walks a candidate list and prefers
+  `vendor/detain/phlix-shared/schemas/manifest.schema.json`, falling back to
+  the legacy in-tree copy so older checkouts don't break.
+
+### Fixed
+- `Phlix\Shared\Arr\{BazarrClient,ProwlarrClient,RadarrClient,SonarrClient}` —
+  Psalm errors cleaned up across all four clients:
+  - `$httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE)` — cast at the
+    source kills both the `MixedAssignment` warning and the downstream
+    `MixedOperand` on string concat in error messages.
+  - Dropped the redundant `@var array<mixed, mixed>` docblock over
+    `$decoded = json_decode(...)` so `is_array($decoded)` actually narrows the
+    type (was tripping `DocblockTypeContradiction`).
+  - Added inline `@var array<string, mixed>` at the return sites of public
+    methods that surface JSON objects through the generic
+    `array<mixed, mixed>` `get()` / `post()` helpers
+    (`Bazarr::downloadSubtitle`, `Prowlarr::getIndexerStats`,
+    `Radarr::getMovieById` / `addMovie`, `Sonarr::getSeriesById` /
+    `getEpisodeFile` / `addSeries`).
+  - `@psalm-suppress MixedAssignment` on the two
+    `$id = $response['id'] ?? null` reads in `RadarrClient::createCustomFormat`
+    and `createQualityProfile` — the `is_numeric($id)` guard immediately
+    afterwards makes the mixed value safe.
+
+### Changed
+- `composer.json` — dropped the `"version"` field. Tags drive the package
+  version now; keeping the field was tripping `composer validate --strict` on
+  CI.
+- `README.md` — added the standard badge row (CI / PHP 8.3+ / PHPStan level 9
+  / Psalm level 1 / PSR-12 / MIT). Fixed the broken `detain/phlix` pointer to
+  `detain/phlix-server`. Bumped the status section + installation example
+  (HTTPS VCS URL, `^0.6` constraint).
+
 ## [0.5.1] - 2026-05-25
 
 ### Changed
