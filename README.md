@@ -15,7 +15,7 @@ Composer-installable, PHP 8.3+, zero I/O — pure interfaces and value objects o
 
 ## Status
 
-**v0.6.0 — adds the plugin manifest JSON Schema.** Cumulative surface:
+**v0.7.0 — adds the server-settings JSON Schema and the webhook event catalog.** Cumulative surface:
 
 - `Phlix\Shared\Plugin\{LifecycleInterface, Manifest, ManifestType, ManifestValidationError, EventNameMap}`
 - `Phlix\Shared\Events\{AbstractEvent, Playback\*, Library\*, Auth\*}` — 12 event DTOs.
@@ -23,10 +23,23 @@ Composer-installable, PHP 8.3+, zero I/O — pure interfaces and value objects o
 - `Phlix\Shared\Hub\{ClaimRequest, ClaimResponse, ServerInfoDto, HeartbeatDto}`
 - `Phlix\Shared\Relay\{RelayFrameType, RelayWireCodec, RelayFrame}` — channel-mux protocol (0.5+).
 - `Phlix\Shared\Arr\{BazarrClient, ProwlarrClient, RadarrClient, SonarrClient}` — *arr HTTP clients.
+- `Phlix\Shared\Schema\SchemaPaths` — pure path resolver for the bundled `schemas/` files (0.7.0+).
+
+### Bundled schemas
+
+The package ships the canonical JSON files used by both phlix-server and the
+admin SPA under `schemas/` (resolve their absolute paths via
+`Phlix\Shared\Schema\SchemaPaths`):
+
 - `schemas/manifest.schema.json` — JSON Schema (draft 2020-12) for plugin manifests,
   loaded at runtime by `phlix-server`'s `Phlix\Plugins\Manifest\ManifestSchema` validator (0.6.0+).
+- `schemas/server-settings.schema.json` — JSON Schema (draft 2020-12) for the editable
+  server settings (`/api/v1/admin/settings`); mirrors phlix-server's
+  `AdminSettingsController::ALLOWED_KEYS` allow-list and drives the admin SPA settings form (0.7.0+).
+- `schemas/webhook-events.json` — data catalog of the supported webhook event types for the
+  admin SPA webhook picker. Distinct from the plugin PSR-14 events in `EventNameMap` (0.7.0+).
 
-The PSR-14 dispatcher wiring (Tukio) and the manifest schema validator stay in
+The PSR-14 dispatcher wiring (Tukio) and the schema validators stay in
 `phlix-server` and consume this package via Composer.
 
 ## Requirements
