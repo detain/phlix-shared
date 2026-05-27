@@ -4,6 +4,34 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] — 2026-05-27
+
+### Added
+- `schemas/server-settings.schema.json` — JSON Schema (draft 2020-12) for the
+  editable server settings exposed by phlix-server's
+  `/api/v1/admin/settings` endpoint. Mirrors
+  `Phlix\Server\Http\Controllers\Admin\AdminSettingsController::ALLOWED_KEYS`
+  (the single source of truth for the writable allow-list) — 15 dotted setting
+  keys with their JSON-Schema type, a `group` annotation, a `description`, and
+  numeric `minimum`/`maximum` bounds where meaningful. phlix-server now derives
+  its allow-list from this schema and the admin SPA renders the settings form
+  from it. Runtime defaults are intentionally not declared here (they live in
+  phlix-server `config/*.php` and are returned by the GET endpoint).
+- `schemas/webhook-events.json` — canonical data catalog of the webhook event
+  types a webhook subscription may select (7 supported user-subscribable types:
+  `playback.started`, `playback.ended`, `library.updated`, `download.complete`,
+  `recording.started`, `recording.stopped`, `alert`), each grouped and labeled,
+  plus the internal `webhook.test` reserved type. Consumed by the admin SPA
+  webhook picker and future server-side `events[]` validation. This is a plain
+  data document, NOT a JSON Schema, and is DISTINCT from the plugin PSR-14
+  events in `Phlix\Shared\Plugin\EventNameMap`. (Actual server-side emission of
+  most of these event types is an unfinished backend gap to be wired in a later
+  phase.)
+- `Phlix\Shared\Schema\SchemaPaths` — pure (zero-I/O) helper that returns the
+  absolute paths to the two bundled schema files, so consumers locate them
+  inside `vendor/detain/phlix-shared/schemas/` without hardcoding vendor
+  strings.
+
 ## [0.6.0] — 2026-05-26
 
 ### Added

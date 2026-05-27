@@ -1,0 +1,94 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://phlix.tv/schemas/server-settings.schema.json",
+    "title": "Phlix server settings",
+    "description": "Schema describing the editable server settings exposed by the Phlix admin settings endpoint (/api/v1/admin/settings). Mirrors phlix-server's Phlix\\Server\\Http\\Controllers\\Admin\\AdminSettingsController::ALLOWED_KEYS, the single source of truth for the writable settings allow-list; phlix-server derives that allow-list from this schema and the admin SPA renders the settings form from it. Property keys are the literal dotted setting keys (e.g. 'hwaccel.enabled'). Runtime default values are NOT declared here — they live in phlix-server config/*.php and are returned by the GET endpoint.",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "hwaccel.enabled": {
+            "type": "boolean",
+            "description": "Master switch for hardware-accelerated transcoding.",
+            "group": "transcoding"
+        },
+        "hwaccel.prefer_hardware": {
+            "type": "boolean",
+            "description": "Prefer hardware encoders/decoders over software when both are available.",
+            "group": "transcoding"
+        },
+        "hwaccel.probe_timeout": {
+            "type": "integer",
+            "description": "Maximum time in seconds to probe a media file for hardware-acceleration capability before falling back.",
+            "group": "transcoding",
+            "minimum": 0
+        },
+        "tmdb.api_key": {
+            "type": "string",
+            "description": "TMDb API key used to fetch movie and TV metadata.",
+            "group": "metadata"
+        },
+        "marker_detection.similarity_threshold": {
+            "type": "number",
+            "description": "Audio/video fingerprint similarity threshold (0.0-1.0) above which a segment is treated as a repeated intro/credits marker.",
+            "group": "markers",
+            "minimum": 0,
+            "maximum": 1
+        },
+        "marker_detection.intro_max_duration": {
+            "type": "integer",
+            "description": "Upper bound in seconds for how long a detected intro marker may be.",
+            "group": "markers",
+            "minimum": 0
+        },
+        "subtitles.enabled": {
+            "type": "boolean",
+            "description": "Master switch for subtitle fetching and rendering.",
+            "group": "subtitles"
+        },
+        "subtitles.default_language": {
+            "type": "string",
+            "description": "Preferred subtitle language (ISO 639 code) selected by default for new playback sessions.",
+            "group": "subtitles"
+        },
+        "subtitles.burn_in_by_default": {
+            "type": "boolean",
+            "description": "Burn subtitles into the video stream by default instead of delivering them as a soft track.",
+            "group": "subtitles"
+        },
+        "discovery.discovery_port": {
+            "type": "integer",
+            "description": "UDP port used for local network server discovery.",
+            "group": "discovery",
+            "minimum": 1,
+            "maximum": 65535
+        },
+        "trickplay.enabled": {
+            "type": "boolean",
+            "description": "Master switch for trickplay (scrubbing thumbnail) generation.",
+            "group": "trickplay"
+        },
+        "trickplay.interval_seconds": {
+            "type": "integer",
+            "description": "Interval in seconds between generated trickplay thumbnail frames.",
+            "group": "trickplay",
+            "minimum": 1
+        },
+        "newsletter.enabled": {
+            "type": "boolean",
+            "description": "Master switch for the periodic newsletter digest.",
+            "group": "newsletter"
+        },
+        "newsletter.send_hour": {
+            "type": "integer",
+            "description": "Hour of day (0-23, server local time) at which the newsletter digest is sent.",
+            "group": "newsletter",
+            "minimum": 0,
+            "maximum": 23
+        },
+        "port-forward.port_forwarding.upnp_enabled": {
+            "type": "boolean",
+            "description": "Attempt to open the public port automatically via UPnP IGD port forwarding.",
+            "group": "port-forward"
+        }
+    }
+}

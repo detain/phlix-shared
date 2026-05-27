@@ -24,7 +24,7 @@ final class Version
      *
      * @var non-empty-string
      */
-    public const VERSION = '0.5.0';
+    public const VERSION = '0.7.0';
 
     /**
      * Prevent instantiation — static marker only.
