@@ -68,12 +68,19 @@ final class RelayFrameTypeTest extends TestCase
         $this->assertTrue(RelayFrameType::isValid(0x06));
         $this->assertTrue(RelayFrameType::isValid(0x07));
         $this->assertTrue(RelayFrameType::isValid(0x08));
+        $this->assertTrue(RelayFrameType::isValid(0x09)); // HUB_HELLO
+        $this->assertTrue(RelayFrameType::isValid(0x0A)); // HUB_HELLO_ACK
+        $this->assertTrue(RelayFrameType::isValid(0x0B)); // HUB_HEARTBEAT
+        $this->assertTrue(RelayFrameType::isValid(0x0C)); // LIBRARY_SHARE_UPDATE
+        $this->assertTrue(RelayFrameType::isValid(0x0D)); // LIBRARY_SHARE_REVOKED
+        $this->assertTrue(RelayFrameType::isValid(0x0E)); // ADMIN_DELEGATION
+        $this->assertTrue(RelayFrameType::isValid(0x0F)); // HUB_DISCONNECTED
     }
 
     public function test_is_valid_returns_false_for_invalid_values(): void
     {
         $this->assertFalse(RelayFrameType::isValid(0x00));
-        $this->assertFalse(RelayFrameType::isValid(0x09));
+        $this->assertFalse(RelayFrameType::isValid(0x10)); // first invalid after new range
         $this->assertFalse(RelayFrameType::isValid(0xFF));
         $this->assertFalse(RelayFrameType::isValid(-1));
     }
@@ -92,6 +99,13 @@ final class RelayFrameTypeTest extends TestCase
             ['HEARTBEAT', RelayFrameType::HEARTBEAT],
             ['DISCONNECTED', RelayFrameType::DISCONNECTED],
             ['ERROR', RelayFrameType::ERROR],
+            ['HUB_HELLO', RelayFrameType::HUB_HELLO],
+            ['HUB_HELLO_ACK', RelayFrameType::HUB_HELLO_ACK],
+            ['HUB_HEARTBEAT', RelayFrameType::HUB_HEARTBEAT],
+            ['LIBRARY_SHARE_UPDATE', RelayFrameType::LIBRARY_SHARE_UPDATE],
+            ['LIBRARY_SHARE_REVOKED', RelayFrameType::LIBRARY_SHARE_REVOKED],
+            ['ADMIN_DELEGATION', RelayFrameType::ADMIN_DELEGATION],
+            ['HUB_DISCONNECTED', RelayFrameType::HUB_DISCONNECTED],
         ];
     }
 
