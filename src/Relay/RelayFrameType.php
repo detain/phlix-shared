@@ -34,6 +34,13 @@ use InvalidArgumentException;
  *   HEARTBEAT        = 0x06 — either→either: keep-alive probe/ack (channel 0)
  *   DISCONNECTED     = 0x07 — H→C: server tunnel closed, client should reconnect (channel 0)
  *   ERROR            = 0x08 — H↔any: error condition (channel 0)
+ *   HUB_HELLO        = 0x09 — Leaf→Master: JSON text after WS upgrade (channel 0)
+ *   HUB_HELLO_ACK    = 0x0A — Master→Leaf: JSON text response (channel 0)
+ *   HUB_HEARTBEAT    = 0x0B — Both→Both: keep-alive (channel 0)
+ *   LIBRARY_SHARE_UPDATE = 0x0C — Master→Leaf: JSON (channel 0)
+ *   LIBRARY_SHARE_REVOKED= 0x0D — Master→Leaf: JSON (channel 0)
+ *   ADMIN_DELEGATION = 0x0E — Master→Leaf: JSON (channel 0)
+ *   HUB_DISCONNECTED = 0x0F — Both→Both: clean close (channel 0)
  *
  * @package Phlix\Shared\Relay
  * @since 0.5.0
@@ -48,6 +55,13 @@ enum RelayFrameType: int
     case HEARTBEAT = 0x06;
     case DISCONNECTED = 0x07;
     case ERROR = 0x08;
+    case HUB_HELLO = 0x09;
+    case HUB_HELLO_ACK = 0x0A;
+    case HUB_HEARTBEAT = 0x0B;
+    case LIBRARY_SHARE_UPDATE = 0x0C;
+    case LIBRARY_SHARE_REVOKED = 0x0D;
+    case ADMIN_DELEGATION = 0x0E;
+    case HUB_DISCONNECTED = 0x0F;
 
     /**
      * Returns the human-readable name of this frame type.
@@ -67,13 +81,20 @@ enum RelayFrameType: int
             self::HEARTBEAT => 'HEARTBEAT',
             self::DISCONNECTED => 'DISCONNECTED',
             self::ERROR => 'ERROR',
+            self::HUB_HELLO => 'HUB_HELLO',
+            self::HUB_HELLO_ACK => 'HUB_HELLO_ACK',
+            self::HUB_HEARTBEAT => 'HUB_HEARTBEAT',
+            self::LIBRARY_SHARE_UPDATE => 'LIBRARY_SHARE_UPDATE',
+            self::LIBRARY_SHARE_REVOKED => 'LIBRARY_SHARE_REVOKED',
+            self::ADMIN_DELEGATION => 'ADMIN_DELEGATION',
+            self::HUB_DISCONNECTED => 'HUB_DISCONNECTED',
         };
     }
 
     /**
      * Create a RelayFrameType from its integer value.
      *
-     * @param int $value The byte value (0x01–0x08).
+     * @param int $value The byte value (0x01–0x0F).
      *
      * @return self
      *
