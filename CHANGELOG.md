@@ -4,6 +4,25 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] — 2026-06-01
+
+### Added
+- `schemas/library-query.schema.json` — JSON Schema (draft 2020-12) for the
+  query parameters of the movie-list browse API (GET /api/v1/media). Covers
+  `search`, `genres[]`, `yearFrom`, `yearTo`, `ratings[]`, `actors[]`,
+  `sort`, `order`, `limit`, and `offset` — all optional, with `genres[]` and
+  `ratings[]` using OR logic across multiple values, year ranges being
+  inclusive, and sensible `default`/`minimum`/`maximum`/`maxLength` bounds on
+  each field. Consumed by the Phase-B `ItemRepository::query()` implementation
+  and the Vue browse page in Phase C.
+- `schemas/media-item.schema.json` — JSON Schema (draft 2020-12) for a single
+  media item returned by the browse API. Flattens and renormalizes the raw
+  `metadata_json` column into stable, consumer-friendly top-level fields:
+  `poster_url`, `genres`, `year`, `rating`, `runtime`, `overview`, `actors`,
+  `director`, `created_at`, `updated_at`. `poster_url` is always included so
+  cards render without additional data fetches. Consumed by the Phase-B API
+  serializer and the Phase-C `MediaCard.vue` component.
+
 ## [0.7.0] — 2026-05-27
 
 ### Added
