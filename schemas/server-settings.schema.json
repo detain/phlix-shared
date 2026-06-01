@@ -89,6 +89,21 @@
             "type": "boolean",
             "description": "Attempt to open the public port automatically via UPnP IGD port forwarding.",
             "group": "port-forward"
+        },
+        "trakt.client_id": {
+            "type": "string",
+            "description": "Trakt.tv application client ID. Register an application at https://trakt.tv/oauth/applications to obtain one; required before users can connect their Trakt account.",
+            "group": "scrobblers"
+        },
+        "trakt.client_secret": {
+            "type": "string",
+            "description": "Trakt.tv application client secret, paired with the client ID from https://trakt.tv/oauth/applications.",
+            "group": "scrobblers"
+        },
+        "trakt.redirect_uri": {
+            "type": "string",
+            "description": "OAuth2 redirect URI registered with the Trakt application; must exactly match this server's /api/v1/oauth/trakt/callback URL.",
+            "group": "scrobblers"
         }
     }
 }
