@@ -50,7 +50,7 @@ final class ServerSettingsSchemaTest extends TestCase
     }
 
     /**
-     * The 15 expected property keys mapped to their JSON-Schema type.
+     * The 18 expected property keys mapped to their JSON-Schema type.
      *
      * @return array<string, array{0: string, 1: string}>
      */
@@ -72,6 +72,9 @@ final class ServerSettingsSchemaTest extends TestCase
             'newsletter.enabled' => ['newsletter.enabled', 'boolean'],
             'newsletter.send_hour' => ['newsletter.send_hour', 'integer'],
             'port-forward.port_forwarding.upnp_enabled' => ['port-forward.port_forwarding.upnp_enabled', 'boolean'],
+            'trakt.client_id' => ['trakt.client_id', 'string'],
+            'trakt.client_secret' => ['trakt.client_secret', 'string'],
+            'trakt.redirect_uri' => ['trakt.redirect_uri', 'string'],
         ];
     }
 
@@ -104,7 +107,7 @@ final class ServerSettingsSchemaTest extends TestCase
         $this->assertFalse($schema['additionalProperties'] ?? null);
     }
 
-    public function test_schema_has_exactly_the_fifteen_expected_property_keys(): void
+    public function test_schema_has_exactly_the_expected_property_keys(): void
     {
         $actual = array_keys(self::properties());
         $expected = array_map(
@@ -115,8 +118,8 @@ final class ServerSettingsSchemaTest extends TestCase
         sort($actual);
         sort($expected);
 
-        $this->assertSame($expected, $actual, 'server-settings schema must declare exactly the 15 settings keys.');
-        $this->assertCount(15, $actual);
+        $this->assertSame($expected, $actual, 'server-settings schema must declare exactly the expected settings keys.');
+        $this->assertCount(18, $actual);
     }
 
     /**
