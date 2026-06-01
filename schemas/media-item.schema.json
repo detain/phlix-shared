@@ -1,0 +1,88 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://phlix.tv/schemas/media-item.schema.json",
+    "title": "Phlix media item",
+    "description": "Schema describing a single media item returned by the browse API endpoints (GET /api/v1/media, GET /api/v1/libraries/{id}/items). This is the canonical client-facing shape — it flattens and renormalizes the raw database columns (particularly metadata_json) into stable, consumer-friendly top-level fields. The item always includes poster_url so cards render without additional data fetches.",
+    "type": "object",
+    "required": ["id", "name", "type"],
+    "properties": {
+        "id": {
+            "type": "string",
+            "description": "Unique identifier (UUID) of the media item.",
+            "format": "uuid"
+        },
+        "name": {
+            "type": "string",
+            "description": "Display name of the media item, as stored in the database (not the raw filename).",
+            "maxLength": 500
+        },
+        "type": {
+            "type": "string",
+            "description": "Media type discriminator.",
+            "enum": ["movie", "series", "episode", "audio", "image"]
+        },
+        "path": {
+            "type": "string",
+            "description": "Absolute filesystem path to the media file.",
+            "maxLength": 2000
+        },
+        "poster_url": {
+            "type": ["string", "null"],
+            "description": "URL to the item's poster image. Null when no metadata has been fetched or the item has no poster.",
+            "format": "uri"
+        },
+        "genres": {
+            "type": "array",
+            "description": "Array of genre strings associated with this item, sourced from metadata_json.genres. Empty array when no genres are set.",
+            "items": {
+                "type": "string",
+                "maxLength": 50
+            }
+        },
+        "year": {
+            "type": ["integer", "null"],
+            "description": "Four-digit release year. Null when unknown.",
+            "minimum": 1800,
+            "maximum": 2100
+        },
+        "rating": {
+            "type": ["string", "null"],
+            "description": "MPAA-style content rating (G, PG, PG-13, R, NC-17, X, UNRATED). Null when not set.",
+            "enum": ["G", "PG", "PG-13", "R", "NC-17", "X", "UNRATED", null]
+        },
+        "runtime": {
+            "type": ["integer", "null"],
+            "description": "Total runtime in seconds. Null when unknown.",
+            "minimum": 0
+        },
+        "overview": {
+            "type": ["string", "null"],
+            "description": "Short synopsis or plot summary. Null when no overview is available.",
+            "maxLength": 5000
+        },
+        "actors": {
+            "type": "array",
+            "description": "Array of actor name strings associated with this item, sourced from metadata_json.actors. Empty array when no actors are set.",
+            "items": {
+                "type": "string",
+                "maxLength": 100
+            }
+        },
+        "director": {
+            "type": ["string", "null"],
+            "description": "Director name. Null when unknown.",
+            "maxLength": 100
+        },
+        "created_at": {
+            "type": ["string", "null"],
+            "description": "ISO 8601 timestamp when the item was first added to the library.",
+            "format": "date-time"
+        },
+        "updated_at": {
+            "type": ["string", "null"],
+            "description": "ISO 8601 timestamp when the item was last modified.",
+            "format": "date-time"
+        }
+    },
+    "additionalProperties": false
+}

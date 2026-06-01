@@ -1,0 +1,81 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://phlix.tv/schemas/library-query.schema.json",
+    "title": "Phlix library query parameters",
+    "description": "Schema describing the query parameters for the movie-list browse API endpoint (GET /api/v1/media). All parameters are optional — omitting a parameter means 'no filter on this dimension'. Multiple values in array parameters are OR-ed together (e.g. genres[]=Action&genres[]=Drama returns items that are Action OR Drama). Year ranges are inclusive. Sort defaults to name ASC when not specified.",
+    "type": "object",
+    "properties": {
+        "search": {
+            "type": "string",
+            "description": "Full-text or fuzzy search query applied to the media item name. Uses MySQL FULLTEXT with boolean fallback to LIKE %% matching.",
+            "maxLength": 200
+        },
+        "genres": {
+            "type": "array",
+            "description": "Filter to items that contain ANY of the listed genres (OR logic). Items with no genres set are excluded when this filter is applied.",
+            "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 50
+            },
+            "uniqueItems": true
+        },
+        "yearFrom": {
+            "type": "integer",
+            "description": "Minimum release year (inclusive). Items with no year set are excluded when this filter is applied.",
+            "minimum": 1800,
+            "maximum": 2100
+        },
+        "yearTo": {
+            "type": "integer",
+            "description": "Maximum release year (inclusive). Items with no year set are excluded when this filter is applied.",
+            "minimum": 1800,
+            "maximum": 2100
+        },
+        "ratings": {
+            "type": "array",
+            "description": "Filter to items with any of the listed content ratings (MPAA-style: G, PG, PG-13, R, NC-17, X, UNRATED). Items with no rating set are excluded when this filter is applied.",
+            "items": {
+                "type": "string",
+                "enum": ["G", "PG", "PG-13", "R", "NC-17", "X", "UNRATED"]
+            },
+            "uniqueItems": true
+        },
+        "actors": {
+            "type": "array",
+            "description": "Filter to items that feature ANY of the listed actors (partial name match on the actors array in metadata_json). Items with no actors set are excluded when this filter is applied.",
+            "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+            },
+            "uniqueItems": true
+        },
+        "sort": {
+            "type": "string",
+            "description": "Sort field for the result set.",
+            "enum": ["name", "year", "rating", "date_added", "runtime"],
+            "default": "name"
+        },
+        "order": {
+            "type": "string",
+            "description": "Sort direction.",
+            "enum": ["asc", "desc"],
+            "default": "asc"
+        },
+        "limit": {
+            "type": "integer",
+            "description": "Maximum number of items to return per page.",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 50
+        },
+        "offset": {
+            "type": "integer",
+            "description": "Number of items to skip for pagination (offset = page * limit).",
+            "minimum": 0,
+            "default": 0
+        }
+    },
+    "additionalProperties": false
+}
