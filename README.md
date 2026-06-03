@@ -15,7 +15,7 @@ Composer-installable, PHP 8.3+, zero I/O — pure interfaces and value objects o
 
 ## Status
 
-**v0.7.0 — adds the server-settings JSON Schema and the webhook event catalog.** Cumulative surface:
+**v0.8.0 — adds the `library-query` and `media-item` JSON Schemas for the movie-list browse API.** Cumulative surface:
 
 - `Phlix\Shared\Plugin\{LifecycleInterface, Manifest, ManifestType, ManifestValidationError, EventNameMap}`
 - `Phlix\Shared\Events\{AbstractEvent, Playback\*, Library\*, Auth\*}` — 12 event DTOs.
@@ -38,6 +38,12 @@ admin SPA under `schemas/` (resolve their absolute paths via
   `AdminSettingsController::ALLOWED_KEYS` allow-list and drives the admin SPA settings form (0.7.0+).
 - `schemas/webhook-events.json` — data catalog of the supported webhook event types for the
   admin SPA webhook picker. Distinct from the plugin PSR-14 events in `EventNameMap` (0.7.0+).
+- `schemas/library-query.schema.json` — JSON Schema (draft 2020-12) for the query parameters of
+  the movie-list browse API (`GET /api/v1/media`); drives `ItemRepository::query()` and the
+  admin SPA browse page (0.8.0+).
+- `schemas/media-item.schema.json` — JSON Schema (draft 2020-12) for a single media item returned
+  by the browse API; flattens `metadata_json` into stable top-level fields and always includes
+  `poster_url` (0.8.0+).
 
 The PSR-14 dispatcher wiring (Tukio) and the schema validators stay in
 `phlix-server` and consume this package via Composer.
