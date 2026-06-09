@@ -4,6 +4,30 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] — 2026-06-09
+
+### Added
+- `schemas/media-item.schema.json` — series hierarchy fields so the browse API
+  can describe a TV/anime tree instead of a flat list:
+  - `type` enum gains `season` (alongside the existing `series`/`episode`), so
+    the discriminator can carry the full series→season→episode hierarchy.
+  - `parent_id` (uuid|null) — the parent media item (episode→season→series);
+    null for top-level items (movies, series). Browse surfaces request
+    top-level items only so a series library shows shows, not every episode.
+  - `season_number` (integer|null, min 0) — from `metadata_json.season`; season
+    0 / a null number on a series episode denotes Specials.
+  - `episode_number` (integer|null, min 0) — from `metadata_json.episode`;
+    orders episodes within a season.
+  - `episode_title` (string|null) — per-episode title, distinct from `name`.
+- `schemas/library-query.schema.json` — query parameters for the new hierarchy
+  navigation (and the previously-undocumented per-library scope):
+  - `parentId` (uuid) — fetch the direct children (seasons/episodes) of one
+    item for the series detail page.
+  - `topLevel` (boolean) — return only items with no parent (movies + series),
+    excluding seasons/episodes; ignored when `search` is set so search still
+    spans the whole library.
+  - `libraryId` (uuid) — documents the existing per-library scope parameter.
+
 ## [0.8.0] — 2026-06-01
 
 ### Added
