@@ -75,6 +75,21 @@
             "description": "Number of items to skip for pagination (offset = page * limit).",
             "minimum": 0,
             "default": 0
+        },
+        "libraryId": {
+            "type": "string",
+            "description": "Scope the result (and its total) to a single library by id. Omitted/blank means an all-libraries query. Drives the per-library Browse rails and the dedicated library page.",
+            "format": "uuid"
+        },
+        "parentId": {
+            "type": "string",
+            "description": "Scope the result to the direct children of one media item by id — used to fetch the seasons/episodes of a series (or the episodes of a season) for the series detail page. Mutually exclusive with `topLevel`.",
+            "format": "uuid"
+        },
+        "topLevel": {
+            "type": "boolean",
+            "description": "When true, return only top-level items (those with no parent: movies and series), excluding seasons and episodes. Browse rails and library grids set this so a series library shows shows rather than a flat dump of every episode. Mutually exclusive with `parentId`; ignored when `search` is set so search still spans the whole library.",
+            "default": false
         }
     },
     "additionalProperties": false

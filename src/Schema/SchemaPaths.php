@@ -63,6 +63,34 @@ final class SchemaPaths
     }
 
     /**
+     * Absolute path to the media-item JSON Schema (draft 2020-12) — the
+     * canonical client-facing shape returned by the browse API, including the
+     * series→season→episode hierarchy fields.
+     *
+     * @return non-empty-string Absolute path to `media-item.schema.json`.
+     *
+     * @since 0.9.0
+     */
+    public static function mediaItem(): string
+    {
+        return self::dir() . '/media-item.schema.json';
+    }
+
+    /**
+     * Absolute path to the library-query JSON Schema (draft 2020-12) — the
+     * query parameters accepted by the browse API (filters, paging, and the
+     * `libraryId`/`parentId`/`topLevel` scoping parameters).
+     *
+     * @return non-empty-string Absolute path to `library-query.schema.json`.
+     *
+     * @since 0.9.0
+     */
+    public static function libraryQuery(): string
+    {
+        return self::dir() . '/library-query.schema.json';
+    }
+
+    /**
      * Prevent instantiation — this class is a static path resolver only.
      */
     private function __construct()
