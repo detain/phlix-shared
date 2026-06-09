@@ -18,8 +18,28 @@
         },
         "type": {
             "type": "string",
-            "description": "Media type discriminator.",
-            "enum": ["movie", "series", "episode", "audio", "image"]
+            "description": "Media type discriminator. `series`/`season`/`episode` form the TV/anime hierarchy: a `series` (the show) parents `season` items, which parent `episode` items. Standalone shows may parent `episode` items directly (no `season` row), in which case the client derives season grouping from `season_number`.",
+            "enum": ["movie", "series", "season", "episode", "audio", "image"]
+        },
+        "parent_id": {
+            "type": ["string", "null"],
+            "description": "UUID of the parent media item, or null for a top-level item. Forms the series→season→episode hierarchy: an episode's parent is its season (or, when no season row exists, the series); a season's parent is its series. Top-level items (movies, series) have null. Browse surfaces request top-level items only so a series library shows shows (not a flat dump of every episode).",
+            "format": "uuid"
+        },
+        "season_number": {
+            "type": ["integer", "null"],
+            "description": "Season number this item belongs to, sourced from metadata_json.season. Set on `season` and `episode` items; null for movies/series/standalone. Season 0 (or a null number on an episode of a series) denotes Specials.",
+            "minimum": 0
+        },
+        "episode_number": {
+            "type": ["integer", "null"],
+            "description": "Episode number within its season, sourced from metadata_json.episode. Set on `episode` items; null otherwise. Used to order episodes within a season.",
+            "minimum": 0
+        },
+        "episode_title": {
+            "type": ["string", "null"],
+            "description": "Per-episode title (distinct from `name`, which may be the series name), sourced from metadata_json.episode_title. Null when unknown or not an episode.",
+            "maxLength": 500
         },
         "path": {
             "type": "string",
