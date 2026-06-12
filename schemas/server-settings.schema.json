@@ -27,6 +27,13 @@
             "description": "TMDb API key used to fetch movie and TV metadata.",
             "group": "metadata"
         },
+        "auth.signup_mode": {
+            "type": "string",
+            "description": "Controls self-service signup: 'open' creates active accounts immediately, 'approval' creates pending accounts that an administrator must approve before they can log in, 'disabled' rejects all new signups. The first registered user is always created active and admin regardless of this setting.",
+            "group": "auth",
+            "enum": ["open", "approval", "disabled"],
+            "default": "approval"
+        },
         "marker_detection.similarity_threshold": {
             "type": "number",
             "description": "Audio/video fingerprint similarity threshold (0.0-1.0) above which a segment is treated as a repeated intro/credits marker.",
