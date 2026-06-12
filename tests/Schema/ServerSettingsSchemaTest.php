@@ -61,6 +61,7 @@ final class ServerSettingsSchemaTest extends TestCase
             'hwaccel.prefer_hardware' => ['hwaccel.prefer_hardware', 'boolean'],
             'hwaccel.probe_timeout' => ['hwaccel.probe_timeout', 'integer'],
             'tmdb.api_key' => ['tmdb.api_key', 'string'],
+            'auth.signup_mode' => ['auth.signup_mode', 'string'],
             'marker_detection.similarity_threshold' => ['marker_detection.similarity_threshold', 'number'],
             'marker_detection.intro_max_duration' => ['marker_detection.intro_max_duration', 'integer'],
             'subtitles.enabled' => ['subtitles.enabled', 'boolean'],
@@ -119,7 +120,7 @@ final class ServerSettingsSchemaTest extends TestCase
         sort($expected);
 
         $this->assertSame($expected, $actual, 'server-settings schema must declare exactly the expected settings keys.');
-        $this->assertCount(18, $actual);
+        $this->assertCount(19, $actual);
     }
 
     /**
