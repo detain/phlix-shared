@@ -70,7 +70,8 @@
                 "properties": {
                     "type": {
                         "type": "string",
-                        "enum": ["string", "int", "bool", "float", "array"]
+                        "description": "Value type. 'integer'/'boolean' are accepted aliases of 'int'/'bool'.",
+                        "enum": ["string", "int", "integer", "bool", "boolean", "float", "array"]
                     },
                     "required": {
                         "type": "boolean"
@@ -78,7 +79,15 @@
                     "secret": {
                         "type": "boolean"
                     },
-                    "default": {}
+                    "default": {},
+                    "label": {
+                        "type": "string",
+                        "description": "Human-readable field label shown in the plugin settings UI."
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Help text shown beneath the field in the plugin settings UI."
+                    }
                 }
             }
         },
