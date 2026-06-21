@@ -4,6 +4,11 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.1] - 2026-06-20
+
+### Changed
+- **`schemas/manifest.schema.json`: allow per-setting `label` and `description`, and accept `integer`/`boolean` as aliases of `int`/`bool`.** Plugin `plugin.json` files set a `label` + `description` on each setting (so the admin "configure plugin" UI can render named, documented fields), but the settings schema set `additionalProperties: false` with only `type`/`required`/`secret`/`default` allowed — so every real plugin manifest (anidb, myanimelist, trakt) failed validation with `additionalProp` errors and the install was rejected (422 "manifest is invalid"). The settings-property schema now permits `label` (string) + `description` (string) and widens the value-`type` enum to also accept `integer`/`boolean`. Backward-compatible (strictly more permissive); the `type` value is UI metadata, not a strict cast.
+
 ## [0.9.0] — 2026-06-09
 
 ### Added
