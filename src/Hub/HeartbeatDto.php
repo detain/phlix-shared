@@ -25,6 +25,7 @@ final class HeartbeatDto
      * @param int            $activeTranscodes Concurrent transcode count.
      * @param list<string>   $hostnameCandidates Reachable hostnames discovered since last heartbeat
      *                                           (UPnP/manual config).
+     * @param list<array{library_id: string, library_name: string}> $libraries Libraries on this server.
      */
     public function __construct(
         public readonly string $serverId,
@@ -34,6 +35,7 @@ final class HeartbeatDto
         public readonly int $activeSessions,
         public readonly int $activeTranscodes,
         public readonly array $hostnameCandidates,
+        public readonly array $libraries = [],
     ) {
     }
 
@@ -64,6 +66,25 @@ final class HeartbeatDto
             }
         }
 
+        $libraries = [];
+        if (array_key_exists('libraries', $payload)) {
+            if (!is_array($payload['libraries'])) {
+                throw new InvalidArgumentException('HeartbeatDto "libraries" must be a list of objects.');
+            }
+            foreach ($payload['libraries'] as $lib) {
+                if (!is_array($lib)) {
+                    throw new InvalidArgumentException('HeartbeatDto "libraries" must contain objects.');
+                }
+                /** @var string $libId */
+                $libId = is_string($lib['library_id'] ?? null) ? $lib['library_id'] : '';
+                /** @var string $libName */
+                $libName = is_string($lib['library_name'] ?? null) ? $lib['library_name'] : '';
+                if ($libId !== '' && $libName !== '') {
+                    $libraries[] = ['library_id' => $libId, 'library_name' => $libName];
+                }
+            }
+        }
+
         return new self(
             serverId: $serverId,
             version: $version,
@@ -72,6 +93,7 @@ final class HeartbeatDto
             activeSessions: $activeSessions,
             activeTranscodes: $activeTranscodes,
             hostnameCandidates: $hostnameCandidates,
+            libraries: $libraries,
         );
     }
 
@@ -88,6 +110,7 @@ final class HeartbeatDto
             'activeSessions' => $this->activeSessions,
             'activeTranscodes' => $this->activeTranscodes,
             'hostnameCandidates' => $this->hostnameCandidates,
+            'libraries' => $this->libraries,
         ];
     }
 
