@@ -41,6 +41,23 @@ use InvalidArgumentException;
  *   LIBRARY_SHARE_REVOKED= 0x0D — Master→Leaf: JSON (channel 0)
  *   ADMIN_DELEGATION = 0x0E — Master→Leaf: JSON (channel 0)
  *   HUB_DISCONNECTED = 0x0F — Both→Both: clean close (channel 0)
+ *   HTTP_REQUEST     = 0x10 — Hub→Server: a single proxied HTTP request; the 4-byte
+ *                             field carries a per-request id (NOT a client channel),
+ *                             payload = {@see RelayHttpRequest} JSON. See below.
+ *   HTTP_RESPONSE    = 0x11 — Server→Hub: the proxied response for a request id;
+ *                             payload is a tagged chunk (HEAD/BODY/END) so a response
+ *                             larger than one frame streams across several frames.
+ *                             See {@see RelayHttpResponseCodec}.
+ *
+ * ## HTTP-over-relay request multiplexing (0x10 / 0x11)
+ *
+ * The hub-side proxy endpoint reuses the same single tunnel as the raw client
+ * channels but on its own frame types, so the two never collide. The 4-byte
+ * field on HTTP_REQUEST / HTTP_RESPONSE carries a per-request id (uint32)
+ * allocated by the hub; the matching HTTP_RESPONSE frames echo it back. The hub
+ * allocates request ids from a high range (>= 0x80000000) so they never clash
+ * with the low, monotonically-increasing client channel ids — though routing is
+ * keyed on frame TYPE first, so id-space overlap is harmless either way.
  *
  * @package Phlix\Shared\Relay
  * @since 0.5.0
@@ -62,6 +79,8 @@ enum RelayFrameType: int
     case LIBRARY_SHARE_REVOKED = 0x0D;
     case ADMIN_DELEGATION = 0x0E;
     case HUB_DISCONNECTED = 0x0F;
+    case HTTP_REQUEST = 0x10;
+    case HTTP_RESPONSE = 0x11;
 
     /**
      * Returns the human-readable name of this frame type.
@@ -88,13 +107,15 @@ enum RelayFrameType: int
             self::LIBRARY_SHARE_REVOKED => 'LIBRARY_SHARE_REVOKED',
             self::ADMIN_DELEGATION => 'ADMIN_DELEGATION',
             self::HUB_DISCONNECTED => 'HUB_DISCONNECTED',
+            self::HTTP_REQUEST => 'HTTP_REQUEST',
+            self::HTTP_RESPONSE => 'HTTP_RESPONSE',
         };
     }
 
     /**
      * Create a RelayFrameType from its integer value.
      *
-     * @param int $value The byte value (0x01–0x0F).
+     * @param int $value The byte value (0x01–0x11).
      *
      * @return self
      *
