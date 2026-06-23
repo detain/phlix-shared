@@ -27,6 +27,7 @@ final class ServerInfoDtoTest extends TestCase
             'status' => ServerInfoDto::STATUS_ONLINE,
             'hostnameCandidates' => ['10.0.0.5'],
             'relayActive' => true,
+            'libraryCount' => 7,
         ];
     }
 
@@ -34,6 +35,26 @@ final class ServerInfoDtoTest extends TestCase
     {
         $dto = ServerInfoDto::fromPayload(self::full());
         $this->assertSame(self::full(), $dto->toPayload());
+        $this->assertSame(7, $dto->libraryCount);
+    }
+
+    public function test_libraryCount_absent_defaults_to_null(): void
+    {
+        $payload = self::full();
+        unset($payload['libraryCount']);
+        $dto = ServerInfoDto::fromPayload($payload);
+        $this->assertNull($dto->libraryCount);
+        $this->assertNull($dto->toPayload()['libraryCount']);
+    }
+
+    public function test_non_int_libraryCount_throws(): void
+    {
+        $payload = self::full();
+        $payload['libraryCount'] = 'lots';
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('libraryCount');
+        ServerInfoDto::fromPayload($payload);
     }
 
     public function test_lastSeenAt_null_round_trip(): void

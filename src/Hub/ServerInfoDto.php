@@ -29,6 +29,9 @@ final class ServerInfoDto
      * @param string         $status             One of self::STATUS_*.
      * @param list<string>   $hostnameCandidates Last known reachable hostnames.
      * @param bool           $relayActive        Whether a WSS reverse tunnel is currently open (Phase C.6).
+     * @param int|null       $libraryCount       Number of libraries the server last reported via heartbeat
+     *                                            (from the hub's `server_libraries` cache). Null when the
+     *                                            server has not reported any yet (older servers / pre-heartbeat).
      */
     public function __construct(
         public readonly string $serverId,
@@ -39,6 +42,7 @@ final class ServerInfoDto
         public readonly string $status,
         public readonly array $hostnameCandidates,
         public readonly bool $relayActive,
+        public readonly ?int $libraryCount = null,
     ) {
     }
 
@@ -80,6 +84,14 @@ final class ServerInfoDto
             throw new InvalidArgumentException('ServerInfoDto "relayActive" must be a boolean.');
         }
 
+        $libraryCount = null;
+        if (array_key_exists('libraryCount', $payload) && $payload['libraryCount'] !== null) {
+            if (!is_int($payload['libraryCount'])) {
+                throw new InvalidArgumentException('ServerInfoDto "libraryCount" must be an integer when present.');
+            }
+            $libraryCount = $payload['libraryCount'];
+        }
+
         return new self(
             serverId: $serverId,
             userId: $userId,
@@ -89,6 +101,7 @@ final class ServerInfoDto
             status: $status,
             hostnameCandidates: $hostnameCandidates,
             relayActive: $payload['relayActive'],
+            libraryCount: $libraryCount,
         );
     }
 
@@ -106,6 +119,7 @@ final class ServerInfoDto
             'status' => $this->status,
             'hostnameCandidates' => $this->hostnameCandidates,
             'relayActive' => $this->relayActive,
+            'libraryCount' => $this->libraryCount,
         ];
     }
 
