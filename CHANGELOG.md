@@ -4,6 +4,28 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-06-23
+
+### Added
+- **HTTP-over-relay protocol types** so the hub can proxy a browser's HTTP request
+  to a paired media server over the existing reverse tunnel (Phase 1 of hub inline
+  media browsing):
+  - `Relay\RelayFrameType` gains `HTTP_REQUEST = 0x10` (hub → server) and
+    `HTTP_RESPONSE = 0x11` (server → hub). The 4-byte frame field carries a
+    per-request id; routing is keyed on frame type, so these never collide with
+    the low client-channel ids used by raw `DATA` frames.
+  - `Relay\RelayHttpRequest` — immutable request envelope (`method`, `path`,
+    `query`, `headers`, `body`) carried as the JSON payload of an `HTTP_REQUEST`
+    frame; `toJson()` / `fromJson()` (body base64-encoded so arbitrary bytes
+    survive).
+  - `Relay\RelayHttpResponseHead` — response head (`status`, `headers`,
+    `bodyLength|null`) with `toJson()` / `fromJson()`.
+  - `Relay\RelayHttpResponseCodec` + `Relay\RelayHttpResponseChunk` — the
+    `HEAD → BODY* → END` chunk sub-framing inside an `HTTP_RESPONSE` frame
+    payload, so a response larger than one 65535-byte frame streams across
+    several frames (`MAX_BODY_CHUNK = 65534`). `bodyLength = null` + `END` keeps
+    the framing usable for unknown-length streaming (Phase 3).
+
 ## [0.9.1] - 2026-06-20
 
 ### Changed

@@ -26,6 +26,7 @@ final class HeartbeatDtoTest extends TestCase
             'activeSessions' => 2,
             'activeTranscodes' => 1,
             'hostnameCandidates' => ['10.0.0.5'],
+            'libraries' => [['library_id' => 'lib-1', 'library_name' => 'Movies']],
         ];
     }
 
