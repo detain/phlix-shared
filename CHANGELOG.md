@@ -4,6 +4,15 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.1] - 2026-06-23
+
+### Added
+- **`ServerInfoDto.libraryCount`** (optional `?int`, default `null`) — the number of
+  libraries a server last reported via heartbeat (from the hub's `server_libraries`
+  cache). Round-trips through `fromPayload()`/`toPayload()`; absent/null tolerated so
+  older payloads keep working. Lets the hub's "My Servers" UI show a real library
+  count instead of "—".
+
 ## [0.10.0] - 2026-06-23
 
 ### Added
