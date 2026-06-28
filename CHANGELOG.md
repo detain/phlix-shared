@@ -4,6 +4,30 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **`Relay\RelayHttpRequest` security gate** (findings S1/F1) — the untrusted,
+  hub-tunnelled HTTP envelope now self-validates its method and path:
+  - `assertSafe(): void` throws `InvalidArgumentException` on an unsafe method or
+    path; it is invoked automatically at the end of `fromJson()` so every consumer
+    that deserializes the wire envelope inherits the gate. Path rules reject
+    missing leading `/`, protocol-relative `//…`, `..` (raw and percent-encoded
+    `%2e%2e`), NUL (raw and `%00`), backslash, `://`, an embedded query (`?`) or
+    fragment (`#`), and control characters (`< 0x20`). Method must be in
+    `ALLOWED_METHODS` (case-insensitive).
+  - `ALLOWED_METHODS` constant: `GET HEAD POST PUT PATCH DELETE OPTIONS`.
+  - `STRIPPED_HEADERS` constant + `static isForbiddenHeader(string): bool`
+    (case-insensitive) + `withoutForbiddenHeaders(): self` — expose the
+    trust-bearing inbound header set (`x-phlix-relay-user`, `x-forwarded-for`,
+    `authorization`, `cookie`) so the consumer can drop them before forwarding and
+    inject the hub-validated owner identity itself. The DTO does NOT silently strip
+    `x-phlix-relay-user` — identity injection remains the consumer's responsibility.
+  - All changes are additive / backward-compatible; valid requests round-trip
+    unchanged. **Consumer follow-up (phlix-server `RelayConsumer::buildRequest()`):**
+    stop trusting `x-phlix-relay-user` from the envelope and strip forbidden headers
+    via `isForbiddenHeader()` — that paired PR is the actual auth-bypass fix.
+
 ## [0.10.1] - 2026-06-23
 
 ### Added
