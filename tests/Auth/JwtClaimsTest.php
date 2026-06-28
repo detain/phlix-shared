@@ -156,4 +156,90 @@ final class JwtClaimsTest extends TestCase
         $this->assertArrayNotHasKey('scope', $payload);
         $this->assertArrayNotHasKey('serverId', $payload);
     }
+
+    // --- S4: fromPayloadStrict() audience hardening -----------------------
+
+    public function test_fromPayloadStrict_with_explicit_aud_succeeds(): void
+    {
+        $claims = JwtClaims::fromPayloadStrict([
+            'iss' => JwtClaims::ISS_PHLIX_HUB,
+            'aud' => JwtClaims::AUD_CLIENT,
+            'sub' => 'user-uuid',
+            'iat' => 1700000000,
+            'exp' => 1700003600,
+            'type' => JwtClaims::TYPE_ACCESS,
+        ]);
+
+        $this->assertSame(JwtClaims::AUD_CLIENT, $claims->aud);
+        $this->assertSame(JwtClaims::ISS_PHLIX_HUB, $claims->iss);
+    }
+
+    public function test_fromPayloadStrict_missing_aud_throws(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('JWT claim "aud" is required.');
+        JwtClaims::fromPayloadStrict([
+            'iss' => 'phlix', 'sub' => 'u', 'iat' => 1, 'exp' => 2, 'type' => 'access',
+        ]);
+    }
+
+    public function test_fromPayloadStrict_wrong_type_aud_throws(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('JWT claim "aud" must be a string.');
+        JwtClaims::fromPayloadStrict([
+            'iss' => 'phlix', 'aud' => 42, 'sub' => 'u', 'iat' => 1, 'exp' => 2, 'type' => 'access',
+        ]);
+    }
+
+    public function test_fromPayloadStrict_still_validates_other_required_fields(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('JWT claim "iss" is required.');
+        JwtClaims::fromPayloadStrict([
+            'aud' => JwtClaims::AUD_SERVER, 'sub' => 'u', 'iat' => 1, 'exp' => 2, 'type' => 'access',
+        ]);
+    }
+
+    public function test_fromPayload_still_defaults_missing_aud_for_legacy_tokens(): void
+    {
+        // BC: the lenient variant must keep defaulting a missing `aud`.
+        $claims = JwtClaims::fromPayload([
+            'iss' => 'phlix', 'sub' => 'u', 'iat' => 1, 'exp' => 2, 'type' => 'access',
+        ]);
+
+        $this->assertSame(JwtClaims::AUD_SERVER, $claims->aud);
+    }
+
+    // --- B4: object round-trip symmetry -----------------------------------
+
+    public function test_roundtrip_object_equality_full_claims(): void
+    {
+        $claims = JwtClaims::fromPayload([
+            'iss' => JwtClaims::ISS_PHLIX_HUB,
+            'aud' => JwtClaims::AUD_CLIENT,
+            'sub' => 'user-uuid',
+            'iat' => 1700000000,
+            'exp' => 1700003600,
+            'type' => JwtClaims::TYPE_ACCESS,
+            'nbf' => 1700000000,
+            'jti' => 'token-id',
+            'scope' => ['library:read', 'playback:write'],
+            'serverId' => 'server-uuid',
+        ]);
+
+        $this->assertEquals($claims, JwtClaims::fromPayload($claims->toPayload()));
+    }
+
+    public function test_roundtrip_object_equality_minimal_claims(): void
+    {
+        // toPayload() omits the null/empty optionals; fromPayload() re-defaults
+        // them, so the reconstructed object must equal the original despite the
+        // asymmetric array serialization.
+        $claims = JwtClaims::fromPayload([
+            'iss' => 'phlix', 'sub' => 'u', 'iat' => 1, 'exp' => 2, 'type' => 'access',
+        ]);
+
+        $this->assertEquals($claims, JwtClaims::fromPayload($claims->toPayload()));
+    }
 }
