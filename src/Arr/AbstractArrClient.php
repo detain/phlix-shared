@@ -4,21 +4,25 @@ declare(strict_types=1);
 
 namespace Phlix\Shared\Arr;
 
+use Phlix\Shared\Arr\Transport\ArrTransportInterface;
+use Phlix\Shared\Arr\Transport\CurlArrTransport;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
 
 /**
  * Shared base for the *arr HTTP API clients (Radarr/Sonarr/Prowlarr/Bazarr).
  *
- * Centralises the constructor, header building, the GET/POST/PUT/DELETE cURL
+ * Centralises the constructor, header building, the GET/POST/PUT/DELETE request
  * methods, and the per-status-code error mapping that were previously
  * duplicated across each client. Subclasses provide only their
  * endpoint-specific methods plus {@see AbstractArrClient::vendorName()} used in
  * error messages (e.g. "Radarr API error: HTTP 500").
  *
- * NOTE: This is intentionally still blocking cURL. A later step (F2b) swaps the
- * transport behind an injected seam; this class only removes the duplication so
- * that swap happens in one place.
+ * All HTTP I/O is delegated to an injected {@see ArrTransportInterface}. When none
+ * is supplied the class falls back to the bundled, **blocking** {@see CurlArrTransport}
+ * so direct instantiation in CLI scripts/tests keeps working unchanged. Event-loop
+ * consumers (Workerman/Webman) MUST inject an async, non-blocking transport so a slow
+ * *arr instance never stalls the worker — see {@see ArrTransportInterface}.
  *
  * @package Phlix\Shared\Arr
  * @since 0.4.0
@@ -29,6 +33,7 @@ abstract class AbstractArrClient
     protected string $apiKey;
     protected ?LoggerInterface $logger;
     protected int $timeout;
+    protected ArrTransportInterface $transport;
 
     /**
      * Creates a new *arr client.
@@ -37,17 +42,22 @@ abstract class AbstractArrClient
      * @param string $apiKey  API key for authentication.
      * @param LoggerInterface|null $logger Optional logger instance.
      * @param int $timeout Request timeout in seconds (default 30).
+     * @param ArrTransportInterface|null $transport Optional HTTP transport. When null,
+     *     a blocking {@see CurlArrTransport} (CLI/test only) is used. Event-loop
+     *     consumers MUST inject an async, non-blocking transport.
      */
     public function __construct(
         string $baseUrl,
         string $apiKey,
         ?LoggerInterface $logger = null,
-        int $timeout = 30
+        int $timeout = 30,
+        ?ArrTransportInterface $transport = null
     ) {
         $this->baseUrl = rtrim($baseUrl, '/');
         $this->apiKey = $apiKey;
         $this->logger = $logger;
         $this->timeout = $timeout;
+        $this->transport = $transport ?? new CurlArrTransport($timeout);
     }
 
     /**
@@ -108,6 +118,10 @@ abstract class AbstractArrClient
     /**
      * Executes an HTTP request against the *arr instance and decodes the JSON body.
      *
+     * The wire I/O is delegated to the injected {@see ArrTransportInterface}; this
+     * method only builds the request, maps status codes to exceptions, and decodes
+     * the JSON body. No cURL call happens here when a non-default transport is injected.
+     *
      * @param string $method One of GET/POST/PUT/DELETE.
      * @param string $path Request path.
      * @param array<string, mixed>|null $body JSON-serializable body for POST/PUT; null otherwise.
@@ -117,42 +131,15 @@ abstract class AbstractArrClient
     private function request(string $method, string $path, ?array $body): array
     {
         $url = $this->baseUrl . $path;
-        assert($url !== '');
 
-        $options = [
-            CURLOPT_URL => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => $this->timeout,
-            CURLOPT_HTTPHEADER => $this->buildHeaders(),
-        ];
-
-        if ($method === 'POST') {
-            $options[CURLOPT_POST] = true;
-            $options[CURLOPT_POSTFIELDS] = $this->encodeBody($body ?? []);
-        } elseif ($method === 'PUT') {
-            $options[CURLOPT_CUSTOMREQUEST] = 'PUT';
-            $options[CURLOPT_POSTFIELDS] = $this->encodeBody($body ?? []);
-        } elseif ($method === 'DELETE') {
-            $options[CURLOPT_CUSTOMREQUEST] = 'DELETE';
+        $encodedBody = null;
+        if ($method === 'POST' || $method === 'PUT') {
+            $encodedBody = $this->encodeBody($body ?? []);
         }
 
-        $ch = curl_init();
-        if ($ch === false) {
-            throw new RuntimeException('curl_init() failed');
-        }
-
-        curl_setopt_array($ch, $options);
-
-        /** @var string|false */
-        $responseBody = curl_exec($ch);
-        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $curlErrno = curl_errno($ch);
-        $curlError = curl_error($ch);
-        curl_close($ch);
-
-        if ($responseBody === false || $curlErrno !== 0) {
-            throw new RuntimeException('cURL error: ' . $curlError, $curlErrno);
-        }
+        $response = $this->transport->request($method, $url, $this->buildHeaders(), $encodedBody);
+        $httpCode = $response['status'];
+        $responseBody = $response['body'];
 
         $vendor = $this->vendorName();
 
