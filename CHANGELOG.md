@@ -4,7 +4,7 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.11.0] - 2026-06-28
 
 ### Added
 - **`Relay\RelayHttpRequest` security gate** (findings S1/F1) — the untrusted,
