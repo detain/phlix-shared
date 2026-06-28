@@ -34,6 +34,18 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   consumers can migrate to the strict variant once every issuer emits `aud`. Additive,
   BC-safe.
 
+### Changed
+- **`Arr\AbstractArrClient` extraction** (findings CQ2/CQ5) — the four near-identical
+  *arr clients (`RadarrClient`, `SonarrClient`, `ProwlarrClient`, `BazarrClient`) now
+  extend a shared `abstract class AbstractArrClient` that owns the constructor
+  (`baseUrl`/`apiKey`/`logger`/`timeout`), header building, the GET/POST/PUT/DELETE
+  cURL methods, and the per-status-code error mapping. Subclasses keep only their
+  endpoint-specific methods plus a `protected vendorName(): string` used in error
+  messages. **No behaviour change** — still blocking cURL, identical public class
+  names, methods, and thrown exceptions/messages; existing tests pass unchanged. This
+  is the structural enabler for the F2b async-transport seam (transport injection then
+  happens in one place). Internal refactor only — no consumer impact.
+
 ### Documentation
 - **`Auth\JwtClaims` security & round-trip docs** (findings S4/B4):
   - Class docblock now prominently states `JwtClaims` performs **no signature

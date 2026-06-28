@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Phlix\Shared\Arr;
 
-use Psr\Log\LoggerInterface;
 use RuntimeException;
 
 /**
@@ -13,31 +12,14 @@ use RuntimeException;
  * @package Phlix\Shared\Arr
  * @since 0.4.0
  */
-class BazarrClient
+class BazarrClient extends AbstractArrClient
 {
-    private string $baseUrl;
-    private string $apiKey;
-    private ?LoggerInterface $logger;
-    private int $timeout;
-
     /**
-     * Creates a new BazarrClient.
-     *
-     * @param string $baseUrl Base URL of the Bazarr instance (e.g. `http://localhost:6767`).
-     * @param string $apiKey  API key for authentication.
-     * @param LoggerInterface|null $logger Optional logger instance.
-     * @param int $timeout Request timeout in seconds (default 30).
+     * {@inheritdoc}
      */
-    public function __construct(
-        string $baseUrl,
-        string $apiKey,
-        ?LoggerInterface $logger = null,
-        int $timeout = 30
-    ) {
-        $this->baseUrl = rtrim($baseUrl, '/');
-        $this->apiKey = $apiKey;
-        $this->logger = $logger;
-        $this->timeout = $timeout;
+    protected function vendorName(): string
+    {
+        return 'Bazarr';
     }
 
     /**
@@ -113,145 +95,5 @@ class BazarrClient
             $this->logger?->warning('Bazarr connection test failed: ' . $e->getMessage());
             return false;
         }
-    }
-
-    /**
-     * Performs a GET request.
-     *
-     * @param string $path Request path.
-     * @return array<mixed, mixed> Decoded JSON response.
-     * @throws RuntimeException On network or HTTP errors.
-     */
-    protected function get(string $path): array
-    {
-        $url = $this->baseUrl . $path;
-        assert($url !== '');
-
-        $ch = curl_init();
-        if ($ch === false) {
-            throw new RuntimeException('curl_init() failed');
-        }
-
-        curl_setopt_array($ch, [
-            CURLOPT_URL => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => $this->timeout,
-            CURLOPT_HTTPHEADER => $this->buildHeaders(),
-        ]);
-
-        /** @var string|false */
-        $responseBody = curl_exec($ch);
-        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $curlErrno = curl_errno($ch);
-        $curlError = curl_error($ch);
-        curl_close($ch);
-
-        if ($responseBody === false || $curlErrno !== 0) {
-            throw new RuntimeException('cURL error: ' . $curlError, $curlErrno);
-        }
-
-        if ($httpCode === 401) {
-            throw new RuntimeException('Bazarr API authentication failed (401)');
-        }
-
-        if ($httpCode === 404) {
-            throw new RuntimeException('Bazarr API resource not found (404): ' . $path);
-        }
-
-        if ($httpCode >= 400) {
-            throw new RuntimeException('Bazarr API error: HTTP ' . $httpCode);
-        }
-
-        if ($responseBody === '') {
-            return [];
-        }
-
-        $decoded = json_decode($responseBody, true);
-        if (!is_array($decoded)) {
-            throw new RuntimeException('Invalid JSON response from Bazarr');
-        }
-
-        return $decoded;
-    }
-
-    /**
-     * Performs a POST request with a JSON body.
-     *
-     * @param string $path Request path.
-     * @param array<string, mixed> $body JSON-serializable body.
-     * @return array<mixed, mixed> Decoded JSON response.
-     * @throws RuntimeException On network or HTTP errors.
-     */
-    protected function post(string $path, array $body): array
-    {
-        $url = $this->baseUrl . $path;
-        assert($url !== '');
-        $encodedBody = json_encode($body);
-
-        if ($encodedBody === false) {
-            throw new RuntimeException('json_encode failed for Bazarr request body');
-        }
-
-        $ch = curl_init();
-        if ($ch === false) {
-            throw new RuntimeException('curl_init() failed');
-        }
-
-        curl_setopt_array($ch, [
-            CURLOPT_URL => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => $this->timeout,
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => $encodedBody,
-            CURLOPT_HTTPHEADER => $this->buildHeaders(),
-        ]);
-
-        /** @var string|false */
-        $responseBody = curl_exec($ch);
-        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $curlErrno = curl_errno($ch);
-        $curlError = curl_error($ch);
-        curl_close($ch);
-
-        if ($responseBody === false || $curlErrno !== 0) {
-            throw new RuntimeException('cURL error: ' . $curlError, $curlErrno);
-        }
-
-        if ($httpCode === 401) {
-            throw new RuntimeException('Bazarr API authentication failed (401)');
-        }
-
-        if ($httpCode === 404) {
-            throw new RuntimeException('Bazarr API resource not found (404): ' . $path);
-        }
-
-        if ($httpCode >= 400) {
-            throw new RuntimeException('Bazarr API error: HTTP ' . $httpCode);
-        }
-
-        if ($responseBody === '') {
-            return [];
-        }
-
-        $decoded = json_decode($responseBody, true);
-        if (!is_array($decoded)) {
-            throw new RuntimeException('Invalid JSON response from Bazarr');
-        }
-
-        return $decoded;
-    }
-
-    /**
-     * Builds the HTTP headers for Bazarr API requests.
-     *
-     * @return array<string> Headers array.
-     */
-    private function buildHeaders(): array
-    {
-        return [
-            'Content-Type: application/json',
-            'Accept: application/json',
-            'X-Api-Key: ' . $this->apiKey,
-        ];
     }
 }
