@@ -33,6 +33,36 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   v0.10.x backward-compat default for legacy tokens (existing behaviour unchanged);
   consumers can migrate to the strict variant once every issuer emits `aud`. Additive,
   BC-safe.
+- **`Arr` async-transport seam** (findings B1/P1, CQ1, F2) — the *arr clients now route
+  all HTTP I/O through an injectable transport, so the blocking cURL call lives behind a
+  seam and event-loop (Workerman/Webman) consumers can avoid it entirely, honouring the
+  package's "zero I/O" charter:
+  - New `interface Arr\Transport\ArrTransportInterface` with a single
+    `request(string $method, string $url, array $headers, ?string $body): array{status:int, body:string}`
+    method. Implementations return the status + raw body (they do NOT throw on non-2xx;
+    the client maps status codes).
+  - New default `final Arr\Transport\CurlArrTransport` carrying the **blocking** cURL
+    behaviour moved out of `AbstractArrClient::request()`. Documented as **CLI/test only**;
+    event-loop consumers MUST inject an async, non-blocking transport.
+  - `Arr\AbstractArrClient` gains an **optional, appended** constructor parameter
+    `?ArrTransportInterface $transport = null`; when null it falls back to
+    `new CurlArrTransport($timeout)`, so existing direct instantiation keeps working
+    unchanged. All requests are dispatched through the transport — no `curl_exec()` runs
+    when a transport is injected.
+  - `Arr\ArrClientFactory` gains an optional appended `?ArrTransportInterface $transport`
+    constructor parameter, propagated to every client it creates.
+  - **`ArrClientInterface` is unchanged** — the transport is a constructor concern only,
+    not a new interface method, so this is NOT a breaking change.
+  - `composer.json`: the misleading absolute "zero I/O" claim is reconciled — the
+    description now states the only bundled network code is the blocking `CurlArrTransport`
+    (CLI/test only) and event-loop consumers must inject an async transport. `ext-curl`
+    moved from `require` to `require-dev` + `suggest` (needed only for the default cURL
+    transport); added a `suggest` for `workerman/http-client` for consumers wiring an
+    async transport.
+  - **Consumer follow-up (Wave 1+):** phlix-server will add a `workerman/http-client`-backed
+    `WorkermanArrTransport` and inject it (via `ArrClientFactory`/direct construction) so
+    *arr calls stop stalling the worker; phlix-hub audits its `RequestManager` usage the
+    same way. Additive / BC-safe here.
 
 ### Changed
 - **`Arr\AbstractArrClient` extraction** (findings CQ2/CQ5) — the four near-identical
