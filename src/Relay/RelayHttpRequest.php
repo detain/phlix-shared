@@ -8,11 +8,17 @@ use InvalidArgumentException;
 
 use function base64_decode;
 use function base64_encode;
+use function in_array;
 use function is_array;
-use function is_int;
 use function is_string;
 use function json_decode;
 use function json_encode;
+use function ord;
+use function rawurldecode;
+use function str_contains;
+use function strlen;
+use function strtolower;
+use function strtoupper;
 
 use const JSON_THROW_ON_ERROR;
 
@@ -37,6 +43,28 @@ use const JSON_THROW_ON_ERROR;
  */
 final readonly class RelayHttpRequest
 {
+    /**
+     * HTTP methods the relay will forward. Anything else is rejected by
+     * {@see self::assertSafe()}. Compared case-insensitively (upper-cased).
+     *
+     * @var list<string>
+     */
+    public const ALLOWED_METHODS = ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'];
+
+    /**
+     * Trust-bearing inbound headers the consumer keys auth/identity off and
+     * which an untrusted relay producer must never be allowed to set. The DTO
+     * does NOT silently strip these in {@see self::fromJson()} (the hub owns
+     * identity injection); instead it exposes the set via
+     * {@see self::isForbiddenHeader()} and {@see self::withoutForbiddenHeaders()}
+     * so the consumer can drop them before forwarding.
+     *
+     * Names are lower-cased for case-insensitive matching.
+     *
+     * @var list<string>
+     */
+    public const STRIPPED_HEADERS = ['x-phlix-relay-user', 'x-forwarded-for', 'authorization', 'cookie'];
+
     /**
      * @param string                $method  Upper-case HTTP method (GET/POST/…).
      * @param string                $path    Request path (no query string), e.g. /api/v1/libraries.
@@ -132,6 +160,125 @@ final readonly class RelayHttpRequest
             throw new InvalidArgumentException('RelayHttpRequest: "body" is not valid base64.');
         }
 
-        return new self($method, $path, $query, $headers, $body);
+        $request = new self($method, $path, $query, $headers, $body);
+        $request->assertSafe();
+
+        return $request;
+    }
+
+    /**
+     * Validate that the method and path of this (untrusted, hub-tunnelled)
+     * request are safe to forward. Throws on any violation; returns void on
+     * success. Called automatically at the end of {@see self::fromJson()} so
+     * every consumer that deserializes the wire envelope inherits the gate.
+     *
+     * This validates METHOD and PATH only. It does NOT strip trust-bearing
+     * headers — that is the consumer's responsibility via
+     * {@see self::isForbiddenHeader()} / {@see self::withoutForbiddenHeaders()},
+     * because the consumer owns identity injection (e.g. the relay session's
+     * authenticated owner) and the DTO must not silently mutate the envelope.
+     *
+     * Path rules: must start with a single '/'; must not be protocol-relative
+     * ('//…'); must not contain '..' (raw or percent-encoded), a NUL byte
+     * (raw or '%00'), a backslash, '://', a '?' (query is a separate field),
+     * a '#', or any control character (< 0x20). Percent-encoded sequences are
+     * decoded once and re-checked so '%2e%2e' / '%00' are caught.
+     *
+     * Method rules: must match {@see self::ALLOWED_METHODS} case-insensitively.
+     *
+     * @throws InvalidArgumentException When the method or path is unsafe.
+     *
+     * @since 0.11.0
+     */
+    public function assertSafe(): void
+    {
+        if (!in_array(strtoupper($this->method), self::ALLOWED_METHODS, true)) {
+            throw new InvalidArgumentException(
+                'RelayHttpRequest: HTTP method "' . $this->method . '" is not allowed.',
+            );
+        }
+
+        $path = $this->path;
+
+        if ($path === '' || $path[0] !== '/') {
+            throw new InvalidArgumentException('RelayHttpRequest: "path" must start with "/".');
+        }
+
+        // Protocol-relative URL (//host/...) — would target an external origin.
+        if (isset($path[1]) && $path[1] === '/') {
+            throw new InvalidArgumentException('RelayHttpRequest: "path" must not be protocol-relative.');
+        }
+
+        // Re-check the path with percent-encoding decoded once so encoded
+        // traversal / NUL bytes are caught alongside their literal forms.
+        $decoded = rawurldecode($path);
+
+        foreach ([$path, $decoded] as $candidate) {
+            if (str_contains($candidate, '..')) {
+                throw new InvalidArgumentException('RelayHttpRequest: "path" must not contain "..".');
+            }
+            if (str_contains($candidate, "\0")) {
+                throw new InvalidArgumentException('RelayHttpRequest: "path" must not contain a NUL byte.');
+            }
+            if (str_contains($candidate, '\\')) {
+                throw new InvalidArgumentException('RelayHttpRequest: "path" must not contain a backslash.');
+            }
+            if (str_contains($candidate, '://')) {
+                throw new InvalidArgumentException('RelayHttpRequest: "path" must not contain "://".');
+            }
+            if (str_contains($candidate, '?')) {
+                throw new InvalidArgumentException('RelayHttpRequest: "path" must not contain a query string.');
+            }
+            if (str_contains($candidate, '#')) {
+                throw new InvalidArgumentException('RelayHttpRequest: "path" must not contain a fragment.');
+            }
+
+            $length = strlen($candidate);
+            for ($i = 0; $i < $length; $i++) {
+                if (ord($candidate[$i]) < 0x20) {
+                    throw new InvalidArgumentException(
+                        'RelayHttpRequest: "path" must not contain control characters.',
+                    );
+                }
+            }
+        }
+    }
+
+    /**
+     * Whether a header name is a trust-bearing header the consumer must not
+     * accept from the untrusted relay producer (see {@see self::STRIPPED_HEADERS}).
+     * Case-insensitive.
+     *
+     * @param string $name Header name.
+     *
+     * @return bool True when the header must be stripped before forwarding.
+     *
+     * @since 0.11.0
+     */
+    public static function isForbiddenHeader(string $name): bool
+    {
+        return in_array(strtolower($name), self::STRIPPED_HEADERS, true);
+    }
+
+    /**
+     * Return a copy of this request with all forbidden (trust-bearing) headers
+     * removed. The consumer should call this before forwarding so an untrusted
+     * relay producer cannot spoof identity/auth headers, then inject the
+     * hub-validated owner identity itself.
+     *
+     * @return self A new instance with {@see self::STRIPPED_HEADERS} dropped.
+     *
+     * @since 0.11.0
+     */
+    public function withoutForbiddenHeaders(): self
+    {
+        $headers = [];
+        foreach ($this->headers as $name => $value) {
+            if (!self::isForbiddenHeader($name)) {
+                $headers[$name] = $value;
+            }
+        }
+
+        return new self($this->method, $this->path, $this->query, $headers, $this->body);
     }
 }
