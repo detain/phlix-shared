@@ -4,10 +4,16 @@ declare(strict_types=1);
 
 namespace Phlix\Shared\Arr;
 
+use Phlix\Shared\Arr\Transport\ArrTransportInterface;
 use Psr\Log\LoggerInterface;
 
 /**
  * Factory for creating Sonarr/Radarr API clients from config.
+ *
+ * An optional {@see ArrTransportInterface} may be supplied; when present it is
+ * propagated to every created client so event-loop consumers can wire a single
+ * async, non-blocking transport once. When omitted, clients fall back to the
+ * bundled blocking {@see \Phlix\Shared\Arr\Transport\CurlArrTransport} (CLI/test only).
  *
  * @package Phlix\Shared\Arr
  * @since 0.4.0
@@ -19,9 +25,12 @@ class ArrClientFactory
      *     sonarr?: array{url?: string, api_key?: string, enabled?: bool},
      *     radarr?: array{url?: string, api_key?: string, enabled?: bool}
      * } $config Configuration array with sonarr/radarr sections.
+     * @param ArrTransportInterface|null $transport Optional HTTP transport propagated to
+     *     every created client. When null, clients use the default blocking cURL transport.
      */
     public function __construct(
-        private readonly array $config
+        private readonly array $config,
+        private readonly ?ArrTransportInterface $transport = null
     ) {
     }
 
@@ -47,7 +56,7 @@ class ArrClientFactory
             return null;
         }
 
-        return new SonarrClient($url, $apiKey, $logger);
+        return new SonarrClient($url, $apiKey, $logger, 30, $this->transport);
     }
 
     /**
@@ -72,6 +81,6 @@ class ArrClientFactory
             return null;
         }
 
-        return new RadarrClient($url, $apiKey, $logger);
+        return new RadarrClient($url, $apiKey, $logger, 30, $this->transport);
     }
 }
