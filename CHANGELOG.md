@@ -27,6 +27,24 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     unchanged. **Consumer follow-up (phlix-server `RelayConsumer::buildRequest()`):**
     stop trusting `x-phlix-relay-user` from the envelope and strip forbidden headers
     via `isForbiddenHeader()` — that paired PR is the actual auth-bypass fix.
+- **`Auth\JwtClaims::fromPayloadStrict(array): self`** (finding S4) — strict variant
+  of `fromPayload()` that **throws** `InvalidArgumentException` when the `aud` claim is
+  absent, instead of silently defaulting it to `AUD_SERVER`. `fromPayload()` keeps the
+  v0.10.x backward-compat default for legacy tokens (existing behaviour unchanged);
+  consumers can migrate to the strict variant once every issuer emits `aud`. Additive,
+  BC-safe.
+
+### Documentation
+- **`Auth\JwtClaims` security & round-trip docs** (findings S4/B4):
+  - Class docblock now prominently states `JwtClaims` performs **no signature
+    verification** — it is a typed view over an already-decoded/verified payload;
+    verifying the JWT signature (and rejecting `alg: none`) is the caller's
+    responsibility (server/hub `JwtHandler`).
+  - Documents the deliberate `toPayload()` asymmetry: null/empty optionals
+    (`nbf`/`jti`/`scope`/`serverId`) are omitted from the array for legacy-decoder
+    wire-compat, yet `fromPayload(toPayload($claims)) == $claims` remains lossless
+    because `fromPayload()` re-applies the defaults. New round-trip object-equality
+    tests cover both the all-fields and minimal-claims cases. No behaviour change.
 
 ## [0.10.1] - 2026-06-23
 
