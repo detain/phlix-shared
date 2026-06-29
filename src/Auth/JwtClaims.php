@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Phlix\Shared\Auth;
 
 use InvalidArgumentException;
+use Phlix\Shared\Support\PayloadAssert;
 
 /**
  * Immutable claim shape for Phlix JWTs (access and refresh).
@@ -54,6 +55,8 @@ use InvalidArgumentException;
  */
 final class JwtClaims
 {
+    use PayloadAssert;
+
     public const ISS_PHLIX = 'phlix';
     public const ISS_PHLIX_HUB = 'phlix-hub';
     public const AUD_SERVER = 'server';
@@ -139,7 +142,7 @@ final class JwtClaims
      */
     public static function fromPayloadStrict(array $payload): self
     {
-        $aud = self::requireString($payload, 'aud');
+        $aud = self::requireString($payload, 'aud', 'JWT claim');
 
         return self::build($payload, $aud);
     }
@@ -153,11 +156,11 @@ final class JwtClaims
      */
     private static function build(array $payload, string $aud): self
     {
-        $iss = self::requireString($payload, 'iss');
-        $sub = self::requireString($payload, 'sub');
-        $iat = self::requireInt($payload, 'iat');
-        $exp = self::requireInt($payload, 'exp');
-        $type = self::requireString($payload, 'type');
+        $iss = self::requireString($payload, 'iss', 'JWT claim');
+        $sub = self::requireString($payload, 'sub', 'JWT claim');
+        $iat = self::requireInt($payload, 'iat', 'JWT claim');
+        $exp = self::requireInt($payload, 'exp', 'JWT claim');
+        $type = self::requireString($payload, 'type', 'JWT claim');
 
         $nbf = null;
         if (array_key_exists('nbf', $payload) && $payload['nbf'] !== null) {
@@ -266,35 +269,5 @@ final class JwtClaims
     public function hasScope(string $scope): bool
     {
         return in_array($scope, $this->scope, true);
-    }
-
-    /**
-     * @param array<string, mixed> $payload
-     */
-    private static function requireString(array $payload, string $key): string
-    {
-        if (!array_key_exists($key, $payload)) {
-            throw new InvalidArgumentException(sprintf('JWT claim "%s" is required.', $key));
-        }
-        $value = $payload[$key];
-        if (!is_string($value)) {
-            throw new InvalidArgumentException(sprintf('JWT claim "%s" must be a string.', $key));
-        }
-        return $value;
-    }
-
-    /**
-     * @param array<string, mixed> $payload
-     */
-    private static function requireInt(array $payload, string $key): int
-    {
-        if (!array_key_exists($key, $payload)) {
-            throw new InvalidArgumentException(sprintf('JWT claim "%s" is required.', $key));
-        }
-        $value = $payload[$key];
-        if (!is_int($value)) {
-            throw new InvalidArgumentException(sprintf('JWT claim "%s" must be an integer.', $key));
-        }
-        return $value;
     }
 }

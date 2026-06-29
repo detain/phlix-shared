@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Phlix\Shared\Hub;
 
 use InvalidArgumentException;
+use Phlix\Shared\Support\PayloadAssert;
 
 /**
  * Hub-side projection of an enrolled server, returned from
@@ -15,6 +16,8 @@ use InvalidArgumentException;
  */
 final class ServerInfoDto
 {
+    use PayloadAssert;
+
     public const STATUS_ONLINE = 'online';
     public const STATUS_OFFLINE = 'offline';
     public const STATUS_CLAIMING = 'claiming';
@@ -53,11 +56,11 @@ final class ServerInfoDto
      */
     public static function fromPayload(array $payload): self
     {
-        $serverId = self::requireString($payload, 'serverId');
-        $userId = self::requireString($payload, 'userId');
-        $serverName = self::requireString($payload, 'serverName');
-        $version = self::requireString($payload, 'version');
-        $status = self::requireString($payload, 'status');
+        $serverId = self::requireString($payload, 'serverId', 'ServerInfoDto');
+        $userId = self::requireString($payload, 'userId', 'ServerInfoDto');
+        $serverName = self::requireString($payload, 'serverName', 'ServerInfoDto');
+        $version = self::requireString($payload, 'version', 'ServerInfoDto');
+        $status = self::requireString($payload, 'status', 'ServerInfoDto');
 
         $lastSeenAt = null;
         if (array_key_exists('lastSeenAt', $payload) && $payload['lastSeenAt'] !== null) {
@@ -121,20 +124,5 @@ final class ServerInfoDto
             'relayActive' => $this->relayActive,
             'libraryCount' => $this->libraryCount,
         ];
-    }
-
-    /**
-     * @param array<string, mixed> $payload
-     */
-    private static function requireString(array $payload, string $key): string
-    {
-        if (!array_key_exists($key, $payload)) {
-            throw new InvalidArgumentException(sprintf('ServerInfoDto "%s" is required.', $key));
-        }
-        $value = $payload[$key];
-        if (!is_string($value)) {
-            throw new InvalidArgumentException(sprintf('ServerInfoDto "%s" must be a string.', $key));
-        }
-        return $value;
     }
 }
