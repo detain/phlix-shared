@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Phlix\Shared\Events;
 
+use Psr\Clock\ClockInterface;
+
 /**
  * Common base for all Phlix PSR-14 events.
  *
@@ -33,9 +35,14 @@ abstract class AbstractEvent
      * Capture the construction timestamp.
      *
      * @since 0.2.0
+     *
+     * @param ClockInterface|null $clock Optional PSR-20 clock for deterministic testing.
+     *                                   When null (default), falls back to `time()` for BC.
      */
-    public function __construct()
+    public function __construct(?ClockInterface $clock = null)
     {
-        $this->timestamp = time();
+        $this->timestamp = $clock !== null
+            ? $clock->now()->getTimestamp()
+            : time();
     }
 }
