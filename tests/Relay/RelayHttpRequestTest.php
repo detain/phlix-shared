@@ -201,4 +201,65 @@ final class RelayHttpRequestTest extends TestCase
         // Original is untouched (immutable copy semantics).
         $this->assertArrayHasKey('X-Phlix-Relay-User', $req->headers);
     }
+
+    /**
+     * Verify json_decode depth cap was raised.
+     *
+     * With the old depth cap of 8, a 9-level nested object would throw
+     * "Maximum stack depth exceeded" from json_decode. With MAX_JSON_DEPTH=512,
+     * json_decode (which needs depth 11 for 9 levels) succeeds.
+     *
+     * The resulting object is not a valid envelope (missing 'method'), so
+     * validation fails after json_decode - but that's fine. The key point is
+     * json_decode no longer throws for depth reasons.
+     */
+    public function test_json_decode_handles_9_level_nesting(): void
+    {
+        // Build 9 levels of nesting via array (reliable construction).
+        $nested = [];
+        $current = &$nested;
+        for ($i = 0; $i < 9; $i++) {
+            $current['level' . $i] = [];
+            $current = &$current['level' . $i];
+        }
+        $json = json_encode($nested, JSON_THROW_ON_ERROR);
+
+        // With depth=8 (old), json_decode throws JsonException.
+        // With MAX_JSON_DEPTH=512, json_decode succeeds, then validation fails.
+        try {
+            RelayHttpRequest::fromJson($json);
+        } catch (InvalidArgumentException $e) {
+            // Expected: validation fails because top-level lacks required fields.
+            // This proves json_decode handled the 9-level depth correctly.
+            $this->assertStringContainsString('method', $e->getMessage());
+        }
+    }
+
+    public function test_from_json_rejects_json_exceeding_max_depth(): void
+    {
+        // Build JSON nested to 512 levels (needs depth 513, exceeds MAX_JSON_DEPTH=512).
+        $nested = [];
+        $current = &$nested;
+        for ($i = 0; $i < 512; $i++) {
+            $current['a'] = [];
+            $current = &$current['a'];
+        }
+        $json = json_encode($nested, JSON_THROW_ON_ERROR, 1024);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('malformed JSON');
+        RelayHttpRequest::fromJson($json);
+    }
+
+    public function test_from_json_still_rejects_malformed_json(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('malformed JSON');
+        RelayHttpRequest::fromJson('{not json');
+    }
+
+    public function test_max_json_depth_constant_is_512(): void
+    {
+        $this->assertSame(512, RelayHttpRequest::MAX_JSON_DEPTH);
+    }
 }

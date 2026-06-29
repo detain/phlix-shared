@@ -52,6 +52,13 @@ final readonly class RelayHttpRequest
     public const ALLOWED_METHODS = ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'];
 
     /**
+     * Maximum nesting depth accepted by json_decode when parsing the wire envelope.
+     * Set to 512 to match Manifest::fromJson. The 64KB frame cap bounds overall size,
+     * so depth is not a security concern here.
+     */
+    public const MAX_JSON_DEPTH = 512;
+
+    /**
      * Trust-bearing inbound headers the consumer keys auth/identity off and
      * which an untrusted relay producer must never be allowed to set. The DTO
      * does NOT silently strip these in {@see self::fromJson()} (the hub owns
@@ -116,7 +123,7 @@ final readonly class RelayHttpRequest
     {
         try {
             /** @var mixed $decoded */
-            $decoded = json_decode($json, true, 8, JSON_THROW_ON_ERROR);
+            $decoded = json_decode($json, true, self::MAX_JSON_DEPTH, JSON_THROW_ON_ERROR);
         } catch (\JsonException $e) {
             throw new InvalidArgumentException('RelayHttpRequest: malformed JSON: ' . $e->getMessage());
         }
