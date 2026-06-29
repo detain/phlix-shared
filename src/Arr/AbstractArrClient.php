@@ -34,6 +34,7 @@ abstract class AbstractArrClient
     protected ?LoggerInterface $logger;
     protected int $timeout;
     protected ArrTransportInterface $transport;
+    private bool $httpWarningLogged = false;
 
     /**
      * Creates a new *arr client.
@@ -53,11 +54,25 @@ abstract class AbstractArrClient
         int $timeout = 30,
         ?ArrTransportInterface $transport = null
     ) {
+        $scheme = parse_url($baseUrl, PHP_URL_SCHEME);
+        if ($scheme === null || ($scheme !== 'http' && $scheme !== 'https')) {
+            throw new RuntimeException(
+                'Invalid baseUrl scheme "' . ($scheme ?? 'null') . '": must be http or https'
+            );
+        }
+
         $this->baseUrl = rtrim($baseUrl, '/');
         $this->apiKey = $apiKey;
         $this->logger = $logger;
         $this->timeout = $timeout;
         $this->transport = $transport ?? new CurlArrTransport($timeout);
+
+        if ($scheme === 'http' && !$this->httpWarningLogged) {
+            $this->httpWarningLogged = true;
+            $this->logger?->warning(
+                $this->vendorName() . ' baseUrl uses HTTP — X-Api-Key is sent in clear text'
+            );
+        }
     }
 
     /**

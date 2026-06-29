@@ -29,8 +29,10 @@ final class CurlArrTransport implements ArrTransportInterface
     /**
      * @param int $timeout Overall request timeout in seconds.
      */
-    public function __construct(private readonly int $timeout = 30)
-    {
+    public function __construct(
+        private readonly int $timeout = 30,
+        private readonly int $connectTimeout = 5
+    ) {
     }
 
     /**
@@ -53,7 +55,11 @@ final class CurlArrTransport implements ArrTransportInterface
             CURLOPT_URL => $url,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT => $this->timeout,
+            CURLOPT_CONNECTTIMEOUT => $this->connectTimeout,
             CURLOPT_HTTPHEADER => $headers,
+            // Pin to HTTP/HTTPS only — reject file://, gopher://, ftp:// etc.
+            CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+            CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
         ];
 
         if ($method === 'POST') {

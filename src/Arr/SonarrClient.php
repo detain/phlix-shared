@@ -140,7 +140,10 @@ class SonarrClient extends AbstractArrClient implements ArrClientInterface
             $this->post('/api/v3/command', ['name' => 'EpisodeSearch', 'episodeIds' => [$episodeId]]);
             return true;
         } catch (RuntimeException $e) {
-            $this->logger?->warning('Sonarr trigger download failed: ' . $e->getMessage());
+            $this->logger?->warning(
+                'Sonarr trigger download failed: '
+                . SecretRedactor::redact($e->getMessage(), $this->apiKey)
+            );
             return false;
         }
     }
@@ -154,7 +157,10 @@ class SonarrClient extends AbstractArrClient implements ArrClientInterface
             $response = $this->get('/api/v3/system/status');
             return isset($response['version']);
         } catch (RuntimeException $e) {
-            $this->logger?->warning('Sonarr connection test failed: ' . $e->getMessage());
+            $this->logger?->warning(
+                'Sonarr connection test failed: '
+                . SecretRedactor::redact($e->getMessage(), $this->apiKey)
+            );
             return false;
         }
     }
