@@ -111,6 +111,28 @@
             "type": "string",
             "description": "OAuth2 redirect URI registered with the Trakt application; must exactly match this server's /api/v1/oauth/trakt/callback URL.",
             "group": "scrobblers"
+        },
+        "matching.noise_suffixes": {
+            "type": "array",
+            "description": "Trailing 'edition' phrases stripped from a parsed title before metadata matching (longest phrase first). Each entry is matched case-insensitively at the end of the title after optional separators. Admins may extend this list with additional release-edition phrases; an empty override falls back to the built-in defaults.",
+            "group": "matching",
+            "items": {
+                "type": "string"
+            },
+            "default": [
+                "unrated directors cut",
+                "uncut & unrated",
+                "alternate ending",
+                "extended cut",
+                "directors cut",
+                "director's cut",
+                "theatrical cut",
+                "remastered",
+                "extended",
+                "uncut",
+                "yify",
+                "dc"
+            ]
         }
     }
 }
