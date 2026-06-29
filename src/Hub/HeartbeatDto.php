@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Phlix\Shared\Hub;
 
 use InvalidArgumentException;
+use Phlix\Shared\Support\PayloadAssert;
 
 /**
  * Server → Hub every ~60s once enrolled.
@@ -14,6 +15,8 @@ use InvalidArgumentException;
  */
 final class HeartbeatDto
 {
+    use PayloadAssert;
+
     /**
      * @param string         $serverId         Server UUID minted by the hub.
      * @param string         $version          Current server semver.
@@ -46,12 +49,12 @@ final class HeartbeatDto
      */
     public static function fromPayload(array $payload, bool $strictLibraries = false): self
     {
-        $serverId = self::requireString($payload, 'serverId');
-        $version = self::requireString($payload, 'version');
-        $timestamp = self::requireInt($payload, 'timestamp');
-        $uptimeSeconds = self::requireInt($payload, 'uptimeSeconds');
-        $activeSessions = self::requireInt($payload, 'activeSessions');
-        $activeTranscodes = self::requireInt($payload, 'activeTranscodes');
+        $serverId = self::requireString($payload, 'serverId', 'HeartbeatDto');
+        $version = self::requireString($payload, 'version', 'HeartbeatDto');
+        $timestamp = self::requireInt($payload, 'timestamp', 'HeartbeatDto');
+        $uptimeSeconds = self::requireInt($payload, 'uptimeSeconds', 'HeartbeatDto');
+        $activeSessions = self::requireInt($payload, 'activeSessions', 'HeartbeatDto');
+        $activeTranscodes = self::requireInt($payload, 'activeTranscodes', 'HeartbeatDto');
 
         $hostnameCandidates = [];
         if (array_key_exists('hostnameCandidates', $payload)) {
@@ -123,35 +126,5 @@ final class HeartbeatDto
                 $this->libraries,
             ),
         ];
-    }
-
-    /**
-     * @param array<string, mixed> $payload
-     */
-    private static function requireString(array $payload, string $key): string
-    {
-        if (!array_key_exists($key, $payload)) {
-            throw new InvalidArgumentException(sprintf('HeartbeatDto "%s" is required.', $key));
-        }
-        $value = $payload[$key];
-        if (!is_string($value)) {
-            throw new InvalidArgumentException(sprintf('HeartbeatDto "%s" must be a string.', $key));
-        }
-        return $value;
-    }
-
-    /**
-     * @param array<string, mixed> $payload
-     */
-    private static function requireInt(array $payload, string $key): int
-    {
-        if (!array_key_exists($key, $payload)) {
-            throw new InvalidArgumentException(sprintf('HeartbeatDto "%s" is required.', $key));
-        }
-        $value = $payload[$key];
-        if (!is_int($value)) {
-            throw new InvalidArgumentException(sprintf('HeartbeatDto "%s" must be an integer.', $key));
-        }
-        return $value;
     }
 }
