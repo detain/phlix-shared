@@ -193,7 +193,10 @@ class RadarrClient extends AbstractArrClient implements ArrClientInterface
             $this->post('/api/v3/command', ['name' => 'MoviesSearch', 'movieIds' => [$movieId]]);
             return true;
         } catch (RuntimeException $e) {
-            $this->logger?->warning('Radarr trigger download failed: ' . $e->getMessage());
+            $this->logger?->warning(
+                'Radarr trigger download failed: '
+                . SecretRedactor::redact($e->getMessage(), $this->apiKey)
+            );
             return false;
         }
     }
@@ -207,7 +210,10 @@ class RadarrClient extends AbstractArrClient implements ArrClientInterface
             $response = $this->get('/api/v3/system/status');
             return isset($response['version']);
         } catch (RuntimeException $e) {
-            $this->logger?->warning('Radarr connection test failed: ' . $e->getMessage());
+            $this->logger?->warning(
+                'Radarr connection test failed: '
+                . SecretRedactor::redact($e->getMessage(), $this->apiKey)
+            );
             return false;
         }
     }

@@ -92,7 +92,10 @@ class BazarrClient extends AbstractArrClient
             $response = $this->get('/api/v1/system');
             return isset($response['version']) || isset($response['bazarr']);
         } catch (RuntimeException $e) {
-            $this->logger?->warning('Bazarr connection test failed: ' . $e->getMessage());
+            $this->logger?->warning(
+                'Bazarr connection test failed: '
+                . SecretRedactor::redact($e->getMessage(), $this->apiKey)
+            );
             return false;
         }
     }
