@@ -11,7 +11,7 @@ namespace Phlix\Shared\Auth;
  * independent of any local Phlix user record. Used for account linking
  * and profile display.
  *
- * @package Phlix\Auth
+ * @package Phlix\Shared\Auth
  * @author Phlix Team
  * @version 1.0.0
  * @description User information from an external authentication provider.

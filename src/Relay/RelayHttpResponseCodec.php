@@ -123,6 +123,26 @@ final class RelayHttpResponseCodec
     }
 
     /**
+     * Split a full body into BODY chunk payloads yields them lazily.
+     *
+     * Memory-efficient alternative to {@see self::chunkBody()} for streaming
+     * very large bodies. Yields encoded BODY chunk payloads one at a time.
+     *
+     * @param string $body Full response body bytes.
+     *
+     * @return \Generator<int, string> Yields encoded BODY chunk payloads, in order.
+     *
+     * @since 0.10.0
+     */
+    public static function chunkBodyIterator(string $body): \Generator
+    {
+        $length = strlen($body);
+        for ($offset = 0; $offset < $length; $offset += self::MAX_BODY_CHUNK) {
+            yield self::encodeBody(substr($body, $offset, self::MAX_BODY_CHUNK));
+        }
+    }
+
+    /**
      * Decode one HTTP_RESPONSE frame payload into a typed chunk.
      *
      * @param string $payload The frame payload (tag + data).
