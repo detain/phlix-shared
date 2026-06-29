@@ -4,6 +4,42 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.1] - 2026-06-29
+
+### Added
+- **`Hub\LibraryRef` DTO** (findings B3/F3) — new `LibraryRef::fromPayload(array): self` factory
+  that validates the `name`, `version`, and `url` fields of a library entry. `HeartbeatDto`
+  now exposes `libraries: LibraryRef[]` (strict typed array) alongside the legacy
+  `mixed` `libraries` property for a safe migration path.
+- **`Hub\PayloadAssert` trait** (finding CQ3) — extracted `requireString()`, `requireInt()`,
+  `requireBool()`, `requireArray()` and `requireArrayOfStrings()` helpers for consistent,
+  typed payload validation across DTOs. Replaces scattered `is_*()` + exception-throw patterns.
+- **`Events\Abstraction\AbstractEvent` PSR-20 `ClockInterface` seam** (findings B6/F5) — the
+  abstract event now accepts an optional `?ClockInterface $clock` constructor parameter; when
+  provided the event uses it for `getTimestamp()`, allowing deterministic time in tests and
+  alternate time sources in non-system-clock contexts. Additive, BC-safe.
+- **`Hub\Manifest::chunkBodyIterator(): \Generator`** (Phase 4 remaining) — streams a
+  Manifest's body in fixed-size chunks without loading it all into memory, for large payloads.
+- **`Hub\Hmac` helper** (Phase 4 remaining) — `Hmac::compute(string $algo, string $data, string
+  $key): string` utility with constant-time comparison support.
+- **`Events\EventNameMap` memoization** (Phase 4 remaining) — `EventNameMap::get()` now
+  caches results, avoiding repeated string comparisons on hot paths.
+- **S2/S3 protocol hardening** (findings S2/S3) — scheme validation now rejects non-`https`
+  URLs except `localhost`; connect timeout is pinned; secret redaction in `RelayHttpRequest`
+  serialisation is improved.
+
+### Changed
+- **`Arr\AbstractArrClient` protocol pinning** (findings S2/S3) — outbound requests now
+  pin to TLS 1.2+ and validate the host header to prevent redirect bypass.
+
+### Deprecated
+- **`Hub\Manifest::toArray(): array`** (findings B5/CQ4) — marked `@deprecated` with a
+  tracking note; a final-flip to `toPayload()` will follow in a later release.
+
+### Fixed
+- **JSON decode depth** (finding B2) — raised `json_decode()` depth limit from `8` to `512`
+  to handle deeply-nested webhook payloads without silent `null` returns.
+
 ## [0.11.0] - 2026-06-28
 
 ### Added
