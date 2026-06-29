@@ -84,7 +84,10 @@ class ProwlarrClient extends AbstractArrClient
             $response = $this->get('/api/v1/system/status');
             return isset($response['version']);
         } catch (RuntimeException $e) {
-            $this->logger?->warning('Prowlarr connection test failed: ' . $e->getMessage());
+            $this->logger?->warning(
+                'Prowlarr connection test failed: '
+                . SecretRedactor::redact($e->getMessage(), $this->apiKey)
+            );
             return false;
         }
     }
