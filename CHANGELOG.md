@@ -4,6 +4,12 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2026-06-29
+
+### Fixed
+- **Version.php sync** — `Phlix\Shared\Version::VERSION` was left at `0.11.0` after the v0.11.1
+  tag; corrected to `0.12.0` to keep the constant in lockstep with the git tag.
+
 ## [0.11.1] - 2026-06-29
 
 ### Added
