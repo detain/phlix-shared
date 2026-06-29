@@ -36,6 +36,13 @@ use const JSON_THROW_ON_ERROR;
 final readonly class RelayHttpResponseHead
 {
     /**
+     * Maximum nesting depth accepted by json_decode when parsing the wire envelope.
+     * Set to 512 to match Manifest::fromJson. The 64KB frame cap bounds overall size,
+     * so depth is not a security concern here.
+     */
+    public const MAX_JSON_DEPTH = 512;
+
+    /**
      * @param int                   $status     HTTP status code.
      * @param array<string, string> $headers    Response headers (name => value).
      * @param int|null              $bodyLength Total body length in bytes, or null when streaming.
@@ -80,7 +87,7 @@ final readonly class RelayHttpResponseHead
     {
         try {
             /** @var mixed $decoded */
-            $decoded = json_decode($json, true, 8, JSON_THROW_ON_ERROR);
+            $decoded = json_decode($json, true, self::MAX_JSON_DEPTH, JSON_THROW_ON_ERROR);
         } catch (\JsonException $e) {
             throw new InvalidArgumentException('RelayHttpResponseHead: malformed JSON: ' . $e->getMessage());
         }
