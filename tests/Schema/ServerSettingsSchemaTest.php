@@ -50,7 +50,30 @@ final class ServerSettingsSchemaTest extends TestCase
     }
 
     /**
-     * The 18 expected property keys mapped to their JSON-Schema type.
+     * The canonical built-in noise-suffix default list (longest phrase first).
+     *
+     * Mirrors phlix-server's TitleSuffixStripper::NOISE_SUFFIXES; the schema declares
+     * this list as the `default` for the `matching.noise_suffixes` setting.
+     *
+     * @var list<string>
+     */
+    private const NOISE_SUFFIX_DEFAULTS = [
+        'unrated directors cut',
+        'uncut & unrated',
+        'alternate ending',
+        'extended cut',
+        'directors cut',
+        "director's cut",
+        'theatrical cut',
+        'remastered',
+        'extended',
+        'uncut',
+        'yify',
+        'dc',
+    ];
+
+    /**
+     * The expected property keys mapped to their JSON-Schema type.
      *
      * @return array<string, array{0: string, 1: string}>
      */
@@ -76,6 +99,7 @@ final class ServerSettingsSchemaTest extends TestCase
             'trakt.client_id' => ['trakt.client_id', 'string'],
             'trakt.client_secret' => ['trakt.client_secret', 'string'],
             'trakt.redirect_uri' => ['trakt.redirect_uri', 'string'],
+            'matching.noise_suffixes' => ['matching.noise_suffixes', 'array'],
         ];
     }
 
@@ -120,7 +144,42 @@ final class ServerSettingsSchemaTest extends TestCase
         sort($expected);
 
         $this->assertSame($expected, $actual, 'server-settings schema must declare exactly the expected settings keys.');
-        $this->assertCount(19, $actual);
+        $this->assertCount(20, $actual);
+    }
+
+    public function test_noise_suffixes_is_an_array_of_strings_with_canonical_default(): void
+    {
+        $properties = self::properties();
+        $this->assertArrayHasKey('matching.noise_suffixes', $properties);
+
+        $property = $properties['matching.noise_suffixes'];
+
+        $this->assertSame('array', $property['type'] ?? null);
+        $this->assertSame('matching', $property['group'] ?? null);
+
+        $this->assertArrayHasKey('items', $property);
+        $this->assertIsArray($property['items']);
+        $this->assertSame('string', $property['items']['type'] ?? null);
+
+        $this->assertArrayHasKey('default', $property);
+        $this->assertIsArray($property['default']);
+
+        $default = $property['default'];
+
+        // The default must be a non-empty list of distinct non-empty strings ...
+        $this->assertNotEmpty($default);
+        foreach ($default as $entry) {
+            $this->assertIsString($entry);
+            $this->assertNotSame('', $entry);
+        }
+        $this->assertSame(
+            $default,
+            array_values(array_unique($default)),
+            'noise-suffix defaults must be a distinct list.'
+        );
+
+        // ... and must mirror the canonical phlix-server TitleSuffixStripper list verbatim.
+        $this->assertSame(self::NOISE_SUFFIX_DEFAULTS, $default);
     }
 
     /**
