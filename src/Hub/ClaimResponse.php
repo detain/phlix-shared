@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Phlix\Shared\Hub;
 
 use InvalidArgumentException;
+use Phlix\Shared\Support\PayloadAssert;
 
 /**
  * Hub → Server response to {@see ClaimRequest}.
@@ -16,6 +17,8 @@ use InvalidArgumentException;
  */
 final class ClaimResponse
 {
+    use PayloadAssert;
+
     /**
      * @param string $claimCode   Human-friendly code like "ABCD-1234" the operator pastes on the hub portal.
      * @param int    $expiresIn   Seconds the claim code is valid (master plan says 600).
@@ -37,10 +40,10 @@ final class ClaimResponse
      */
     public static function fromPayload(array $payload): self
     {
-        $claimCode = self::requireString($payload, 'claimCode');
-        $claimId = self::requireString($payload, 'claimId');
-        $hubBaseUrl = self::requireString($payload, 'hubBaseUrl');
-        $expiresIn = self::requireInt($payload, 'expiresIn');
+        $claimCode = self::requireString($payload, 'claimCode', 'ClaimResponse');
+        $claimId = self::requireString($payload, 'claimId', 'ClaimResponse');
+        $hubBaseUrl = self::requireString($payload, 'hubBaseUrl', 'ClaimResponse');
+        $expiresIn = self::requireInt($payload, 'expiresIn', 'ClaimResponse');
 
         return new self(
             claimCode: $claimCode,
@@ -61,35 +64,5 @@ final class ClaimResponse
             'claimId' => $this->claimId,
             'hubBaseUrl' => $this->hubBaseUrl,
         ];
-    }
-
-    /**
-     * @param array<string, mixed> $payload
-     */
-    private static function requireString(array $payload, string $key): string
-    {
-        if (!array_key_exists($key, $payload)) {
-            throw new InvalidArgumentException(sprintf('ClaimResponse "%s" is required.', $key));
-        }
-        $value = $payload[$key];
-        if (!is_string($value)) {
-            throw new InvalidArgumentException(sprintf('ClaimResponse "%s" must be a string.', $key));
-        }
-        return $value;
-    }
-
-    /**
-     * @param array<string, mixed> $payload
-     */
-    private static function requireInt(array $payload, string $key): int
-    {
-        if (!array_key_exists($key, $payload)) {
-            throw new InvalidArgumentException(sprintf('ClaimResponse "%s" is required.', $key));
-        }
-        $value = $payload[$key];
-        if (!is_int($value)) {
-            throw new InvalidArgumentException(sprintf('ClaimResponse "%s" must be an integer.', $key));
-        }
-        return $value;
     }
 }

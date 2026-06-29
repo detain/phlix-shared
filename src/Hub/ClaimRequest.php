@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Phlix\Shared\Hub;
 
 use InvalidArgumentException;
+use Phlix\Shared\Support\PayloadAssert;
 
 /**
  * Server → Hub claim-flow start payload.
@@ -17,6 +18,8 @@ use InvalidArgumentException;
  */
 final class ClaimRequest
 {
+    use PayloadAssert;
+
     /**
      * @param string              $serverName         Operator-chosen friendly name (e.g. "Alice's NAS").
      * @param string              $version            Server semver.
@@ -43,9 +46,9 @@ final class ClaimRequest
      */
     public static function fromPayload(array $payload): self
     {
-        $serverName = self::requireString($payload, 'serverName');
-        $version = self::requireString($payload, 'version');
-        $protocolVersion = self::requireString($payload, 'protocolVersion');
+        $serverName = self::requireString($payload, 'serverName', 'ClaimRequest');
+        $version = self::requireString($payload, 'version', 'ClaimRequest');
+        $protocolVersion = self::requireString($payload, 'protocolVersion', 'ClaimRequest');
 
         if (!array_key_exists('publicKeysJwk', $payload) || !is_array($payload['publicKeysJwk'])) {
             throw new InvalidArgumentException('ClaimRequest "publicKeysJwk" must be a JWKS array.');
@@ -87,20 +90,5 @@ final class ClaimRequest
             'hostnameCandidates' => $this->hostnameCandidates,
             'protocolVersion' => $this->protocolVersion,
         ];
-    }
-
-    /**
-     * @param array<string, mixed> $payload
-     */
-    private static function requireString(array $payload, string $key): string
-    {
-        if (!array_key_exists($key, $payload)) {
-            throw new InvalidArgumentException(sprintf('ClaimRequest "%s" is required.', $key));
-        }
-        $value = $payload[$key];
-        if (!is_string($value)) {
-            throw new InvalidArgumentException(sprintf('ClaimRequest "%s" must be a string.', $key));
-        }
-        return $value;
     }
 }
