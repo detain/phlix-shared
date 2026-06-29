@@ -28,12 +28,24 @@ use RuntimeException;
  * preserved via {@see self::getUnknownFields()} so the validator can
  * surface them.
  *
- * ## Subclassing
+ * ## Subclassing and the path to `final`
  *
  * This class is **not** `final` so the `phlix-server` deprecation
  * wrapper at `Phlix\Plugins\Manifest` can extend it for one release.
  * Other callers should not subclass — treat the class as effectively
  * final.
+ *
+ * The `final protected __construct` on a non-final class is the
+ * one-release BC hole that enables the above. Once phlix-server
+ * removes its `Phlix\Plugins\Manifest` subclass wrapper, this class
+ * can be made `final` with the constructor changed to `private`
+ * (or `final private`). That flip is a BREAKING change that must be
+ * coordinated with phlix-server.
+ *
+ * @todo Once phlix-server removes its `Phlix\Plugins\Manifest` subclass,
+ *       make this class `final` and the constructor `private` (or `final private`).
+ *       That change is BREAKING and must be coordinated — see the plan
+ *       step B5/CQ4.
  *
  * @package Phlix\Shared\Plugin
  * @since 0.2.0
@@ -200,6 +212,10 @@ class Manifest
      * verbatim — it is NOT a re-serialisation of the mutated typed
      * properties. Any changes made to typed props after construction are
      * not reflected here.
+     *
+     * @deprecated since 0.12.0, use {@see self::getRawData()} instead.
+     *             This method is kept for caller compatibility and will
+     *             be removed in a future major version.
      *
      * @return array<string, mixed>
      */
