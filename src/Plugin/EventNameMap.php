@@ -66,6 +66,13 @@ final class EventNameMap
     private static ?array $fqcnToAlias = null;
 
     /**
+     * Lazily-computed sorted alias map. Cached so sorting only happens once.
+     *
+     * @var array<string, class-string>|null
+     */
+    private static ?array $sortedAliases = null;
+
+    /**
      * Prevent instantiation — this class is a static lookup table only.
      */
     private function __construct()
@@ -116,8 +123,12 @@ final class EventNameMap
      */
     public static function aliases(): array
     {
-        $map = self::ALIAS_TO_FQCN;
-        ksort($map);
-        return $map;
+        if (self::$sortedAliases === null) {
+            $map = self::ALIAS_TO_FQCN;
+            ksort($map);
+            self::$sortedAliases = $map;
+        }
+
+        return self::$sortedAliases;
     }
 }
