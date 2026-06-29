@@ -11,7 +11,7 @@ namespace Phlix\Shared\Auth;
  * provider. On success, the caller uses userId to issue a local JWT and
  * stores externalId on the user row for future lookups.
  *
- * @package Phlix\Auth
+ * @package Phlix\Shared\Auth
  * @author Phlix Team
  * @version 1.0.0
  * @description Result of an external provider authentication attempt.
