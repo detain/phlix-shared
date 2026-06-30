@@ -20,6 +20,10 @@ Composer-installable, PHP 8.3+, zero I/O — pure interfaces and value objects o
 - `Phlix\Shared\Plugin\{LifecycleInterface, Manifest, ManifestType, ManifestValidationError, EventNameMap}`
 - `Phlix\Shared\Events\{AbstractEvent, Playback\*, Library\*, Auth\*}` — 12 event DTOs.
 - `Phlix\Shared\Auth\{JwtClaims, ProviderInterface, AuthResult, UserInfo}`
+- `Phlix\Shared\Metadata\MetadataSourceInterface` — the typed contract a metadata-source plugin
+  implements (`sourceName()`, `supportedMediaTypes()`, `search()`, `getDetails()`, `getImages()`) so
+  the server's `SourceRegistry` can register/deregister it on plugin enable/disable without the old
+  `method_exists`/FQCN-sniffing convention (0.15.0+).
 - `Phlix\Shared\Hub\{ClaimRequest, ClaimResponse, ServerInfoDto, HeartbeatDto}`
 - `Phlix\Shared\Relay\{RelayFrameType, RelayWireCodecInterface, RelayFrame}` — channel-mux protocol (0.5+);
   plus `{RelayHttpRequest, RelayHttpResponseHead, RelayHttpResponseChunk, RelayHttpResponseCodec}` —
@@ -40,6 +44,11 @@ admin SPA under `schemas/` (resolve their absolute paths via
 - `schemas/server-settings.schema.json` — JSON Schema (draft 2020-12) for the editable
   server settings (`/api/v1/admin/settings`); mirrors phlix-server's
   `AdminSettingsController::ALLOWED_KEYS` allow-list and drives the admin SPA settings form (0.7.0+).
+  Adds `matching.noise_suffixes` (array of strings; the admin-extensible match-title noise list —
+  0.13.0+) and `metadata.provider_priority` (object: media type → ordered array of source names;
+  defaults `movie`/`series` = `["tmdb","imdb"]`, `anime` = `["anidb","myanimelist","tvdb","fanart","local"]`)
+  + `metadata.genres_mode` (enum `first`|`union`, default `first`) for the per-media-type metadata
+  source-priority editor (0.14.0+).
 - `schemas/webhook-events.json` — data catalog of the supported webhook event types for the
   admin SPA webhook picker. Distinct from the plugin PSR-14 events in `EventNameMap` (0.7.0+).
 - `schemas/library-query.schema.json` — JSON Schema (draft 2020-12) for the query parameters of
