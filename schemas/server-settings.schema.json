@@ -133,6 +133,29 @@
                 "yify",
                 "dc"
             ]
+        },
+        "metadata.provider_priority": {
+            "type": "object",
+            "description": "Per-media-type ordered metadata source priority. Keys are media types (e.g. 'movie', 'series', 'anime') and values are ordered arrays of source names (e.g. 'tmdb', 'imdb', 'anidb', 'myanimelist', 'tvdb', 'fanart', 'local'). For each metadata field the resolver walks the list in order and takes the first non-empty value (PriorityFieldResolver sourceOrder). A media type absent from the override falls back to the server config default for that type. Admins reorder the per-type list via the Metadata tab.",
+            "group": "metadata",
+            "additionalProperties": {
+                "type": "array",
+                "items": {
+                    "type": "string"
+                }
+            },
+            "default": {
+                "movie": ["tmdb", "imdb"],
+                "series": ["tmdb", "imdb"],
+                "anime": ["anidb", "myanimelist", "tvdb", "fanart", "local"]
+            }
+        },
+        "metadata.genres_mode": {
+            "type": "string",
+            "description": "How the genres field is combined across metadata sources. 'first' takes the genres from the first source in the priority order that supplies any (first-non-empty); 'union' merges the distinct genres from every source. Consumed by PriorityFieldResolver's genresMode.",
+            "group": "metadata",
+            "enum": ["first", "union"],
+            "default": "first"
         }
     }
 }

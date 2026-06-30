@@ -100,8 +100,25 @@ final class ServerSettingsSchemaTest extends TestCase
             'trakt.client_secret' => ['trakt.client_secret', 'string'],
             'trakt.redirect_uri' => ['trakt.redirect_uri', 'string'],
             'matching.noise_suffixes' => ['matching.noise_suffixes', 'array'],
+            'metadata.provider_priority' => ['metadata.provider_priority', 'object'],
+            'metadata.genres_mode' => ['metadata.genres_mode', 'string'],
         ];
     }
+
+    /**
+     * The canonical per-media-type metadata source-priority default map.
+     *
+     * Mirrors phlix-server's config/metadata.php (Step 3.3b) / MetadataManager
+     * built-in provider-priority map; the schema declares this as the `default`
+     * for the `metadata.provider_priority` setting.
+     *
+     * @var array<string, list<string>>
+     */
+    private const PROVIDER_PRIORITY_DEFAULTS = [
+        'movie' => ['tmdb', 'imdb'],
+        'series' => ['tmdb', 'imdb'],
+        'anime' => ['anidb', 'myanimelist', 'tvdb', 'fanart', 'local'],
+    ];
 
     /**
      * Numeric constraints (minimum/maximum) the constrained keys must carry.
@@ -144,7 +161,7 @@ final class ServerSettingsSchemaTest extends TestCase
         sort($expected);
 
         $this->assertSame($expected, $actual, 'server-settings schema must declare exactly the expected settings keys.');
-        $this->assertCount(20, $actual);
+        $this->assertCount(22, $actual);
     }
 
     public function test_noise_suffixes_is_an_array_of_strings_with_canonical_default(): void
@@ -180,6 +197,63 @@ final class ServerSettingsSchemaTest extends TestCase
 
         // ... and must mirror the canonical phlix-server TitleSuffixStripper list verbatim.
         $this->assertSame(self::NOISE_SUFFIX_DEFAULTS, $default);
+    }
+
+    public function test_provider_priority_is_a_per_type_map_of_string_arrays_with_canonical_default(): void
+    {
+        $properties = self::properties();
+        $this->assertArrayHasKey('metadata.provider_priority', $properties);
+
+        $property = $properties['metadata.provider_priority'];
+
+        $this->assertSame('object', $property['type'] ?? null);
+        $this->assertSame('metadata', $property['group'] ?? null);
+
+        // additionalProperties allows arbitrary media-type keys, each an array of source-name strings.
+        $this->assertArrayHasKey('additionalProperties', $property);
+        $this->assertIsArray($property['additionalProperties']);
+        $this->assertSame('array', $property['additionalProperties']['type'] ?? null);
+        $this->assertArrayHasKey('items', $property['additionalProperties']);
+        $this->assertIsArray($property['additionalProperties']['items']);
+        $this->assertSame('string', $property['additionalProperties']['items']['type'] ?? null);
+
+        $this->assertArrayHasKey('default', $property);
+        $this->assertIsArray($property['default']);
+
+        $default = $property['default'];
+
+        // The default must be a non-empty map of media-type => non-empty list of non-empty strings.
+        $this->assertNotEmpty($default);
+        foreach ($default as $type => $order) {
+            $this->assertIsString($type);
+            $this->assertNotSame('', $type);
+            $this->assertIsArray($order);
+            $this->assertNotEmpty($order);
+            foreach ($order as $source) {
+                $this->assertIsString($source);
+                $this->assertNotSame('', $source);
+            }
+        }
+
+        // ... and must mirror the canonical phlix-server config/metadata.php map verbatim.
+        $this->assertSame(self::PROVIDER_PRIORITY_DEFAULTS, $default);
+    }
+
+    public function test_genres_mode_is_a_first_or_union_enum_defaulting_to_first(): void
+    {
+        $properties = self::properties();
+        $this->assertArrayHasKey('metadata.genres_mode', $properties);
+
+        $property = $properties['metadata.genres_mode'];
+
+        $this->assertSame('string', $property['type'] ?? null);
+        $this->assertSame('metadata', $property['group'] ?? null);
+
+        $this->assertArrayHasKey('enum', $property);
+        $this->assertSame(['first', 'union'], $property['enum']);
+
+        $this->assertArrayHasKey('default', $property);
+        $this->assertSame('first', $property['default']);
     }
 
     /**
