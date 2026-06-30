@@ -7,6 +7,16 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased]
 
 ### Added
+- **`Phlix\Shared\Metadata\MetadataSourceInterface`** (Feature 3, Step 3.5a) — first-class, typed
+  contract a metadata-source plugin implements so the server's source registry (Step 3.5b) can
+  register/deregister it on plugin enable/disable **without** the brittle `method_exists()` /
+  FQCN-sniffing convention used today. Declares `sourceName(): string` (the canonical priority-map
+  identity — e.g. `anidb`/`myanimelist`/`tmdb`, the value that appears in `metadata.provider_priority`
+  and a resolved record's `source`), `supportedMediaTypes(): list<string>` (the media-type slugs the
+  registry indexes the source under), and the lookup triad `search()` → `getDetails()` / `getImages()`
+  mirroring the host's existing provider-driving shape. Implementations must be non-blocking on a
+  resident-memory (Workerman) host. Ships the interface + a contract test only; the server-side
+  `SourceRegistry` and the anidb/myanimelist conversion are Step 3.5b.
 - **`metadata.provider_priority` server-settings schema key** (Feature 3, Step 3.3a) — per-media-type
   ordered metadata source priority. A JSON object keyed by media type (`movie`, `series`, `anime`, …)
   whose values are ordered arrays of source-name strings (the `sourceOrder` fed to
