@@ -6,6 +6,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-06-30
+
 ### Added
 - **`Phlix\Shared\Metadata\MetadataSourceInterface`** (Feature 3, Step 3.5a) — first-class, typed
   contract a metadata-source plugin implements so the server's source registry (Step 3.5b) can
@@ -17,6 +19,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   mirroring the host's existing provider-driving shape. Implementations must be non-blocking on a
   resident-memory (Workerman) host. Ships the interface + a contract test only; the server-side
   `SourceRegistry` and the anidb/myanimelist conversion are Step 3.5b.
+
+## [0.14.0] - 2026-06-29
+
+### Added
 - **`metadata.provider_priority` server-settings schema key** (Feature 3, Step 3.3a) — per-media-type
   ordered metadata source priority. A JSON object keyed by media type (`movie`, `series`, `anime`, …)
   whose values are ordered arrays of source-name strings (the `sourceOrder` fed to
@@ -26,6 +32,15 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - **`metadata.genres_mode` server-settings schema key** (Feature 3, Step 3.3a) — string enum
   `["first","union"]` (default `first`) controlling whether the genres field takes the first
   non-empty source or the union of all sources (`PriorityFieldResolver` `genresMode`). Group `metadata`.
+
+## [0.13.0] - 2026-06-29
+
+### Added
+- **`matching.noise_suffixes` server-settings schema key** (Feature 13, Step 13.3a) — an array of
+  strings: the admin-extensible list of trailing "noise" phrases (`Directors Cut`, `UNCUT & UNRATED`,
+  `YIFY`, `DC`, …) stripped from a filename-derived title before metadata matching. A replace-not-merge
+  override; an empty array falls back to the server's code defaults. Group `matching`. Consumed by
+  phlix-server's shared `TitleSuffixStripper` (movie + series parsers).
 
 ## [0.12.0] - 2026-06-29
 
