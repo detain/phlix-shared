@@ -4,6 +4,19 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **`metadata.provider_priority` server-settings schema key** (Feature 3, Step 3.3a) — per-media-type
+  ordered metadata source priority. A JSON object keyed by media type (`movie`, `series`, `anime`, …)
+  whose values are ordered arrays of source-name strings (the `sourceOrder` fed to
+  `PriorityFieldResolver`). `additionalProperties` allows arbitrary media-type keys; an absent type
+  falls back to the server config default. Default map: `movie`/`series` → `["tmdb","imdb"]`,
+  `anime` → `["anidb","myanimelist","tvdb","fanart","local"]`. Group `metadata`.
+- **`metadata.genres_mode` server-settings schema key** (Feature 3, Step 3.3a) — string enum
+  `["first","union"]` (default `first`) controlling whether the genres field takes the first
+  non-empty source or the union of all sources (`PriorityFieldResolver` `genresMode`). Group `metadata`.
+
 ## [0.12.0] - 2026-06-29
 
 ### Fixed
