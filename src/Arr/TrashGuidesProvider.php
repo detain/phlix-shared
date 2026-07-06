@@ -27,7 +27,7 @@ class TrashGuidesProvider
     /** @var string|null Cached version string */
     private static ?string $versionCache = null;
 
-    /** @var int|null Timestamp when cache was last set */
+    /** @var int|null Monotonic timestamp when cache was last set (in seconds) */
     private static ?int $cacheTimestamp = null;
 
     /** @var array<string, mixed>|null Parsed quality profiles */
@@ -83,7 +83,7 @@ class TrashGuidesProvider
         $data = $this->parseJson($json);
 
         self::$qualityProfilesCache = $data;
-        self::$cacheTimestamp = time();
+        self::$cacheTimestamp = (int) (hrtime(true) / 1_000_000_000);
 
         $this->qualityProfiles = $data;
         return $this->qualityProfiles;
@@ -121,7 +121,7 @@ class TrashGuidesProvider
         $data = $this->parseJson($json);
 
         self::$customFormatsCache = $data;
-        self::$cacheTimestamp = time();
+        self::$cacheTimestamp = (int) (hrtime(true) / 1_000_000_000);
 
         $this->customFormats = $data;
         return $this->customFormats;
@@ -162,7 +162,7 @@ class TrashGuidesProvider
         $version = $data['version'] ?? $this->deriveVersionFromUrl($customFormatsUrl);
 
         self::$versionCache = $version;
-        self::$cacheTimestamp = time();
+        self::$cacheTimestamp = (int) (hrtime(true) / 1_000_000_000);
 
         $this->version = $version;
         return $this->version;
@@ -195,7 +195,7 @@ class TrashGuidesProvider
             return;
         }
 
-        if (time() - self::$cacheTimestamp > self::CACHE_TTL_SECONDS) {
+        if ((int) (hrtime(true) / 1_000_000_000) - self::$cacheTimestamp > self::CACHE_TTL_SECONDS) {
             $this->clearCache();
         }
     }
@@ -291,7 +291,7 @@ class TrashGuidesProvider
             return $matches[1];
         }
 
-        // Fallback: use timestamp as version indicator
-        return 'unknown-' . time();
+        // Fallback: use monotonic timestamp as version indicator
+        return 'unknown-' . (int) (hrtime(true) / 1_000_000_000);
     }
 }

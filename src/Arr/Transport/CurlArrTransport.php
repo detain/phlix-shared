@@ -26,6 +26,9 @@ use RuntimeException;
  */
 final class CurlArrTransport implements ArrTransportInterface
 {
+    /** @var \CurlHandle|null Reusable cURL handle (PHP 8.0+) */
+    private static ?\CurlHandle $handle = null;
+
     /**
      * @param int $timeout Overall request timeout in seconds.
      */
@@ -77,11 +80,17 @@ final class CurlArrTransport implements ArrTransportInterface
             }
         }
 
-        $ch = curl_init();
-        if ($ch === false) {
-            throw new RuntimeException('curl_init() failed');
+        if (self::$handle === null) {
+            $handle = curl_init();
+            if ($handle === false) {
+                throw new RuntimeException('curl_init() failed');
+            }
+            self::$handle = $handle;
+        } else {
+            curl_reset(self::$handle);
         }
 
+        $ch = self::$handle;
         curl_setopt_array($ch, $options);
 
         /** @var string|false $responseBody */
@@ -89,7 +98,6 @@ final class CurlArrTransport implements ArrTransportInterface
         $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $curlErrno = curl_errno($ch);
         $curlError = curl_error($ch);
-        curl_close($ch);
 
         if ($responseBody === false || $curlErrno !== 0) {
             throw new RuntimeException('cURL error: ' . $curlError, $curlErrno);

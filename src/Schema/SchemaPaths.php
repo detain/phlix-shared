@@ -23,19 +23,27 @@ namespace Phlix\Shared\Schema;
  */
 final class SchemaPaths
 {
+    /** @var string|null Cached schemas directory path */
+    private static ?string $dirCache = null;
+
     /**
      * Absolute path to the bundled `schemas/` directory.
      *
      * `dirname(__DIR__, 2)` walks two levels up from `src/Schema/` to the
-     * package root, then appends `/schemas`.
+     * package root, then appends `/schemas`. Result is cached in a static
+     * variable to avoid repeated dirname computation.
      *
-     * @return non-empty-string Absolute filesystem path to the schemas dir.
+     * @return string Absolute filesystem path to the schemas dir.
      *
      * @since 0.7.0
      */
     public static function dir(): string
     {
-        return dirname(__DIR__, 2) . '/schemas';
+        if (self::$dirCache === null) {
+            self::$dirCache = dirname(__DIR__, 2) . '/schemas';
+        }
+
+        return self::$dirCache;
     }
 
     /**

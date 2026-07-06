@@ -85,4 +85,40 @@ trait PayloadAssert
 
         return $value;
     }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    protected static function optionalInt(array $payload, string $key, string $context, int $default = 0): int
+    {
+        if (!array_key_exists($key, $payload)) {
+            return $default;
+        }
+
+        $value = $payload[$key];
+
+        if (!is_int($value)) {
+            throw new InvalidArgumentException(sprintf('%s "%s" must be an integer.', $context, $key));
+        }
+
+        return $value;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    protected static function optionalBool(array $payload, string $key, string $context, bool $default = false): bool
+    {
+        if (!array_key_exists($key, $payload)) {
+            return $default;
+        }
+
+        $value = $payload[$key];
+
+        if (!is_bool($value)) {
+            throw new InvalidArgumentException(sprintf('%s "%s" must be a boolean.', $context, $key));
+        }
+
+        return $value;
+    }
 }
