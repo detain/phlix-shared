@@ -41,6 +41,18 @@ interfaces and value objects**. Keep it that way.
   parameter and return tags as appropriate. Static analysers depend on
   it.
 
+## Async Patterns
+
+**Async patterns do not apply to this package.** As a pure interfaces/DTOs
+package with zero I/O by design, there are no async concerns within `phlix-shared`
+itself. The `Arr/` namespace HTTP clients perform real I/O but delegate actual
+async implementation to the consuming application (typically `phlix-server`
+which uses `workerman/http-client` with cooperative wait).
+
+For async HTTP patterns, see `phlix-server`'s `MetadataHttpClient`,
+`Hub\HttpClient`, and `S3Client` which demonstrate the workerman/http-client
+cooperative wait pattern with callback-based requests.
+
 ## Layout (intended, fills in across v0.2.x)
 
 ```
