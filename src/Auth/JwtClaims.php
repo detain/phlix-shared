@@ -259,7 +259,7 @@ final class JwtClaims
      */
     public function isExpired(?int $now = null): bool
     {
-        $now ??= time();
+        $now ??= (int) (hrtime(true) / 1_000_000_000);
         return $this->exp < $now;
     }
 

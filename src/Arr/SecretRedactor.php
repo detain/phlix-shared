@@ -24,13 +24,12 @@ final class SecretRedactor
      */
     public static function redact(string $message, string ...$secrets): string
     {
-        foreach ($secrets as $secret) {
-            if ($secret === '') {
-                continue;
-            }
-            $message = str_replace($secret, '***', $message);
+        $filteredSecrets = array_filter($secrets, static fn(string $s): bool => $s !== '');
+        if ($filteredSecrets === []) {
+            return $message;
         }
 
-        return $message;
+        $replacements = array_fill(0, count($filteredSecrets), '***');
+        return str_replace($filteredSecrets, $replacements, $message);
     }
 }
