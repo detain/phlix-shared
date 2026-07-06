@@ -23,7 +23,7 @@ namespace Phlix\Shared\Schema;
  */
 final class SchemaPaths
 {
-    /** @var string|null Cached schemas directory path */
+    /** @var non-empty-string|null Cached schemas directory path */
     private static ?string $dirCache = null;
 
     /**
@@ -33,7 +33,7 @@ final class SchemaPaths
      * package root, then appends `/schemas`. Result is cached in a static
      * variable to avoid repeated dirname computation.
      *
-     * @return string Absolute filesystem path to the schemas dir.
+     * @return non-empty-string Absolute filesystem path to the schemas dir.
      *
      * @since 0.7.0
      */
