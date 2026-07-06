@@ -6,6 +6,46 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-07-06
+
+### Fixed
+- **`Phlix\Shared\Auth\JwtClaims::isExpired()`** — an earlier same-day commit (`40bf16d`,
+  "Fix blocking I/O and add micro-optimizations") mistakenly changed the default `$now` from
+  `time()` to `(int) (hrtime(true) / 1_000_000_000)`. `hrtime(true)` is a **monotonic** clock
+  measured from an arbitrary reference point (e.g. system boot), not Unix epoch time, so it is
+  not comparable to the `exp` claim (which is epoch seconds). This made every token appear
+  expired (or never-expired, depending on uptime) and broke CI (`JwtClaimsTest`). Reverted to
+  `time()`, with a docblock explaining why `hrtime()` must never be used here.
+- **`Phlix\Shared\Arr\TrashGuidesProvider::deriveVersionFromUrl()`** fallback — the same commit
+  switched the `'unknown-' . time()` fallback version label to use `hrtime(true)` as well. Unlike
+  the internal cache-TTL bookkeeping (which is a self-consistent monotonic duration check and is
+  fine), this value is a human-facing/loggable "version" string, so it needs real wall-clock time
+  to be meaningful across process restarts. Reverted to `time()`.
+
+### Changed
+- **`Phlix\Shared\Arr\Transport\CurlArrTransport`** now reuses a single static `cURL` handle
+  across requests (`curl_reset()` between calls) instead of calling `curl_init()`/`curl_close()`
+  on every request, avoiding repeated handle-setup overhead. This transport remains documented as
+  blocking/CLI-and-test-only; it is never invoked from inside the Workerman event loop.
+- **`Phlix\Shared\Arr\TrashGuidesProvider`** cache-TTL bookkeeping (`$cacheTimestamp` in
+  `getQualityProfiles()`/`getCustomFormats()`/`getVersion()`/`ensureCacheValid()`) now uses
+  `hrtime(true)` (nanosecond monotonic time) instead of `time()`. This is a self-consistent
+  duration calculation (both the stored timestamp and the comparison point come from the same
+  clock), so monotonic time is safe and slightly cheaper here — unlike the `JwtClaims`/version
+  cases above, which compare against externally-supplied wall-clock values.
+- **`Phlix\Shared\Arr\SecretRedactor::redact()`** now builds the secrets/replacements arrays up
+  front and calls the array form of `str_replace()` once, instead of looping and calling
+  `str_replace()` once per secret.
+- **`Phlix\Shared\Schema\SchemaPaths::dir()`** now caches the computed `dirname(__DIR__, 2) .
+  '/schemas'` path in a static `non-empty-string` property instead of recomputing it on every
+  call.
+
+### Added
+- **`Phlix\Shared\Support\PayloadAssert::optionalInt()`** and **`optionalBool()`** — new optional
+  (default-falling-back) assertion helpers, mirroring the existing `optionalString()`/
+  `requireInt()`/`requireBool()` shape, for DTOs that need a validated-but-optional int/bool
+  payload key.
+
 ## [0.15.0] - 2026-06-30
 
 ### Added

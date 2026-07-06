@@ -291,7 +291,11 @@ class TrashGuidesProvider
             return $matches[1];
         }
 
-        // Fallback: use monotonic timestamp as version indicator
-        return 'unknown-' . (int) (hrtime(true) / 1_000_000_000);
+        // Fallback: use a wall-clock (Unix epoch) timestamp as a human-meaningful
+        // version indicator. This value may be logged/displayed and compared across
+        // process restarts, so it must be real calendar time — hrtime(true) is
+        // monotonic from an arbitrary reference point (e.g. system boot) and would
+        // produce meaningless/inconsistent "version" labels here.
+        return 'unknown-' . time();
     }
 }

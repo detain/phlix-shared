@@ -256,10 +256,15 @@ final class JwtClaims
     /**
      * True when the token's `exp` claim is in the past relative to
      * `$now` (or `time()` when omitted).
+     *
+     * `exp` is a wall-clock (Unix epoch) claim, so this must compare against
+     * `time()` — `hrtime(true)` measures elapsed monotonic time since an
+     * arbitrary start point (e.g. system boot), not calendar time, and is
+     * not comparable to an epoch timestamp.
      */
     public function isExpired(?int $now = null): bool
     {
-        $now ??= (int) (hrtime(true) / 1_000_000_000);
+        $now ??= time();
         return $this->exp < $now;
     }
 
