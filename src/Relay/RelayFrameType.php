@@ -1,5 +1,12 @@
 <?php
 
+/**
+ * Relay Frame Type.
+ *
+ * @copyright 2026 Joe Huss <detain@interserver.net>
+ * @license   MIT
+ */
+
 declare(strict_types=1);
 
 namespace Phlix\Shared\Relay;
@@ -81,6 +88,7 @@ enum RelayFrameType: int
     case HUB_DISCONNECTED = 0x0F;
     case HTTP_REQUEST = 0x10;
     case HTTP_RESPONSE = 0x11;
+    case HTTP_CANCEL = 0x12;
 
     /**
      * Returns the human-readable name of this frame type.
@@ -109,6 +117,7 @@ enum RelayFrameType: int
             self::HUB_DISCONNECTED => 'HUB_DISCONNECTED',
             self::HTTP_REQUEST => 'HTTP_REQUEST',
             self::HTTP_RESPONSE => 'HTTP_RESPONSE',
+            self::HTTP_CANCEL => 'HTTP_CANCEL',
         };
     }
 

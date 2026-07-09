@@ -1,5 +1,12 @@
 <?php
 
+/**
+ * Server Info Dto.
+ *
+ * @copyright 2026 Joe Huss <detain@interserver.net>
+ * @license   MIT
+ */
+
 declare(strict_types=1);
 
 namespace Phlix\Shared\Hub;
