@@ -42,6 +42,7 @@ final class ServerInfoDto
      * @param int|null       $libraryCount       Number of libraries the server last reported via heartbeat
      *                                            (from the hub's `server_libraries` cache). Null when the
      *                                            server has not reported any yet (older servers / pre-heartbeat).
+     * @param string|null    $subdomain          Allocated DNS subdomain label (e.g. `foo` from `foo.phlix.media`).
      */
     public function __construct(
         public readonly string $serverId,
@@ -53,6 +54,7 @@ final class ServerInfoDto
         public readonly array $hostnameCandidates,
         public readonly bool $relayActive,
         public readonly ?int $libraryCount = null,
+        public readonly ?string $subdomain = null,
     ) {
     }
 
@@ -102,6 +104,14 @@ final class ServerInfoDto
             $libraryCount = $payload['libraryCount'];
         }
 
+        $subdomain = null;
+        if (array_key_exists('subdomain', $payload) && $payload['subdomain'] !== null) {
+            if (!is_string($payload['subdomain'])) {
+                throw new InvalidArgumentException('ServerInfoDto "subdomain" must be a string when present.');
+            }
+            $subdomain = $payload['subdomain'];
+        }
+
         return new self(
             serverId: $serverId,
             userId: $userId,
@@ -112,6 +122,7 @@ final class ServerInfoDto
             hostnameCandidates: $hostnameCandidates,
             relayActive: $payload['relayActive'],
             libraryCount: $libraryCount,
+            subdomain: $subdomain,
         );
     }
 
@@ -130,6 +141,7 @@ final class ServerInfoDto
             'hostnameCandidates' => $this->hostnameCandidates,
             'relayActive' => $this->relayActive,
             'libraryCount' => $this->libraryCount,
+            'subdomain' => $this->subdomain,
         ];
     }
 }

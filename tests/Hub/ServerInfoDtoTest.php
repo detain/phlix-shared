@@ -35,6 +35,7 @@ final class ServerInfoDtoTest extends TestCase
             'hostnameCandidates' => ['10.0.0.5'],
             'relayActive' => true,
             'libraryCount' => 7,
+            'subdomain' => null,
         ];
     }
 
@@ -97,6 +98,34 @@ final class ServerInfoDtoTest extends TestCase
         $payload['hostnameCandidates'] = ['ok', 42];
 
         $this->expectException(InvalidArgumentException::class);
+        ServerInfoDto::fromPayload($payload);
+    }
+
+    public function test_subdomain_with_value_round_trip(): void
+    {
+        $payload = self::full();
+        $payload['subdomain'] = 'my-server';
+        $dto = ServerInfoDto::fromPayload($payload);
+        $this->assertSame('my-server', $dto->subdomain);
+        $this->assertSame('my-server', $dto->toPayload()['subdomain']);
+    }
+
+    public function test_subdomain_absent_defaults_to_null(): void
+    {
+        $payload = self::full();
+        unset($payload['subdomain']);
+        $dto = ServerInfoDto::fromPayload($payload);
+        $this->assertNull($dto->subdomain);
+        $this->assertNull($dto->toPayload()['subdomain']);
+    }
+
+    public function test_non_string_subdomain_throws(): void
+    {
+        $payload = self::full();
+        $payload['subdomain'] = 42;
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('subdomain');
         ServerInfoDto::fromPayload($payload);
     }
 }
