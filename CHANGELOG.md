@@ -6,6 +6,18 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-07-10
+
+### Added
+- **`Phlix\Shared\Plugin\ConfigurableInterface`** — optional contract a plugin entry class
+  implements to receive its persisted `settings_json` map from the host. The host loader
+  instantiates entry classes through its PSR-11 container, so their constructors must stay
+  autowirable (they cannot take the settings array or a bare `string $apiKey` as a required
+  parameter — the container cannot guess those values and resolution fails). Plugins now keep an
+  all-optional constructor and receive configured values through `configure(array $settings): void`,
+  which the loader calls once between construction and `LifecycleInterface::onEnable()`. Implementing
+  the interface is optional; a plugin that needs no configuration omits it.
+
 ## [0.16.0] - 2026-07-06
 
 ### Fixed

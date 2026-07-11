@@ -86,12 +86,13 @@ final class RelayFrameTypeTest extends TestCase
         $this->assertTrue(RelayFrameType::isValid(0x0F)); // HUB_DISCONNECTED
         $this->assertTrue(RelayFrameType::isValid(0x10)); // HTTP_REQUEST
         $this->assertTrue(RelayFrameType::isValid(0x11)); // HTTP_RESPONSE
+        $this->assertTrue(RelayFrameType::isValid(0x12)); // HTTP_CANCEL
     }
 
     public function test_is_valid_returns_false_for_invalid_values(): void
     {
         $this->assertFalse(RelayFrameType::isValid(0x00));
-        $this->assertFalse(RelayFrameType::isValid(0x12)); // first invalid after new range
+        $this->assertFalse(RelayFrameType::isValid(0x13)); // first invalid after new range
         $this->assertFalse(RelayFrameType::isValid(0xFF));
         $this->assertFalse(RelayFrameType::isValid(-1));
     }
