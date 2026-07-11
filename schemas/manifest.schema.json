@@ -87,6 +87,15 @@
                     "description": {
                         "type": "string",
                         "description": "Help text shown beneath the field in the plugin settings UI."
+                    },
+                    "link": {
+                        "type": "string",
+                        "format": "uri",
+                        "description": "Optional URL where the operator obtains this value (e.g. an API-key signup or docs page), rendered as a help link beside the field in the settings UI."
+                    },
+                    "link_text": {
+                        "type": "string",
+                        "description": "Optional anchor text for `link`; the settings UI falls back to a generic label when absent."
                     }
                 }
             }
