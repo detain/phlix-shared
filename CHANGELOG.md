@@ -6,6 +6,17 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-07-10
+
+### Added
+- **`schemas/manifest.schema.json`** — plugin settings entries now accept two optional
+  field-help keys: **`link`** (a `format: uri` URL where the operator obtains the value — e.g. an
+  API-key signup or docs page) and **`link_text`** (optional anchor text). The settings-entry
+  schema is `additionalProperties: false`, so a plugin declaring these keys previously failed
+  manifest validation (`plugin.enable`/install "manifest is invalid"); they are now first-class,
+  letting a plugin ship a "where to get this" link in its own `plugin.json` (rendered by the admin
+  configure form in phlix-ui ≥ 0.79.0). Consumed server-side by `SettingsMasker::schema()`.
+
 ## [0.18.0] - 2026-07-10
 
 ### Added
