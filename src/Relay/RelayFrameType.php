@@ -55,6 +55,11 @@ use InvalidArgumentException;
  *                             payload is a tagged chunk (HEAD/BODY/END) so a response
  *                             larger than one frame streams across several frames.
  *                             See {@see RelayHttpResponseCodec}.
+ *   HTTP_CANCEL      = 0x12 — Hub→Server: the client abandoned the proxied request
+ *                             (browser navigated away / connection dropped) so the
+ *                             hub can no longer deliver its response. The 4-byte
+ *                             field carries the same per-request id as the original
+ *                             HTTP_REQUEST; the payload is empty. See below.
  *
  * ## HTTP-over-relay request multiplexing (0x10 / 0x11)
  *
@@ -65,6 +70,20 @@ use InvalidArgumentException;
  * allocates request ids from a high range (>= 0x80000000) so they never clash
  * with the low, monotonically-increasing client channel ids — though routing is
  * keyed on frame TYPE first, so id-space overlap is harmless either way.
+ *
+ * ## Request cancellation (0x12)
+ *
+ * HTTP_CANCEL is emitted **hub→server only**. When the client that originated a
+ * proxied request abandons it (the browser navigates away, closes the tab, or
+ * the client socket drops) the hub can no longer deliver a response for that
+ * request id, so it sends an HTTP_CANCEL frame carrying that request id (empty
+ * payload) down the same tunnel. This asks the server to STOP any in-flight work
+ * for that request — releasing CPU/bandwidth spent on a response nobody will
+ * read (e.g. an active transcode/stream). The server-side handler that stops the
+ * in-flight work on receipt is the server's responsibility (server step SV-4.2);
+ * the hub side only PROPAGATES the cancellation. A server that does not yet
+ * honour HTTP_CANCEL simply ignores it — the frame is advisory and never
+ * requires a response frame back to the hub.
  *
  * @package Phlix\Shared\Relay
  * @since 0.5.0
@@ -124,7 +143,7 @@ enum RelayFrameType: int
     /**
      * Create a RelayFrameType from its integer value.
      *
-     * @param int $value The byte value (0x01–0x11).
+     * @param int $value The byte value (0x01–0x12).
      *
      * @return self
      *
