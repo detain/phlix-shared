@@ -112,6 +112,21 @@
             "description": "OAuth2 redirect URI registered with the Trakt application; must exactly match this server's /api/v1/oauth/trakt/callback URL.",
             "group": "scrobblers"
         },
+        "lastfm.api_key": {
+            "type": "string",
+            "description": "Last.fm API key used to identify this application when scrobbling listening activity.",
+            "group": "scrobblers"
+        },
+        "lastfm.shared_secret": {
+            "type": "string",
+            "description": "Last.fm API shared secret used to sign API requests.",
+            "group": "scrobblers"
+        },
+        "lastfm.enabled": {
+            "type": "boolean",
+            "description": "Master switch for Last.fm scrobbling. When disabled the Connect button is hidden from the UI regardless of whether credentials are configured.",
+            "group": "scrobblers"
+        },
         "matching.noise_suffixes": {
             "type": "array",
             "description": "Trailing 'edition' phrases stripped from a parsed title before metadata matching (longest phrase first). Each entry is matched case-insensitively at the end of the title after optional separators. Admins may extend this list with additional release-edition phrases; an empty override falls back to the built-in defaults.",
