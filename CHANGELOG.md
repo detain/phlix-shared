@@ -6,6 +6,20 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Changed
+- **`schemas/media-item.schema.json`** & **`schemas/library-query.schema.json`** — the content-rating
+  vocabulary is expanded (Phase C) to cover the US TV Parental Guidelines scale alongside the existing
+  MPAA film scale. The `rating` enum (media-item) and the `ratings[]` filter enum (library-query) now
+  accept `TV-Y, TV-Y7, TV-G, TV-PG, TV-14, TV-MA` in addition to `G, PG, PG-13, R, NC-17, X, UNRATED`.
+  `NR` is normalized to `UNRATED` server-side and is deliberately not part of the vocabulary. Purely
+  additive — existing consumers using only the film-scale values are unaffected.
+
+### Added
+- **`schemas/media-item.schema.json`** — five new OPTIONAL, nullable detail-only fields the server now
+  emits on `GET /api/v1/media/{id}`: `trailer_url`, `trailer_key`, `trailer_site`, `logo_url`, and
+  `still_url` (episodes only). All are absent from the lean list responses and null when unavailable,
+  so existing consumers are unaffected.
+
 ## [0.19.0] - 2026-07-10
 
 ### Added

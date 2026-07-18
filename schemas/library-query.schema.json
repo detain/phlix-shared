@@ -34,10 +34,10 @@
         },
         "ratings": {
             "type": "array",
-            "description": "Filter to items with any of the listed content ratings (MPAA-style: G, PG, PG-13, R, NC-17, X, UNRATED). Items with no rating set are excluded when this filter is applied.",
+            "description": "Filter to items with any of the listed content ratings. Covers the MPAA film scale (G, PG, PG-13, R, NC-17, X, UNRATED) and the US TV Parental Guidelines scale (TV-Y, TV-Y7, TV-G, TV-PG, TV-14, TV-MA). `NR` is normalized to `UNRATED` server-side. Items with no rating set are excluded when this filter is applied.",
             "items": {
                 "type": "string",
-                "enum": ["G", "PG", "PG-13", "R", "NC-17", "X", "UNRATED"]
+                "enum": ["G", "TV-Y", "TV-G", "TV-Y7", "PG", "TV-PG", "PG-13", "TV-14", "R", "TV-MA", "NC-17", "X", "UNRATED"]
             },
             "uniqueItems": true
         },

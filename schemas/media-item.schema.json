@@ -67,8 +67,8 @@
         },
         "rating": {
             "type": ["string", "null"],
-            "description": "MPAA-style content rating (G, PG, PG-13, R, NC-17, X, UNRATED). Null when not set.",
-            "enum": ["G", "PG", "PG-13", "R", "NC-17", "X", "UNRATED", null]
+            "description": "Content rating. Covers both the MPAA film scale (G, PG, PG-13, R, NC-17, X, UNRATED) and the US TV Parental Guidelines scale (TV-Y, TV-Y7, TV-G, TV-PG, TV-14, TV-MA). `NR` (not rated) is normalized to `UNRATED` server-side and is never emitted. Null when not set.",
+            "enum": ["G", "TV-Y", "TV-G", "TV-Y7", "PG", "TV-PG", "PG-13", "TV-14", "R", "TV-MA", "NC-17", "X", "UNRATED", null]
         },
         "runtime": {
             "type": ["integer", "null"],
@@ -102,6 +102,31 @@
             "type": ["string", "null"],
             "description": "ISO 8601 timestamp when the item was last modified.",
             "format": "date-time"
+        },
+        "trailer_url": {
+            "type": ["string", "null"],
+            "description": "Detail-only. Fully-qualified URL to the item's primary trailer (e.g. a YouTube watch URL), captured at scan time from TMDB `videos`. Absent from list responses; null when no trailer is available.",
+            "format": "uri"
+        },
+        "trailer_key": {
+            "type": ["string", "null"],
+            "description": "Detail-only. Provider-native trailer key (e.g. a YouTube video id) accompanying `trailer_url`, so a client can embed the player directly. Absent from list responses; null when unavailable.",
+            "maxLength": 200
+        },
+        "trailer_site": {
+            "type": ["string", "null"],
+            "description": "Detail-only. Hosting site for the trailer (e.g. `YouTube`, `Vimeo`) accompanying `trailer_url`/`trailer_key`. Absent from list responses; null when unavailable.",
+            "maxLength": 100
+        },
+        "logo_url": {
+            "type": ["string", "null"],
+            "description": "Detail-only. URL to the item's transparent title logo (PNG), for overlaying the title treatment on the hero backdrop. Localized/cached server-side when possible. Absent from list responses; null when unavailable.",
+            "format": "uri"
+        },
+        "still_url": {
+            "type": ["string", "null"],
+            "description": "Detail-only, episodes only. URL to the episode's still frame (a landscape thumbnail). Absent on non-episode items and list responses; null when TMDB has no still for the episode.",
+            "format": "uri"
         }
     },
     "additionalProperties": false
