@@ -5,5 +5,141 @@
     "description": "Schema describing the editable settings for the Phlix Hub daemon. Hub settings are managed independently from server settings and control the behavior of the background daemon that handlesarr integration, library scanning, and other background tasks. Property keys are the literal dotted setting keys. Runtime default values are NOT declared here — they live in phlix-hub config/*.php.",
     "type": "object",
     "additionalProperties": false,
-    "properties": {}
+    "properties": {
+        "server.enrollment_ttl": {
+            "type": "integer",
+            "group": "server",
+            "description": "How long a server enrollment token remains valid after being issued, in seconds.",
+            "label": "Enrollment token TTL",
+            "helpText": "When a new server enrolls with this hub, it receives a JWT enrollment token valid for this many seconds. If the server does not complete enrollment within this window, it must request a fresh token. Default is 604800 seconds (7 days). Longer values are more forgiving but increase the window of a leaked token being abused.",
+            "tier": "standard",
+            "minimum": 60,
+            "maximum": 2592000,
+            "default": 604800,
+            "restart": true
+        },
+        "server.relay_ping_interval": {
+            "type": "integer",
+            "group": "server",
+            "description": "Seconds between relay keepalive pings from the hub to connected servers.",
+            "label": "Relay ping interval",
+            "helpText": "The hub sends a WebSocket ping to each connected relay server every N seconds to detect dead connections. Default is 30 seconds. Increase if your servers run behind a connection timeout-sensitive proxy.",
+            "tier": "advanced",
+            "minimum": 5,
+            "maximum": 300,
+            "default": 30,
+            "restart": false
+        },
+        "server.max_servers_per_user": {
+            "type": "integer",
+            "group": "server",
+            "description": "Maximum number of server enrollments allowed per user account.",
+            "label": "Maximum servers per user",
+            "helpText": "Each user account can enroll at most this many servers with this hub. Users attempting to enroll additional servers beyond this limit will receive an error. Set to 0 for unlimited (admin accounts only).",
+            "tier": "standard",
+            "minimum": 0,
+            "maximum": 1000,
+            "default": 10,
+            "restart": false
+        },
+        "server.heartbeat_interval": {
+            "type": "integer",
+            "group": "server",
+            "description": "Seconds between heartbeats sent by enrolled servers to the hub.",
+            "label": "Heartbeat interval",
+            "helpText": "Each enrolled server sends a heartbeat to the hub every N seconds to confirm it is alive. If the hub misses 3 consecutive heartbeats from a server, it marks it as offline. Default is 60 seconds.",
+            "tier": "standard",
+            "minimum": 10,
+            "maximum": 600,
+            "default": 60,
+            "restart": false
+        },
+        "server.enrollment_renewal_threshold": {
+            "type": "integer",
+            "group": "server",
+            "description": "Seconds before enrollment expiry when a server begins requesting renewal.",
+            "label": "Enrollment renewal threshold",
+            "helpText": "When an enrolled server's enrollment has less than this many seconds remaining, it proactively requests a renewal from the hub. Default is 86400 seconds (24 hours). Setting this too high causes unnecessary API traffic; setting it too low risks enrollment lapsing between renewal cycles.",
+            "tier": "advanced",
+            "minimum": 60,
+            "maximum": 604800,
+            "default": 86400,
+            "restart": false
+        },
+        "server.subdomain_auto_claim": {
+            "type": "boolean",
+            "group": "server",
+            "description": "Automatically provision a TLS certificate for newly enrolled server subdomains.",
+            "label": "Auto-provision server subdomains",
+            "helpText": "When enabled, the hub automatically provisions a Let's Encrypt certificate for each enrolled server's subdomain when it first connects. When disabled, the server admin must manually provision a certificate. Disable this if you manage certificates externally.",
+            "tier": "standard",
+            "default": true,
+            "restart": true
+        },
+        "server.tls_enabled": {
+            "type": "boolean",
+            "group": "server",
+            "description": "Require TLS/HTTPS for all hub HTTP traffic.",
+            "label": "Enable TLS",
+            "helpText": "When enabled, the hub rejects all plain HTTP connections and requires TLS. Certificates are managed via subdomain auto-claim or provided externally. Always keep this enabled in production.",
+            "tier": "standard",
+            "default": true,
+            "restart": true
+        },
+        "server.domain": {
+            "type": "string",
+            "group": "server",
+            "description": "The base domain for server subdomains (e.g. 'server1.phlix.media').",
+            "label": "Hub base domain",
+            "helpText": "All enrolled servers are assigned a subdomain under this domain. For example, if the domain is 'phlix.media', a server might get 'srv-abc123.phlix.media'. Changing this does not affect already-enrolled servers.",
+            "tier": "standard",
+            "default": "phlix.media",
+            "restart": true
+        },
+        "auth.access_token_ttl": {
+            "type": "integer",
+            "group": "auth",
+            "description": "JWT access token lifetime in seconds.",
+            "label": "Access token TTL",
+            "helpText": "The number of seconds before a JWT access token expires and the client must refresh it. Shorter TTLs are more secure but cause more frequent refresh calls. Default is 3600 seconds (1 hour).",
+            "tier": "standard",
+            "minimum": 300,
+            "maximum": 86400,
+            "default": 3600,
+            "restart": false
+        },
+        "auth.refresh_token_ttl": {
+            "type": "integer",
+            "group": "auth",
+            "description": "Refresh token lifetime in seconds.",
+            "label": "Refresh token TTL",
+            "helpText": "The maximum age of a refresh token before it can no longer be used to obtain a new access token. Default is 604800 seconds (7 days). This should be significantly longer than the access token TTL.",
+            "tier": "standard",
+            "minimum": 3600,
+            "maximum": 2592000,
+            "default": 604800,
+            "restart": false
+        },
+        "logger.level": {
+            "type": "string",
+            "group": "logger",
+            "description": "Minimum log level to record.",
+            "label": "Log level",
+            "helpText": "Controls verbosity of hub logging. 'debug' logs everything including diagnostic messages; 'info' logs normal operations; 'warning' suppresses informational messages; 'error' logs only errors; 'critical' logs only catastrophic events. Default is 'info'.",
+            "tier": "advanced",
+            "default": "info",
+            "enum": ["debug", "info", "notice", "warning", "error", "critical"],
+            "enumLabels": {"debug": "Debug (most verbose)", "info": "Info (normal)", "notice": "Notice", "warning": "Warning", "error": "Error", "critical": "Critical (least verbose)"}
+        },
+        "logger.audit_enabled": {
+            "type": "boolean",
+            "group": "logger",
+            "description": "Enable structured audit logging of all admin actions.",
+            "label": "Enable audit logging",
+            "helpText": "When enabled, the hub records every administrative action (user creation, server enrollment, setting changes) to the audit log. Audit logs are retained separately from the general application log.",
+            "tier": "standard",
+            "default": true,
+            "restart": false
+        }
+    }
 }
