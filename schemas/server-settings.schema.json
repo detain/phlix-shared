@@ -98,7 +98,7 @@
             "helpText": "Controls how HDR10 and other HDR video is tone-mapped for display on SDR screens. 'Auto-detect' picks based on output codec; 'None' passes through HDR metadata unchanged (may look washed out on SDR screens); 'zscale' uses the zscale library for high-quality tone mapping; 'libplacebo' uses the libplacebo library for GPU-accelerated tone mapping.",
             "helpLinks": [
                 { "text": "HDR tone mapping", "url": "https://en.wikipedia.org/wiki/High-dynamic-range_video#Tone_mapping" },
-                { "text": "zscale", "url": "https://github.com/sekno/zscale" }
+                { "text": "zscale", "url": "https://github.com/videoblade/zscale" }
             ],
             "tier": "standard",
             "default": "none",
