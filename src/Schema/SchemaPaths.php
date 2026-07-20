@@ -66,6 +66,18 @@ final class SchemaPaths
     }
 
     /**
+     * Absolute path to the hub-settings JSON Schema (draft 2020-12).
+     *
+     * @return non-empty-string Absolute path to `hub-settings.schema.json`.
+     *
+     * @since 0.9.0
+     */
+    public static function hubSettings(): string
+    {
+        return self::dir() . '/hub-settings.schema.json';
+    }
+
+    /**
      * Absolute path to the webhook event catalog data document.
      *
      * @return non-empty-string Absolute path to `webhook-events.json`.

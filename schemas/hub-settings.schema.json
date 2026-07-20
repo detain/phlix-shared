@@ -1,0 +1,9 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://phlix.tv/schemas/hub-settings.schema.json",
+    "title": "Phlix Hub settings",
+    "description": "Schema describing the editable settings for the Phlix Hub daemon. Hub settings are managed independently from server settings and control the behavior of the background daemon that handlesarr integration, library scanning, and other background tasks. Property keys are the literal dotted setting keys. Runtime default values are NOT declared here — they live in phlix-hub config/*.php.",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+}

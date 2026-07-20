@@ -106,6 +106,9 @@ final class ServerSettingsSchemaTest extends TestCase
             'trakt.client_id' => ['trakt.client_id', 'string'],
             'trakt.client_secret' => ['trakt.client_secret', 'string'],
             'trakt.redirect_uri' => ['trakt.redirect_uri', 'string'],
+            'lastfm.api_key' => ['lastfm.api_key', 'string'],
+            'lastfm.enabled' => ['lastfm.enabled', 'boolean'],
+            'lastfm.shared_secret' => ['lastfm.shared_secret', 'string'],
             'matching.noise_suffixes' => ['matching.noise_suffixes', 'array'],
             'metadata.provider_priority' => ['metadata.provider_priority', 'object'],
             'metadata.genres_mode' => ['metadata.genres_mode', 'string'],
@@ -168,7 +171,7 @@ final class ServerSettingsSchemaTest extends TestCase
         sort($expected);
 
         $this->assertSame($expected, $actual, 'server-settings schema must declare exactly the expected settings keys.');
-        $this->assertCount(22, $actual);
+        $this->assertCount(25, $actual);
     }
 
     public function test_noise_suffixes_is_an_array_of_strings_with_canonical_default(): void
@@ -292,6 +295,102 @@ final class ServerSettingsSchemaTest extends TestCase
 
         $this->assertIsString($description, sprintf('Property "%s" must have a string description.', $key));
         $this->assertNotSame('', $description, sprintf('Property "%s" description must be non-empty.', $key));
+
+        $label = $properties[$key]['label'] ?? null;
+        $helpText = $properties[$key]['helpText'] ?? null;
+
+        $this->assertIsString($label, sprintf('Property "%s" must have a string label.', $key));
+        $this->assertNotSame('', $label, sprintf('Property "%s" label must be non-empty.', $key));
+
+        $this->assertIsString($helpText, sprintf('Property "%s" must have a string helpText.', $key));
+        $this->assertNotSame('', $helpText, sprintf('Property "%s" helpText must be non-empty.', $key));
+    }
+
+    /**
+     * @dataProvider propertyProvider
+     */
+    public function test_optional_extended_keywords_are_well_formed(string $key, string $expectedType): void
+    {
+        // $expectedType is part of the shared provider row but not asserted here.
+        $this->assertNotSame('', $expectedType);
+
+        $properties = self::properties();
+        $this->assertArrayHasKey($key, $properties);
+
+        $property = $properties[$key];
+
+        // helpLinks — if present, each entry must be {text: non-empty-string, url: https://...}
+        if (isset($property['helpLinks']) && is_array($property['helpLinks'])) {
+            foreach ($property['helpLinks'] as $index => $link) {
+                $this->assertIsArray($link, sprintf('Property "%s" helpLinks[%d] must be an object.', $key, $index));
+                $this->assertArrayHasKey('text', $link);
+                $this->assertArrayHasKey('url', $link);
+                $this->assertIsString($link['text']);
+                $this->assertNotSame('', $link['text'], sprintf('Property "%s" helpLinks[%d].text must be non-empty.', $key, $index));
+                $this->assertIsString($link['url']);
+                $this->assertStringStartsWith('https://', $link['url'], sprintf('Property "%s" helpLinks[%d].url must start with https://.', $key, $index));
+            }
+        }
+
+        // tier — if present, must be "standard" or "advanced"
+        if (array_key_exists('tier', $property)) {
+            $this->assertContains(
+                $property['tier'],
+                ['standard', 'advanced'],
+                sprintf('Property "%s" tier must be "standard" or "advanced".', $key)
+            );
+        }
+
+        // enumLabels — if present, must be a dict of strings
+        if (isset($property['enumLabels']) && is_array($property['enumLabels'])) {
+            foreach ($property['enumLabels'] as $enumKey => $enumLabel) {
+                $this->assertIsString(
+                    $enumLabel,
+                    sprintf('Property "%s" enumLabels["%s"] must be a string.', $key, $enumKey)
+                );
+                $this->assertNotSame(
+                    '',
+                    $enumLabel,
+                    sprintf('Property "%s" enumLabels["%s"] must be non-empty.', $key, $enumKey)
+                );
+            }
+        }
+
+        // optionHelp — if present, must be a dict of strings
+        if (isset($property['optionHelp']) && is_array($property['optionHelp'])) {
+            foreach ($property['optionHelp'] as $optionKey => $optionHelpText) {
+                $this->assertIsString(
+                    $optionHelpText,
+                    sprintf('Property "%s" optionHelp["%s"] must be a string.', $key, $optionKey)
+                );
+                $this->assertNotSame(
+                    '',
+                    $optionHelpText,
+                    sprintf('Property "%s" optionHelp["%s"] must be non-empty.', $key, $optionKey)
+                );
+            }
+        }
+    }
+
+    /**
+     * @dataProvider propertyProvider
+     */
+    public function test_property_has_label_and_help_text(string $key, string $expectedType): void
+    {
+        // $expectedType is part of the shared provider row but not asserted here.
+        $this->assertNotSame('', $expectedType);
+
+        $properties = self::properties();
+        $this->assertArrayHasKey($key, $properties);
+
+        $label = $properties[$key]['label'] ?? null;
+        $helpText = $properties[$key]['helpText'] ?? null;
+
+        $this->assertIsString($label, sprintf('Property "%s" must have a string label.', $key));
+        $this->assertNotSame('', $label, sprintf('Property "%s" label must be non-empty.', $key));
+
+        $this->assertIsString($helpText, sprintf('Property "%s" must have a string helpText.', $key));
+        $this->assertNotSame('', $helpText, sprintf('Property "%s" helpText must be non-empty.', $key));
     }
 
     /**

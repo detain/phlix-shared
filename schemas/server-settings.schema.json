@@ -2,36 +2,104 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://phlix.tv/schemas/server-settings.schema.json",
     "title": "Phlix server settings",
-    "description": "Schema describing the editable server settings exposed by the Phlix admin settings endpoint (/api/v1/admin/settings). Mirrors phlix-server's Phlix\\Server\\Http\\Controllers\\Admin\\AdminSettingsController::ALLOWED_KEYS, the single source of truth for the writable settings allow-list; phlix-server derives that allow-list from this schema and the admin SPA renders the settings form from it. Property keys are the literal dotted setting keys (e.g. 'hwaccel.enabled'). Runtime default values are NOT declared here — they live in phlix-server config/*.php and are returned by the GET endpoint.",
+    "description": "Schema describing the editable server settings exposed by the Phlix admin settings endpoint (/api/v1/admin/settings). Mirrors phlix-server's Phlix\\Server\\Http\\Controllers\\Admin\\AdminSettingsController::ALLOWED_KEYS, the single source of truth for the writable settings allow-list; phlix-server derives that allow-list from this schema and the admin SPA renders the settings form from it. Property keys are the literal dotted setting keys (e.g. 'hwaccel.enabled'). Runtime default values are NOT declared here \u2014 they live in phlix-server config/*.php and are returned by the GET endpoint.",
     "type": "object",
     "additionalProperties": false,
     "properties": {
         "hwaccel.enabled": {
             "type": "boolean",
             "description": "Master switch for hardware-accelerated transcoding.",
-            "group": "transcoding"
+            "group": "transcoding",
+            "label": "Enable hardware acceleration",
+            "helpText": "When enabled, the server will use your GPU (NVENC, QSV, VCE, or VideoToolbox) to accelerate transcoding instead of relying solely on CPU-based software encoding. This dramatically reduces CPU load and power consumption for concurrent streams, but requires a compatible GPU and appropriate driver support. If your hardware does not support acceleration, the server falls back to software encoding automatically.",
+            "helpLinks": [
+                {
+                    "text": "NVENC (NVIDIA)",
+                    "url": "https://en.wikipedia.org/wiki/Nvidia_NVENC"
+                },
+                {
+                    "text": "VideoToolbox",
+                    "url": "https://developer.apple.com/documentation/videotoolbox"
+                }
+            ],
+            "tier": "standard",
+            "restart": true
         },
         "hwaccel.prefer_hardware": {
             "type": "boolean",
             "description": "Prefer hardware encoders/decoders over software when both are available.",
-            "group": "transcoding"
+            "group": "transcoding",
+            "label": "Prefer hardware encoders/decoders",
+            "helpText": "When both a hardware encoder/decoder and a software fallback are available for a given codec, this option causes the server to always choose the hardware path first. Disable this to prefer software encoding, which may offer better quality at the cost of higher CPU usage. Useful if you want to reserve GPU bandwidth for specific streams or if you encounter compatibility issues with hardware decoding.",
+            "helpLinks": [
+                {
+                    "text": "Hardware encoding vs software encoding",
+                    "url": "https://en.wikipedia.org/wiki/Transcoding#Hardware_acceleration"
+                }
+            ],
+            "tier": "advanced",
+            "restart": true
         },
         "hwaccel.probe_timeout": {
             "type": "integer",
             "description": "Maximum time in seconds to probe a media file for hardware-acceleration capability before falling back.",
             "group": "transcoding",
-            "minimum": 0
+            "minimum": 0,
+            "label": "Hardware probe timeout",
+            "helpText": "Before transcoding a file the server runs a short probe to determine whether your GPU can handle the file's codec profile. This sets the maximum wait time for that probe. If the timeout is reached, the file falls back to software encoding. Increase this if you see frequent 'probe timeout' warnings in logs for large or unusual files, or decrease it to avoid unnecessary waiting on files that are clearly unsupported.",
+            "helpLinks": [
+                {
+                    "text": "Transcoding",
+                    "url": "https://en.wikipedia.org/wiki/Transcoding"
+                }
+            ],
+            "tier": "advanced",
+            "restart": true
         },
         "tmdb.api_key": {
             "type": "string",
             "description": "TMDb API key used to fetch movie and TV metadata.",
-            "group": "metadata"
+            "group": "metadata",
+            "label": "TMDb API key",
+            "helpText": "The Movie Database (TMDb) API key is required for fetching movie posters, trailers, cast information, ratings, and other metadata displayed in the Phlix library. You can obtain a free API key by registering an application at TMDb. Without a valid key, the server falls back to whatever metadata is embedded in the media files themselves, and poster/trailer data will not be available.",
+            "helpLinks": [
+                {
+                    "text": "TMDb API",
+                    "url": "https://www.themoviedb.org/documentation/api"
+                }
+            ],
+            "tier": "standard",
+            "restart": false
         },
         "auth.signup_mode": {
             "type": "string",
             "description": "Controls self-service signup: 'open' creates active accounts immediately, 'approval' creates pending accounts that an administrator must approve before they can log in, 'disabled' rejects all new signups. The first registered user is always created active and admin regardless of this setting.",
             "group": "auth",
-            "enum": ["open", "approval", "disabled"],
+            "label": "New user signup mode",
+            "helpText": "Controls what happens when a new person tries to register an account. 'Open' is suitable for personal or trusted networks \u2014 accounts are active immediately. 'Approval' sends a notification to all administrators and creates the account in a pending state until an admin approves it. 'Disabled' completely blocks new registrations; use this on public servers where you want to manage accounts manually. Note: the very first account ever created on a fresh install is always made active and an administrator, regardless of this setting.",
+            "helpLinks": [
+                {
+                    "text": "OAuth 2.0",
+                    "url": "https://datatracker.ietf.org/doc/html/rfc6749"
+                }
+            ],
+            "tier": "standard",
+            "restart": false,
+            "enumLabels": {
+                "open": "Open \u2014 account active immediately",
+                "approval": "Approval \u2014 admin must approve new accounts",
+                "disabled": "Disabled \u2014 new signups are rejected"
+            },
+            "optionHelp": {
+                "open": "Anyone can register and log in immediately without administrator involvement. Best for personal or trusted private servers.",
+                "approval": "New registrations create a pending account that cannot be used until an administrator approves it. Administrators receive a notification when approval is needed.",
+                "disabled": "All new registration attempts are rejected with an error. Existing accounts continue to work normally. Use this when you manage user accounts manually."
+            },
+            "enum": [
+                "open",
+                "approval",
+                "disabled"
+            ],
             "default": "approval"
         },
         "marker_detection.similarity_threshold": {
@@ -39,101 +107,291 @@
             "description": "Audio/video fingerprint similarity threshold (0.0-1.0) above which a segment is treated as a repeated intro/credits marker.",
             "group": "markers",
             "minimum": 0,
-            "maximum": 1
+            "maximum": 1,
+            "label": "Marker similarity threshold",
+            "helpText": "Phlix detects recurring segments like intros and credits by comparing the audio/video fingerprint of each segment against a reference fingerprint. This value controls how strictly segments must match to be flagged as a marker. At 0.0, nearly every repeated segment is marked (high false-positive rate). At 1.0, only near-perfect matches are marked (many markers will be missed). The default of 0.75 is a reasonable balance for most content, but you may need to lower it if your library contains heavily edited or re-encoded content where fingerprints are distorted.",
+            "helpLinks": [
+                {
+                    "text": "Audio fingerprinting",
+                    "url": "https://en.wikipedia.org/wiki/Audio_fingerprinting"
+                }
+            ],
+            "tier": "standard",
+            "restart": false
         },
         "marker_detection.intro_max_duration": {
             "type": "integer",
             "description": "Upper bound in seconds for how long a detected intro marker may be.",
             "group": "markers",
-            "minimum": 0
+            "minimum": 0,
+            "label": "Maximum intro duration",
+            "helpText": "During marker detection, any candidate intro segment longer than this value will not be treated as an intro, even if its similarity score passes the threshold. This prevents false positives from long recurring scenes (like a 'previously on...' segment) being flagged as full intros. Set this to the longest typical intro length in your library \u2014 most TV shows have intros between 10 and 90 seconds, but anime and some documentaries may differ.",
+            "helpLinks": [
+                {
+                    "text": "Chapter (media)",
+                    "url": "https://en.wikipedia.org/wiki/Chapter_(media)"
+                }
+            ],
+            "tier": "standard",
+            "restart": false
         },
         "subtitles.enabled": {
             "type": "boolean",
             "description": "Master switch for subtitle fetching and rendering.",
-            "group": "subtitles"
+            "group": "subtitles",
+            "label": "Enable subtitles",
+            "helpText": "Controls whether Phlix fetches subtitle tracks from external providers (like OpenSubtitles) and whether subtitle rendering is available in the player. When disabled, subtitle features are completely hidden from the UI and no subtitle fetching is attempted. When enabled, individual users can still disable subtitles in their personal playback settings.",
+            "helpLinks": [
+                {
+                    "text": "Subtitles",
+                    "url": "https://en.wikipedia.org/wiki/Subtitle_(captioning)"
+                }
+            ],
+            "tier": "standard",
+            "restart": false
         },
         "subtitles.default_language": {
             "type": "string",
             "description": "Preferred subtitle language (ISO 639 code) selected by default for new playback sessions.",
-            "group": "subtitles"
+            "group": "subtitles",
+            "label": "Default subtitle language",
+            "helpText": "When a new playback session starts and the user's preferred language has not been set, Phlix will automatically select this subtitle language if a matching track is available. Use a standard ISO 639-2 or ISO 639-1 language code such as 'eng', 'spa', 'fre', 'ger', or 'jpn'. This is only the default \u2014 users can override it in their personal settings per session.",
+            "helpLinks": [
+                {
+                    "text": "ISO 639 language codes",
+                    "url": "https://en.wikipedia.org/wiki/ISO_639"
+                }
+            ],
+            "tier": "standard",
+            "restart": false
         },
         "subtitles.burn_in_by_default": {
             "type": "boolean",
             "description": "Burn subtitles into the video stream by default instead of delivering them as a soft track.",
-            "group": "subtitles"
+            "group": "subtitles",
+            "label": "Burn subtitles into video by default",
+            "helpText": "When enabled, subtitles are permanently embedded (burned) into the video stream during playback rather than being delivered as a separate selectable track. Burning ensures subtitles are always visible on all devices and players, including those that do not support external subtitle tracks. However, this requires re-encoding the video, increasing CPU/GPU load, and the burned subtitles cannot be turned off by the viewer. When disabled, subtitles are delivered as a separate track that can be toggled.",
+            "helpLinks": [
+                {
+                    "text": "Subtitle burn-in (hardsubbing)",
+                    "url": "https://en.wikipedia.org/wiki/Subtitle_(captioning)#Hardsubtitling"
+                }
+            ],
+            "tier": "standard",
+            "restart": false
         },
         "discovery.discovery_port": {
             "type": "integer",
             "description": "UDP port used for local network server discovery.",
             "group": "discovery",
             "minimum": 1,
-            "maximum": 65535
+            "maximum": 65535,
+            "label": "Server discovery UDP port",
+            "helpText": "Phlix servers advertise themselves on the local network via UDP broadcast on this port, allowing the mobile app and other clients to automatically discover available servers without manual IP entry. Only change this if you have a specific networking requirement such as a port conflict or firewall rule. Clients must be on the same broadcast domain for discovery to work \u2014 it does not cross routers.",
+            "helpLinks": [
+                {
+                    "text": "UDP",
+                    "url": "https://en.wikipedia.org/wiki/User_Datagram_Protocol"
+                },
+                {
+                    "text": "Service discovery",
+                    "url": "https://en.wikipedia.org/wiki/Zero-configuration_networking"
+                }
+            ],
+            "tier": "advanced",
+            "restart": false
         },
         "trickplay.enabled": {
             "type": "boolean",
             "description": "Master switch for trickplay (scrubbing thumbnail) generation.",
-            "group": "trickplay"
+            "group": "trickplay",
+            "label": "Enable trickplay thumbnails",
+            "helpText": "Trickplay generates a strip of preview thumbnails that appear when scrubbing through a video, giving users a visual preview of the scene at each point. Enabling this causes thumbnails to be generated during library scans and stored on disk. Disabling it hides the trickplay feature from the UI entirely and stops generation for new content, though existing thumbnails are retained.",
+            "helpLinks": [
+                {
+                    "text": "Trickplay",
+                    "url": "https://en.wikipedia.org/wiki/Trick_mode"
+                }
+            ],
+            "tier": "standard",
+            "restart": false
         },
         "trickplay.interval_seconds": {
             "type": "integer",
             "description": "Interval in seconds between generated trickplay thumbnail frames.",
             "group": "trickplay",
-            "minimum": 1
+            "minimum": 1,
+            "label": "Trickplay thumbnail interval",
+            "helpText": "Controls how frequently trickplay thumbnails are captured along the timeline. Lower values (e.g., 5 seconds) give more precise visual scrubbing but require more storage and generation time. Higher values (e.g., 30 seconds) are faster to generate and use less storage, but scrubbing preview is less detailed. The sweet spot for most libraries is 10\u201315 seconds. This only affects newly generated trickplay strips; existing ones are not regenerated.",
+            "helpLinks": [
+                {
+                    "text": "Keyframe",
+                    "url": "https://en.wikipedia.org/wiki/Video_compression_picture_types"
+                }
+            ],
+            "tier": "standard",
+            "restart": false
         },
         "newsletter.enabled": {
             "type": "boolean",
             "description": "Master switch for the periodic newsletter digest.",
-            "group": "newsletter"
+            "group": "newsletter",
+            "label": "Enable newsletter digest",
+            "helpText": "When enabled, Phlix will compile and send a periodic digest email to all users summarizing recently added or updated content in the library. The digest is sent at the hour specified by the 'send hour' setting. Users can opt out individually from their account settings. Disable this to hide the newsletter feature entirely and prevent any digest emails from being sent.",
+            "helpLinks": [
+                {
+                    "text": "Email newsletter",
+                    "url": "https://en.wikipedia.org/wiki/Email_newsletter"
+                }
+            ],
+            "tier": "standard",
+            "restart": false
         },
         "newsletter.send_hour": {
             "type": "integer",
             "description": "Hour of day (0-23, server local time) at which the newsletter digest is sent.",
             "group": "newsletter",
             "minimum": 0,
-            "maximum": 23
+            "maximum": 23,
+            "label": "Newsletter send hour",
+            "helpText": "Specifies the hour of day (in 24-hour format, server local time) at which the weekly newsletter digest is dispatched to users. For example, a value of 9 sends the digest at 9:00 AM server time. Choose a time when server load is low and users are likely to read email (morning or evening). Only effective when the newsletter feature is enabled.",
+            "helpLinks": [
+                {
+                    "text": "24-hour clock",
+                    "url": "https://en.wikipedia.org/wiki/24-hour_clock"
+                }
+            ],
+            "tier": "standard",
+            "restart": false
         },
         "port-forward.port_forwarding.upnp_enabled": {
             "type": "boolean",
             "description": "Attempt to open the public port automatically via UPnP IGD port forwarding.",
-            "group": "port-forward"
+            "group": "port-forward",
+            "label": "Enable UPnP port forwarding",
+            "helpText": "When enabled, Phlix will attempt to automatically configure your router to forward the external port to the server using the UPnP Internet Gateway Device protocol. This eliminates the need to manually configure port forwarding rules in your router. This only works if your router supports UPnP and has it enabled. Disable this if you prefer to manage port forwarding manually, if UPnP is disabled on your router for security reasons, or if you are using a different method of inbound connectivity (e.g., a reverse proxy).",
+            "helpLinks": [
+                {
+                    "text": "UPnP",
+                    "url": "https://en.wikipedia.org/wiki/Universal_Plug_and_Play"
+                },
+                {
+                    "text": "Port forwarding",
+                    "url": "https://en.wikipedia.org/wiki/Port_forwarding"
+                }
+            ],
+            "tier": "standard",
+            "restart": false
         },
         "trakt.client_id": {
             "type": "string",
             "description": "Trakt.tv application client ID. Register an application at https://trakt.tv/oauth/applications to obtain one; required before users can connect their Trakt account.",
-            "group": "scrobblers"
+            "group": "scrobblers",
+            "label": "Trakt client ID",
+            "helpText": "The Trakt.tv Client ID identifies your Phlix server to the Trakt API. Users who want to sync their watch history and scrobble playback to Trakt.tv must have this configured, along with the client secret and redirect URI. You can register a free application at Trakt.tv to obtain these credentials. Without a client ID, the 'Connect to Trakt' button will not appear in user settings.",
+            "helpLinks": [
+                {
+                    "text": "Trakt.tv",
+                    "url": "https://trakt.tv"
+                }
+            ],
+            "tier": "standard",
+            "restart": false
         },
         "trakt.client_secret": {
             "type": "string",
             "description": "Trakt.tv application client secret, paired with the client ID from https://trakt.tv/oauth/applications.",
-            "group": "scrobblers"
+            "group": "scrobblers",
+            "label": "Trakt client secret",
+            "helpText": "The Trakt.tv Client Secret is the private counterpart to the client ID. It is used in the OAuth2 authorization flow when users connect their Trakt account. Treat this like a password \u2014 never expose it in logs, client-side code, or public repositories. If you suspect it has been compromised, you can regenerate it from your Trakt application settings page.",
+            "helpLinks": [
+                {
+                    "text": "Trakt.tv",
+                    "url": "https://trakt.tv"
+                }
+            ],
+            "tier": "standard",
+            "secret": true,
+            "restart": false
         },
         "trakt.redirect_uri": {
             "type": "string",
             "description": "OAuth2 redirect URI registered with the Trakt application; must exactly match this server's /api/v1/oauth/trakt/callback URL.",
-            "group": "scrobblers"
+            "group": "scrobblers",
+            "label": "Trakt OAuth redirect URI",
+            "helpText": "The redirect URI is the URL that Trakt sends the user back to after they authorize Phlix to access their Trakt account. It must exactly match the URI you registered in your Trakt application settings. For most standard Phlix installations this is https://your-server-domain/api/v1/oauth/trakt/callback. If there is any mismatch (including http vs https, trailing slashes, or subdomain differences), the OAuth flow will fail.",
+            "helpLinks": [
+                {
+                    "text": "OAuth 2.0 redirect URI",
+                    "url": "https://datatracker.ietf.org/doc/html/rfc6749#section-3.1.2"
+                }
+            ],
+            "tier": "standard",
+            "restart": false
         },
         "lastfm.api_key": {
             "type": "string",
             "description": "Last.fm API key used to identify this application when scrobbling listening activity.",
-            "group": "scrobblers"
+            "group": "scrobblers",
+            "label": "Last.fm API key",
+            "helpText": "The Last.fm API key identifies your Phlix server when submitting scrobble data. Users who enable Last.fm scrobbling in their personal settings will have their music listening activity sent to their Last.fm profile. You can obtain a free API key from Last.fm's API account page. Without a valid API key, scrobbling to Last.fm will not function.",
+            "helpLinks": [
+                {
+                    "text": "Last.fm API",
+                    "url": "https://www.last.fm/api"
+                }
+            ],
+            "tier": "standard",
+            "restart": false
         },
         "lastfm.shared_secret": {
             "type": "string",
             "description": "Last.fm API shared secret used to sign API requests.",
-            "group": "scrobblers"
+            "group": "scrobblers",
+            "label": "Last.fm shared secret",
+            "helpText": "The shared secret is used to cryptographically sign Last.fm API requests alongside the API key. It is required for the proper authentication of scrobble submissions. Like the client secret, treat this as a sensitive credential. You can find it in your Last.fm API account settings alongside your API key.",
+            "helpLinks": [
+                {
+                    "text": "Last.fm API authentication",
+                    "url": "https://www.last.fm/api/authentication"
+                }
+            ],
+            "tier": "standard",
+            "secret": true,
+            "restart": false
         },
         "lastfm.enabled": {
             "type": "boolean",
             "description": "Master switch for Last.fm scrobbling. When disabled the Connect button is hidden from the UI regardless of whether credentials are configured.",
-            "group": "scrobblers"
+            "group": "scrobblers",
+            "label": "Enable Last.fm scrobbling",
+            "helpText": "Controls whether the Last.fm integration is available to users. When disabled, the 'Connect to Last.fm' button is completely hidden from the user settings UI, and no scrobbling data is sent \u2014 even if API credentials are configured. When enabled, individual users can still choose to enable or disable scrobbling from their own account settings.",
+            "helpLinks": [
+                {
+                    "text": "Scrobbling",
+                    "url": "https://en.wikipedia.org/wiki/Scrobbling"
+                }
+            ],
+            "tier": "standard",
+            "restart": false
         },
         "matching.noise_suffixes": {
             "type": "array",
             "description": "Trailing 'edition' phrases stripped from a parsed title before metadata matching (longest phrase first). Each entry is matched case-insensitively at the end of the title after optional separators. Admins may extend this list with additional release-edition phrases; an empty override falls back to the built-in defaults.",
             "group": "matching",
+            "label": "Title noise suffixes to strip",
             "items": {
                 "type": "string"
             },
+            "helpText": "When Phlix looks up metadata for a media file, it first strips known noise suffixes from the title to improve match accuracy. For example, 'Movie Name (2023) Directors Cut' becomes 'Movie Name' before querying TMDb. The built-in list covers common terms like 'director's cut', 'extended', 'remastered', and 'uncut'. You can add custom phrases here \u2014 for example, studio-specific release tags that appear in your library but not in metadata databases. The longest phrase is matched first to prevent shorter suffixes from partially stripping longer ones.",
+            "helpLinks": [
+                {
+                    "text": "Release group naming conventions",
+                    "url": "https://en.wikipedia.org/wiki/P2p_release_group_naming_conventions"
+                }
+            ],
+            "tier": "advanced",
+            "restart": false,
             "default": [
                 "unrated directors cut",
                 "uncut & unrated",
@@ -153,24 +411,71 @@
             "type": "object",
             "description": "Per-media-type ordered metadata source priority. Keys are media types (e.g. 'movie', 'series', 'anime') and values are ordered arrays of source names (e.g. 'tmdb', 'imdb', 'anidb', 'myanimelist', 'tvdb', 'fanart', 'local'). For each metadata field the resolver walks the list in order and takes the first non-empty value (PriorityFieldResolver sourceOrder). A media type absent from the override falls back to the server config default for that type. Admins reorder the per-type list via the Metadata tab.",
             "group": "metadata",
+            "label": "Metadata provider priority",
             "additionalProperties": {
                 "type": "array",
                 "items": {
                     "type": "string"
                 }
             },
+            "helpText": "For each media type (movie, series, anime), this list controls which metadata sources are consulted and in which order. The resolver walks through the list for each field (title, overview, poster, etc.) and uses the first non-empty value it finds. Rearranging the order lets you prefer, say, AniDB's information over TMDb for anime, or use IMDB ratings as a fallback. A media type not listed here falls back to the server's built-in defaults. Removing a source entirely excludes it from all queries for that media type.",
+            "helpLinks": [
+                {
+                    "text": "TMDb",
+                    "url": "https://www.themoviedb.org"
+                },
+                {
+                    "text": "AniDB",
+                    "url": "https://anidb.net"
+                }
+            ],
+            "tier": "standard",
+            "restart": false,
             "default": {
-                "movie": ["tmdb", "imdb"],
-                "series": ["tmdb", "imdb"],
-                "anime": ["anidb", "myanimelist", "tvdb", "fanart", "local"]
+                "movie": [
+                    "tmdb",
+                    "imdb"
+                ],
+                "series": [
+                    "tmdb",
+                    "imdb"
+                ],
+                "anime": [
+                    "anidb",
+                    "myanimelist",
+                    "tvdb",
+                    "fanart",
+                    "local"
+                ]
             }
         },
         "metadata.genres_mode": {
             "type": "string",
             "description": "How the genres field is combined across metadata sources. 'first' takes the genres from the first source in the priority order that supplies any (first-non-empty); 'union' merges the distinct genres from every source. Consumed by PriorityFieldResolver's genresMode.",
             "group": "metadata",
-            "enum": ["first", "union"],
-            "default": "first"
+            "label": "Metadata genres merge mode",
+            "helpText": "Controls how genres are collected when multiple metadata sources are available for a single item. In 'first' mode, only genres from the highest-priority source that provides any genres are used. In 'union' mode, genres from all sources are merged together, giving the most complete genre list but potentially mixing terms from different taxonomies (e.g., TMDb's 'Science Fiction' vs AniDB's 'Mecha'). Use 'first' for a cleaner, more consistent taxonomy; use 'union' for maximum genre coverage.",
+            "helpLinks": [
+                {
+                    "text": "Film genre",
+                    "url": "https://en.wikipedia.org/wiki/Film_genre"
+                }
+            ],
+            "tier": "standard",
+            "restart": false,
+            "enum": [
+                "first",
+                "union"
+            ],
+            "default": "first",
+            "enumLabels": {
+                "first": "First \u2014 use genres from highest-priority source only",
+                "union": "Union \u2014 merge genres from all sources"
+            },
+            "optionHelp": {
+                "first": "Only the genres from the first metadata source in the priority list that provides any genres are used. This keeps the genre taxonomy consistent and avoids duplicate or conflicting terms.",
+                "union": "Genres from all configured metadata sources are combined into one list, deduplicated. Useful when sources use different taxonomies and you want maximum genre coverage."
+            }
         }
     }
 }
