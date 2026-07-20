@@ -4,6 +4,15 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.23.0] - 2026-07-20
+
+### Added
+- Phase 2B: `metadata.preferred_language`, `metadata.preferred_country`, `metadata.fanart_api_key`
+- Phase 2C: `database.pool_size`, `database.timeout`, `relay.reconnect_delay`, `relay.ping_interval`, `hls.segment_seconds`, `hls.max_concurrent_segments`
+- Phase 3: `transcoding.segment_max_inflight_global`, `transcoding.segment_cache_max_age`, `transcoding.segment_cache_max_bytes`, `transcoding.stale_job_max_age`
+- Phase 4: `subsystem.library_scan_enabled`, `subsystem.plugin_auto_update_enabled`, `subsystem.marker_detection_enabled`, `subsystem.media_asset_jobs_enabled`, `subsystem.similarity_enabled`
+- Phase 5: `auth.enabled`, `auth.rate_limit`, `auth.session_lifetime`
+
 ## [0.22.0] - 2026-07-20
 
 ### Added
