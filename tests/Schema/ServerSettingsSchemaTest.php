@@ -83,10 +83,12 @@ final class ServerSettingsSchemaTest extends TestCase
      *
      * Every key here MUST be a dotted path that
      * `Phlix\Admin\SettingsRepository::getDefault()` can resolve in
-     * phlix-server: the first segment is a FLAT `config/<file>.php` name
-     * (subdirectories are unsupported) and the remaining segments index into
-     * that file's array. The cross-repo resolvability assertion itself lives in
-     * phlix-server, which owns the `config/` tree.
+     * phlix-server: a leading run of segments names a config file under
+     * `config/` (subdirectories ARE supported since the nested-path resolver
+     * landed — `config/scrobblers/trakt.php` is reachable as
+     * `scrobblers.trakt.*`, longest file path winning) and the remaining
+     * segments index into that file's array. The cross-repo resolvability
+     * assertion itself lives in phlix-server, which owns the `config/` tree.
      *
      * @return array<string, array{0: string, 1: string}>
      */
@@ -137,6 +139,15 @@ final class ServerSettingsSchemaTest extends TestCase
             'lastfm.api_key' => ['lastfm.api_key', 'string'],
             'lastfm.shared_secret' => ['lastfm.shared_secret', 'string'],
             'lastfm.enabled' => ['lastfm.enabled', 'boolean'],
+            // config/trakt.php — a one-line re-export of config/scrobblers/trakt.php,
+            // mirroring config/hwaccel.php's `return require __DIR__ . '/hwaccel_base.php';`.
+            // The FLAT prefix is deliberate: `trakt.*` overrides are already persisted in
+            // the server_settings table on live installs, and TraktOAuthController's
+            // SETTING_KEY_MAP reads those exact keys. Renaming them to `scrobblers.trakt.*`
+            // (which the nested-path resolver would also accept) would orphan those rows.
+            'trakt.client_id' => ['trakt.client_id', 'string'],
+            'trakt.client_secret' => ['trakt.client_secret', 'string'],
+            'trakt.redirect_uri' => ['trakt.redirect_uri', 'string'],
             // config/relay.php
             'relay.reconnect_delay' => ['relay.reconnect_delay', 'integer'],
             'relay.ping_interval' => ['relay.ping_interval', 'integer'],
@@ -176,6 +187,14 @@ final class ServerSettingsSchemaTest extends TestCase
         'tmdb.api_key',
         'lastfm.api_key',
         'lastfm.shared_secret',
+        // Both halves of the Trakt application credential are masked, matching the
+        // treatment of `lastfm.api_key` — an OAuth client_id is nominally public, but
+        // it is the direct analogue of the Last.fm API key (Phlix sends it as the
+        // `trakt-api-key` header) and this schema already masks that. Consistency wins:
+        // an admin cannot tell at a glance which half of a credential pair is safe to
+        // leak into a HAR capture. `trakt.redirect_uri` is a public URL and is NOT here.
+        'trakt.client_id',
+        'trakt.client_secret',
     ];
 
     /**
@@ -231,17 +250,17 @@ final class ServerSettingsSchemaTest extends TestCase
         sort($expected);
 
         $this->assertSame($expected, $actual, 'server-settings schema must declare exactly the expected settings keys.');
-        $this->assertCount(40, $actual);
+        $this->assertCount(43, $actual);
     }
 
     /**
      * Guard the key-shape rules the resolver imposes on phlix-server's side.
      *
-     * `SettingsRepository::loadConfig()` jails the first dotted segment to
-     * `/^[A-Za-z0-9_-]+$/` and only ever tries `config/<segment>.php`, so a key
-     * whose first segment contains a `/` (or any other character) can never
-     * resolve. `config/scrobblers/trakt.php`-style subdirectory keys were
-     * removed for exactly this reason.
+     * `SettingsRepository::loadConfig()` jails EVERY dotted file segment to
+     * `/^[A-Za-z0-9_-]+$/`, so a key whose first segment embeds a `/` (or any
+     * other character) can never resolve and would additionally be a path
+     * traversal attempt. Nested file paths are expressed as separate dotted
+     * segments (`scrobblers.trakt.client_id`), never as a literal slash.
      */
     public function test_every_key_first_segment_is_a_flat_config_file_name(): void
     {

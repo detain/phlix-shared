@@ -53,12 +53,20 @@ admin SPA under `schemas/` (resolve their absolute paths via
   `enumLabels`, `optionHelp`, `secret`, `restart`) so the admin settings UI can render
   per-option help text and split Standard vs Advanced options (0.22.0+).
 
-  **Key-naming contract (0.24.0+).** Every property key must be a dotted path that
-  `Phlix\Admin\SettingsRepository::getDefault()` can resolve: the FIRST segment is a flat
-  `config/<file>.php` name in the consuming repo (subdirectories are not supported — the
-  lookup is jailed to `/^[A-Za-z0-9_-]+$/`), and the remaining segments index into that
-  file's returned array. A key that does not resolve renders an empty control and can never
-  take effect, so no such key may be declared.
+  **Key-naming contract (0.25.0+).** Every property key must be a dotted path that
+  `Phlix\Admin\SettingsRepository::getDefault()` can resolve: a LEADING RUN of segments
+  names a config file under the consuming repo's `config/`, and the remaining segments
+  index into that file's returned array. The file part may span subdirectories — the
+  longest matching file path wins, so `scrobblers.trakt.client_id` resolves
+  `config/scrobblers/trakt.php` in preference to a same-named flat file. Every file
+  segment is jailed to `/^[A-Za-z0-9_-]+$/`, so no key can escape `config/`. A key that
+  does not resolve renders an empty control and can never take effect, so no such key may
+  be declared.
+  The `trakt.*` keys deliberately use a FLAT prefix backed by `phlix-server`'s
+  `config/trakt.php` re-export shim rather than the nested `scrobblers.trakt.*` form:
+  `trakt.*` overrides are already persisted in live `server_settings` tables and
+  `TraktOAuthController::SETTING_KEY_MAP` reads those exact keys, so renaming them would
+  orphan real rows (0.25.0+).
   Adds `matching.noise_suffixes` (array of strings; the admin-extensible match-title noise list —
   0.13.0+) and `metadata.provider_priority` (object: media type → ordered array of source names;
   defaults `movie`/`series` = `["tmdb","imdb"]`, `anime` = `["anidb","myanimelist","tvdb","fanart","local"]`)

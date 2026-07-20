@@ -4,6 +4,66 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.25.0] - 2026-07-20
+
+Restores the three Trakt credential settings that 0.24.0 removed. `server-settings`
+goes from 40 to 43 properties.
+
+### Added
+
+`schemas/server-settings.schema.json` — `trakt.client_id`, `trakt.client_secret`,
+`trakt.redirect_uri` (group `scrobblers`, tier `standard`), each with `label`,
+`helpText`, `helpLinks`, `description` and a `default` mirroring the
+`config/scrobblers/trakt.php` literal (`""`, `""`, and
+`"https://your-server.com/api/v1/oauth/trakt/callback"` respectively).
+
+0.24.0 deleted these keys because `SettingsRepository::getDefault()` resolved only a
+FLAT `config/<file>.php`, while the real config sits at
+`config/scrobblers/trakt.php`. The read path never broke — but PUT started rejecting
+them as "Unknown setting key", so Trakt credentials could no longer be set from the
+admin Settings page at all. `phlix-server` now ships a `config/trakt.php` re-export
+shim (`return require __DIR__ . '/scrobblers/trakt.php';`, the same idiom
+`config/hwaccel.php` already uses for `config/hwaccel_base.php`), which makes the
+original flat keys resolve unchanged.
+
+The keys were deliberately NOT renamed to `scrobblers.trakt.*`, even though the
+nested-path resolver added in 0.24.0's companion server change would accept that
+form. `trakt.*` overrides are already persisted in the `server_settings` table on
+live installs and `TraktOAuthController::SETTING_KEY_MAP`
+(`src/Server/Http/Controllers/TraktOAuthController.php:63-67`) reads those exact
+keys; a rename would silently orphan those rows and drop working Trakt credentials
+on upgrade.
+
+`restart` is `false` on all three, and that is verified, not assumed:
+`TraktOAuthController::applySettingsOverrides()` (`:414-429`) calls
+`SettingsRepository::getOverride()` at `:421` on every request, from `loadConfig()`
+(`:402`), which `authorize()` (`:158`), `callback()` (`:226`) and `status()` (`:511`)
+each invoke per request. A saved value is live on the next request with no reload.
+These are among the few settings in this schema for which `restart: false` is
+literally true — see the open `restart: true` gap documented in
+`phlix-server/docs/dev/settings-restart-gap.md`.
+
+`trakt.client_id` and `trakt.client_secret` are both `"secret": true`. An OAuth
+client_id is nominally public, but this schema already masks `lastfm.api_key`, which
+is the exact analogue (Phlix sends the Trakt client_id as the `trakt-api-key` header
+on every request, as Last.fm sends its api_key). `trakt.redirect_uri` is a public URL
+and is not masked. The documented secret set therefore grows from three keys to five.
+
+### Changed
+
+- `schemas/server-settings.schema.json` document `description`: corrected — it still
+  claimed dotted setting keys must name a flat config file and that "subdirectories
+  are not supported". The resolver has since learned multi-segment file paths
+  (longest path wins), so `scrobblers.trakt.client_id` does resolve. The text now
+  describes the real rule.
+- `README.md`: the "Key-naming contract" section carried the same stale claim; it is
+  rewritten and records why `trakt.*` stays flat.
+- `tests/Schema/ServerSettingsSchemaTest.php`: key count 40 → 43; `SECRET_KEYS`
+  trio → quintet; two docblocks that asserted subdirectory keys were unsupported
+  corrected. The hand-written `propertyProvider()` list is still hand-written on
+  purpose — deriving it from the schema would make it tautological and it would stop
+  failing on an unreviewed key change.
+
 ## [0.24.0] - 2026-07-20
 
 Settings-schema correctness pass. An audit of all 109 schema properties found 37
@@ -73,6 +133,9 @@ production, so the schema is corrected rather than the config.
 - `trakt.client_id`, `trakt.client_secret`, `trakt.redirect_uri` — the config lives
   at `config/scrobblers/trakt.php` and the resolver's path jail forbids the `/`, so
   no dotted key can reach it. Re-add once the file is reachable as `config/trakt.php`.
+  **Superseded in 0.25.0** — this removal cost a real admin capability (Trakt
+  credentials became unsettable) and the three keys are restored below, unrenamed,
+  backed by a `config/trakt.php` re-export shim in `phlix-server`.
 
 `schemas/hub-settings.schema.json` (12 → 3 properties) — the file previously
 mirrored an orphaned allow-list. It now matches `HubSettingsRepository::ALLOWED_KEYS`

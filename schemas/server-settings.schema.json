@@ -2,7 +2,7 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://phlix.tv/schemas/server-settings.schema.json",
     "title": "Phlix server settings",
-    "description": "Schema describing the editable server settings exposed by the Phlix admin settings endpoint (/api/v1/admin/settings). phlix-server derives its writable settings allow-list from this schema (AdminSettingsController::loadAllowedKeysFromSchema) and the admin SPA renders the settings form from it. Property keys are the literal dotted setting keys and MUST resolve through Phlix\\Admin\\SettingsRepository::getDefault(): the first dotted segment is a FLAT config file name under phlix-server/config/ (subdirectories are not supported) and every remaining segment walks that file's returned array. A key whose path does not resolve renders an empty control and can never take effect, so no such key may be declared here. The `default` values below mirror the corresponding config/*.php literals for documentation; the GET endpoint returns the effective value (config default merged with the DB override).",
+    "description": "Schema describing the editable server settings exposed by the Phlix admin settings endpoint (/api/v1/admin/settings). phlix-server derives its writable settings allow-list from this schema (AdminSettingsController::loadAllowedKeysFromSchema) and the admin SPA renders the settings form from it. Property keys are the literal dotted setting keys and MUST resolve through Phlix\\Admin\\SettingsRepository::getDefault(): a leading run of dotted segments names a config file under phlix-server/config/ and every remaining segment walks that file's returned array. The file part MAY span subdirectories (scrobblers.trakt.client_id resolves config/scrobblers/trakt.php) and the longest matching file path wins. A key whose path does not resolve renders an empty control and can never take effect, so no such key may be declared here. The `default` values below mirror the corresponding config/*.php literals for documentation; the GET endpoint returns the effective value (config default merged with the DB override).",
     "type": "object",
     "additionalProperties": false,
     "properties": {
@@ -581,6 +581,68 @@
             "tier": "standard",
             "restart": false,
             "default": false
+        },
+        "trakt.client_id": {
+            "type": "string",
+            "description": "Trakt application client ID for this Phlix install. Resolves through config/trakt.php, which re-exports config/scrobblers/trakt.php.",
+            "group": "scrobblers",
+            "label": "Trakt client ID",
+            "helpText": "Every Phlix install must register its own application with Trakt — Phlix cannot ship a shared one, because each Trakt application is bound to its owner and to a single redirect URI. Create an application in your Trakt account settings and paste its client ID here. Phlix sends this value as the trakt-api-key header on every Trakt request, so scrobbling and history sync will not work without it. Saving here takes effect immediately; it overrides the TRAKT_CLIENT_ID environment variable.",
+            "helpLinks": [
+                {
+                    "text": "Trakt",
+                    "url": "https://trakt.tv"
+                },
+                {
+                    "text": "Trakt API documentation",
+                    "url": "https://github.com/trakt/api-help"
+                }
+            ],
+            "tier": "standard",
+            "secret": true,
+            "restart": false,
+            "default": ""
+        },
+        "trakt.client_secret": {
+            "type": "string",
+            "description": "Trakt application client secret, used to exchange an OAuth authorization code for access and refresh tokens.",
+            "group": "scrobblers",
+            "label": "Trakt client secret",
+            "helpText": "The client secret is issued alongside the client ID when you register a Trakt application. Phlix uses it to exchange the OAuth authorization code for access and refresh tokens after a user clicks Connect to Trakt. Treat it as a password: anyone holding it can impersonate your Trakt application. Saving here takes effect immediately; it overrides the TRAKT_CLIENT_SECRET environment variable.",
+            "helpLinks": [
+                {
+                    "text": "Trakt API documentation",
+                    "url": "https://github.com/trakt/api-help"
+                },
+                {
+                    "text": "OAuth 2.0",
+                    "url": "https://en.wikipedia.org/wiki/OAuth"
+                }
+            ],
+            "tier": "standard",
+            "secret": true,
+            "restart": false,
+            "default": ""
+        },
+        "trakt.redirect_uri": {
+            "type": "string",
+            "description": "OAuth2 redirect URI Trakt returns the user to after authorization. Must match the value registered on the Trakt application exactly.",
+            "group": "scrobblers",
+            "label": "Trakt redirect URI",
+            "helpText": "After a user authorizes Phlix on trakt.tv, Trakt redirects the browser back to this URL with an authorization code. It must match the redirect URI registered on your Trakt application character for character, or Trakt rejects the authorization with an invalid-redirect error. For a typical install this is your server's public base URL followed by /api/v1/oauth/trakt/callback. This is a public URL, not a credential. Saving here takes effect immediately; it overrides the TRAKT_REDIRECT_URI environment variable.",
+            "helpLinks": [
+                {
+                    "text": "OAuth 2.0",
+                    "url": "https://en.wikipedia.org/wiki/OAuth"
+                },
+                {
+                    "text": "Trakt API documentation",
+                    "url": "https://github.com/trakt/api-help"
+                }
+            ],
+            "tier": "standard",
+            "restart": false,
+            "default": "https://your-server.com/api/v1/oauth/trakt/callback"
         },
         "matching.noise_suffixes": {
             "type": "array",
