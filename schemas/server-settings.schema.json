@@ -23,7 +23,8 @@
                 }
             ],
             "tier": "standard",
-            "restart": true
+            "restart": true,
+            "default": true
         },
         "hwaccel.prefer_hardware": {
             "type": "boolean",
@@ -38,7 +39,8 @@
                 }
             ],
             "tier": "advanced",
-            "restart": true
+            "restart": true,
+            "default": true
         },
         "hwaccel.probe_timeout": {
             "type": "integer",
@@ -54,7 +56,8 @@
                 }
             ],
             "tier": "advanced",
-            "restart": true
+            "restart": true,
+            "default": 30
         },
         "transcoding.preferred_accelerator": {
             "type": "string",
@@ -169,7 +172,8 @@
                 }
             ],
             "tier": "standard",
-            "restart": false
+            "restart": false,
+            "default": ""
         },
         "auth.signup_mode": {
             "type": "string",
@@ -217,7 +221,8 @@
                 }
             ],
             "tier": "standard",
-            "restart": false
+            "restart": false,
+            "default": 0.85
         },
         "marker_detection.intro_max_duration": {
             "type": "integer",
@@ -233,7 +238,8 @@
                 }
             ],
             "tier": "standard",
-            "restart": false
+            "restart": false,
+            "default": 180
         },
         "subtitles.enabled": {
             "type": "boolean",
@@ -248,7 +254,8 @@
                 }
             ],
             "tier": "standard",
-            "restart": false
+            "restart": false,
+            "default": true
         },
         "subtitles.default_language": {
             "type": "string",
@@ -263,7 +270,8 @@
                 }
             ],
             "tier": "standard",
-            "restart": false
+            "restart": false,
+            "default": "eng"
         },
         "subtitles.burn_in_by_default": {
             "type": "boolean",
@@ -278,7 +286,8 @@
                 }
             ],
             "tier": "standard",
-            "restart": false
+            "restart": false,
+            "default": false
         },
         "discovery.discovery_port": {
             "type": "integer",
@@ -299,7 +308,8 @@
                 }
             ],
             "tier": "advanced",
-            "restart": false
+            "restart": false,
+            "default": 8200
         },
         "trickplay.enabled": {
             "type": "boolean",
@@ -314,7 +324,8 @@
                 }
             ],
             "tier": "standard",
-            "restart": false
+            "restart": false,
+            "default": true
         },
         "trickplay.interval_seconds": {
             "type": "integer",
@@ -330,7 +341,8 @@
                 }
             ],
             "tier": "standard",
-            "restart": false
+            "restart": false,
+            "default": 10
         },
         "newsletter.enabled": {
             "type": "boolean",
@@ -345,7 +357,8 @@
                 }
             ],
             "tier": "standard",
-            "restart": false
+            "restart": false,
+            "default": false
         },
         "newsletter.send_hour": {
             "type": "integer",
@@ -362,7 +375,8 @@
                 }
             ],
             "tier": "standard",
-            "restart": false
+            "restart": false,
+            "default": 9
         },
         "port-forward.port_forwarding.upnp_enabled": {
             "type": "boolean",
@@ -381,7 +395,8 @@
                 }
             ],
             "tier": "standard",
-            "restart": false
+            "restart": false,
+            "default": true
         },
         "trakt.client_id": {
             "type": "string",
@@ -396,7 +411,8 @@
                 }
             ],
             "tier": "standard",
-            "restart": false
+            "restart": false,
+            "default": ""
         },
         "trakt.client_secret": {
             "type": "string",
@@ -412,7 +428,8 @@
             ],
             "tier": "standard",
             "secret": true,
-            "restart": false
+            "restart": false,
+            "default": ""
         },
         "trakt.redirect_uri": {
             "type": "string",
@@ -427,7 +444,8 @@
                 }
             ],
             "tier": "standard",
-            "restart": false
+            "restart": false,
+            "default": "https://your-server.com/api/v1/oauth/trakt/callback"
         },
         "lastfm.api_key": {
             "type": "string",
@@ -442,7 +460,8 @@
                 }
             ],
             "tier": "standard",
-            "restart": false
+            "restart": false,
+            "default": ""
         },
         "lastfm.shared_secret": {
             "type": "string",
@@ -458,7 +477,8 @@
             ],
             "tier": "standard",
             "secret": true,
-            "restart": false
+            "restart": false,
+            "default": ""
         },
         "lastfm.enabled": {
             "type": "boolean",
@@ -473,7 +493,8 @@
                 }
             ],
             "tier": "standard",
-            "restart": false
+            "restart": false,
+            "default": false
         },
         "matching.noise_suffixes": {
             "type": "array",
