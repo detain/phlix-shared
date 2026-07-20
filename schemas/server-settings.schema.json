@@ -2,7 +2,7 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://phlix.tv/schemas/server-settings.schema.json",
     "title": "Phlix server settings",
-    "description": "Schema describing the editable server settings exposed by the Phlix admin settings endpoint (/api/v1/admin/settings). Mirrors phlix-server's Phlix\\Server\\Http\\Controllers\\Admin\\AdminSettingsController::ALLOWED_KEYS, the single source of truth for the writable settings allow-list; phlix-server derives that allow-list from this schema and the admin SPA renders the settings form from it. Property keys are the literal dotted setting keys (e.g. 'hwaccel.enabled'). Runtime default values are NOT declared here \u2014 they live in phlix-server config/*.php and are returned by the GET endpoint.",
+    "description": "Schema describing the editable server settings exposed by the Phlix admin settings endpoint (/api/v1/admin/settings). phlix-server derives its writable settings allow-list from this schema (AdminSettingsController::loadAllowedKeysFromSchema) and the admin SPA renders the settings form from it. Property keys are the literal dotted setting keys and MUST resolve through Phlix\\Admin\\SettingsRepository::getDefault(): the first dotted segment is a FLAT config file name under phlix-server/config/ (subdirectories are not supported) and every remaining segment walks that file's returned array. A key whose path does not resolve renders an empty control and can never take effect, so no such key may be declared here. The `default` values below mirror the corresponding config/*.php literals for documentation; the GET endpoint returns the effective value (config default merged with the DB override).",
     "type": "object",
     "additionalProperties": false,
     "properties": {
@@ -62,25 +62,61 @@
         "transcoding.preferred_accelerator": {
             "type": "string",
             "group": "transcoding",
-            "description": "Preferred hardware accelerator for transcoding.",
+            "description": "Preferred FFmpeg hardware-acceleration method for transcoding. The values are FFmpeg hwaccel names (not encoder names) and must be one of the keys FfmpegRunner probes into its accelerator map. An empty string means auto-detect: FfmpegRunner treats an empty preference as 'not set' and picks the first probed accelerator that supports the requested codec.",
             "label": "Preferred hardware accelerator",
-            "helpText": "Select which GPU vendor to prioritize for transcoding. The system will probe available hardware at startup and fall back to software encoding if the selected accelerator is unavailable. CUDA is fastest on NVIDIA GPUs; QSV on Intel; VAAPI on Linux AMD/Intel.",
+            "helpText": "Select which hardware-acceleration method to prioritise for transcoding. The server probes the available methods at startup and falls back to software encoding when the selected one is unavailable or cannot handle the codec. CUDA is the NVIDIA path (it drives the NVENC encoders), QSV is Intel Quick Sync, VA-API covers AMD and Intel on Linux, VideoToolbox is macOS, and AMF is AMD on Windows. Leave this on Auto-detect unless you have a specific reason to pin one method.",
             "helpLinks": [
-                { "text": "NVENC CUDA", "url": "https://en.wikipedia.org/wiki/NVENC" },
-                { "text": "VAAPI", "url": "https://en.wikipedia.org/wiki/Video_Acceleration_API" },
-                { "text": "Intel QSV", "url": "https://en.wikipedia.org/wiki/Intel_Media_SDK" }
+                {
+                    "text": "NVENC (NVIDIA)",
+                    "url": "https://en.wikipedia.org/wiki/Nvidia_NVENC"
+                },
+                {
+                    "text": "VA-API",
+                    "url": "https://en.wikipedia.org/wiki/Video_Acceleration_API"
+                },
+                {
+                    "text": "Intel Quick Sync Video",
+                    "url": "https://en.wikipedia.org/wiki/Intel_Quick_Sync_Video"
+                }
             ],
             "tier": "advanced",
-            "default": null,
-            "enum": ["nvenc", "vaapi", "qsv", "videotoolbox", "amf", "v4l2", null],
-            "enumLabels": {"nvenc": "NVIDIA NVENC", "vaapi": "VAAPI (Linux)", "qsv": "Intel QSV", "videotoolbox": "Apple VideoToolbox", "amf": "AMD AMF", "v4l2": "V4L2 (Linux)", "null": "Auto-detect"},
+            "restart": true,
+            "default": "",
+            "enum": [
+                "",
+                "cuda",
+                "qsv",
+                "vaapi",
+                "videotoolbox",
+                "amf",
+                "opencl",
+                "d3d11va",
+                "dxva2",
+                "v4l2m2m"
+            ],
+            "enumLabels": {
+                "": "Auto-detect",
+                "cuda": "NVIDIA (CUDA / NVENC)",
+                "qsv": "Intel Quick Sync Video (QSV)",
+                "vaapi": "VA-API (Linux AMD/Intel)",
+                "videotoolbox": "Apple VideoToolbox",
+                "amf": "AMD AMF (Windows)",
+                "opencl": "OpenCL",
+                "d3d11va": "Direct3D 11 Video Acceleration (Windows)",
+                "dxva2": "DXVA2 (Windows, legacy)",
+                "v4l2m2m": "V4L2 M2M (Linux embedded/SBC)"
+            },
             "optionHelp": {
-                "nvenc": "NVIDIA GPU encoding — best quality/speed on NVIDIA hardware",
-                "vaapi": "Linux VAAPI — supports AMD and Intel GPUs on Linux",
-                "qsv": "Intel Quick Sync Video — fast on Intel CPUs/iGPUs",
-                "videotoolbox": "Apple VideoToolbox — hardware encoding on macOS",
-                "amf": "AMD Advanced Media Framework on Windows",
-                "v4l2": "Video4Linux2 — Linux hardware encoding"
+                "": "Let the server choose. It probes every available acceleration method at startup and uses the first one that supports the codec being transcoded, falling back to software encoding when none do. This is the right choice for almost everyone.",
+                "cuda": "NVIDIA GPUs. This is the hwaccel that drives the h264_nvenc and hevc_nvenc encoders — pick this, not an 'NVENC' entry, because 'nvenc' is the encoder family, not an FFmpeg hwaccel name. Requires a recent NVIDIA driver and a GPU with NVENC support.",
+                "qsv": "Intel Quick Sync Video, available on most Intel CPUs with integrated graphics. Very fast and power-efficient; requires the Intel media driver to be installed.",
+                "vaapi": "Video Acceleration API — the generic Linux acceleration interface, supported by both AMD and Intel GPUs. Requires a working /dev/dri render node and the vendor's VA-API driver.",
+                "videotoolbox": "Apple's hardware video pipeline on macOS. The only accelerated option on Apple hardware.",
+                "amf": "AMD Advanced Media Framework, the AMD acceleration path on Windows. On Linux, AMD GPUs use VA-API instead.",
+                "opencl": "OpenCL-based acceleration. Rarely the best choice for encoding — it is mainly useful for filter offload on hardware with no dedicated video engine.",
+                "d3d11va": "Direct3D 11 Video Acceleration on Windows. Decode-oriented; usually paired with a vendor encoder.",
+                "dxva2": "The older DirectX Video Acceleration 2 interface on Windows. Prefer d3d11va on anything modern.",
+                "v4l2m2m": "Video4Linux2 memory-to-memory devices, used by embedded boards and single-board computers such as the Raspberry Pi."
             }
         },
         "transcoding.include_software_fallback": {
@@ -89,6 +125,16 @@
             "description": "Whether to fall back to software x264/x265 encoding when hardware acceleration is unavailable or fails.",
             "label": "Enable software fallback",
             "helpText": "When enabled, if the selected hardware accelerator is not available or an encode fails, the system will automatically use software x264/x265 encoding instead. Software encoding is slower but produces reliable output.",
+            "helpLinks": [
+                {
+                    "text": "x264",
+                    "url": "https://en.wikipedia.org/wiki/X264"
+                },
+                {
+                    "text": "x265",
+                    "url": "https://en.wikipedia.org/wiki/X265"
+                }
+            ],
             "tier": "standard",
             "default": true,
             "restart": false
@@ -98,18 +144,33 @@
             "group": "transcoding",
             "description": "HDR tone mapping mode when converting HDR content for SDR displays.",
             "label": "HDR tone mapping mode",
-            "helpText": "Controls how HDR10 and other HDR video is tone-mapped for display on SDR screens. 'Auto-detect' picks based on output codec; 'None' passes through HDR metadata unchanged (may look washed out on SDR screens); 'zscale' uses the zscale library for high-quality tone mapping; 'libplacebo' uses the libplacebo library for GPU-accelerated tone mapping.",
+            "helpText": "Controls how HDR10 and other HDR video is tone-mapped for display on SDR screens. 'None' passes the video through without tone mapping (HDR content may look washed out on SDR screens); 'zscale' uses the zimg/zscale filter for high-quality CPU tone mapping; 'libplacebo' uses the libplacebo filter for GPU-accelerated tone mapping.",
             "helpLinks": [
-                { "text": "HDR tone mapping", "url": "https://en.wikipedia.org/wiki/High-dynamic-range_video#Tone_mapping" },
-                { "text": "zscale", "url": "https://github.com/videoblade/zscale" }
+                {
+                    "text": "HDR tone mapping",
+                    "url": "https://en.wikipedia.org/wiki/High-dynamic-range_video#Tone_mapping"
+                },
+                {
+                    "text": "zimg (zscale)",
+                    "url": "https://github.com/sekrit-twc/zimg"
+                }
             ],
             "tier": "standard",
             "default": "none",
-            "enum": ["none", "zscale", "libplacebo"],
-            "enumLabels": {"none": "None (passthrough)", "zscale": "zscale (high quality)", "libplacebo": "libplacebo (GPU accelerated)"},
+            "restart": false,
+            "enum": [
+                "none",
+                "zscale",
+                "libplacebo"
+            ],
+            "enumLabels": {
+                "none": "None (passthrough)",
+                "zscale": "zscale (high quality)",
+                "libplacebo": "libplacebo (GPU accelerated)"
+            },
             "optionHelp": {
                 "none": "No tone mapping — HDR content may look washed out on SDR displays",
-                "zscale": "High-quality tone mapping using the zscale library — slower but accurate",
+                "zscale": "High-quality tone mapping using the zimg/zscale filter — slower but accurate",
                 "libplacebo": "GPU-accelerated tone mapping using libplacebo — fast with good quality"
             }
         },
@@ -119,44 +180,116 @@
             "description": "Prefer preserving HDR metadata in output when the playback device supports it.",
             "label": "Prefer HDR output",
             "helpText": "When enabled, the transcoder will attempt to preserve HDR10 or Dolby Vision metadata in the output stream rather than tone-mapping to SDR. Only enable if your playback devices (TV, receiver) support HDMI 2.0b or later and HDR.",
+            "helpLinks": [
+                {
+                    "text": "HDR10",
+                    "url": "https://en.wikipedia.org/wiki/HDR10"
+                },
+                {
+                    "text": "Dolby Vision",
+                    "url": "https://en.wikipedia.org/wiki/Dolby_Vision"
+                }
+            ],
             "tier": "standard",
             "default": false,
             "restart": false
         },
-        "transcoding.max_concurrent_transcodes": {
+        "ffmpeg.max_concurrent_transcodes": {
             "type": "integer",
             "group": "transcoding",
-            "description": "Maximum number of concurrent transcoding jobs allowed across all workers.",
+            "description": "Maximum number of concurrent full-file transcoding jobs allowed across all workers.",
             "label": "Maximum concurrent transcode jobs",
-            "helpText": "Controls the global concurrency limit for simultaneous transcoding jobs. Each job consumes CPU/GPU resources. Setting this too high can cause encoding quality degradation or worker OOM kills. The default of 4 is conservative; raise it based on your hardware (e.g., a 16-core CPU with an NVIDIA GPU can typically handle 6–8).",
+            "helpText": "Controls the global concurrency limit for simultaneous transcoding jobs. Each job runs its own FFmpeg process and consumes CPU/GPU resources. Setting this too high can cause encoding quality degradation or worker out-of-memory kills; a 16-core CPU with an NVIDIA GPU can typically handle 6–8 concurrent jobs. Read once when workers boot, so a change only takes effect after a restart.",
+            "helpLinks": [
+                {
+                    "text": "FFmpeg",
+                    "url": "https://ffmpeg.org"
+                },
+                {
+                    "text": "Out of memory (OOM)",
+                    "url": "https://en.wikipedia.org/wiki/Out_of_memory"
+                }
+            ],
             "tier": "advanced",
             "minimum": 1,
             "maximum": 64,
             "default": 4,
             "restart": true
         },
-        "transcoding.transcode_timeout": {
+        "ffmpeg.transcode_timeout": {
             "type": "integer",
             "group": "transcoding",
             "description": "Maximum time in seconds before a single transcode job is considered stalled and killed.",
             "label": "Transcode job timeout",
-            "helpText": "If a transcode job runs longer than this many seconds without producing output, it is considered stalled and the worker will terminate it and retry. The default of 7200 seconds (2 hours) is very generous. For most movies, transcoding completes in 10–60 minutes.",
+            "helpText": "If a transcode job runs longer than this many seconds without producing output, it is considered stalled and the worker will terminate it and retry. The shipped value of 7200 seconds (2 hours) is very generous — for most movies, transcoding completes in 10–60 minutes. Read once when workers boot, so a change only takes effect after a restart.",
+            "helpLinks": [
+                {
+                    "text": "FFmpeg",
+                    "url": "https://ffmpeg.org"
+                }
+            ],
             "tier": "advanced",
             "minimum": 60,
             "maximum": 86400,
             "default": 7200,
             "restart": true
         },
-        "transcoding.max_concurrent_scan_probes": {
+        "ffmpeg.max_concurrent_scan_probes": {
             "type": "integer",
             "group": "transcoding",
-            "description": "Maximum concurrent FFprobe media analysis jobs during library scans.",
+            "description": "Maximum concurrent ffprobe media-analysis jobs during library scans.",
             "label": "Maximum concurrent scan probes",
-            "helpText": "Controls how many media files can be analyzed simultaneously during a library scan. Higher values speed up initial scans but use more file descriptors and CPU. The default of 4 is safe for most systems.",
+            "helpText": "Controls how many media files can be analysed simultaneously by ffprobe during a library scan. Higher values speed up initial scans but use more file descriptors and CPU. Read once when workers boot, so a change only takes effect after a restart.",
+            "helpLinks": [
+                {
+                    "text": "ffprobe",
+                    "url": "https://ffmpeg.org/ffprobe.html"
+                }
+            ],
             "tier": "advanced",
             "minimum": 1,
             "maximum": 16,
             "default": 4,
+            "restart": true
+        },
+        "server.hls.cache_max_age": {
+            "type": "integer",
+            "group": "transcoding",
+            "description": "Maximum idle time in seconds before a cached HLS segment session is reclaimed.",
+            "label": "Segment cache max age",
+            "helpText": "Cached HLS segments that have not been accessed for this many seconds are eligible for eviction by the cache reaper, regardless of how much room is left in the size budget — this reclaims abandoned watch sessions. Longer values improve cache hit rates for frequently rewatched content but consume more disk. Read once when workers boot, so a change only takes effect after a restart.",
+            "helpLinks": [
+                {
+                    "text": "HTTP Live Streaming (HLS)",
+                    "url": "https://en.wikipedia.org/wiki/HTTP_Live_Streaming"
+                }
+            ],
+            "tier": "advanced",
+            "minimum": 60,
+            "maximum": 86400,
+            "default": 10800,
+            "restart": true
+        },
+        "server.hls.cache_max_bytes": {
+            "type": "integer",
+            "group": "transcoding",
+            "description": "Maximum disk space in bytes allocated for the on-demand HLS segment cache.",
+            "label": "Segment cache size limit",
+            "helpText": "The total bytes of disk space the segment cache is allowed to consume. When this limit is reached, the cache reaper evicts the least-recently-used sessions. The shipped value is 8 GiB (8589934592 bytes). The segment directory is often a RAM-backed tmpfs, so size this against that filesystem rather than your media disk. Read once when workers boot, so a change only takes effect after a restart.",
+            "helpLinks": [
+                {
+                    "text": "Gibibyte (GiB)",
+                    "url": "https://en.wikipedia.org/wiki/Gibibyte"
+                },
+                {
+                    "text": "Cache eviction policies",
+                    "url": "https://en.wikipedia.org/wiki/Cache_replacement_policies"
+                }
+            ],
+            "tier": "advanced",
+            "minimum": 1073741824,
+            "maximum": 1099511627776,
+            "default": 8589934592,
             "restart": true
         },
         "tmdb.api_key": {
@@ -168,10 +301,11 @@
             "helpLinks": [
                 {
                     "text": "TMDb API",
-                    "url": "https://www.themoviedb.org/documentation/api"
+                    "url": "https://developer.themoviedb.org/docs"
                 }
             ],
             "tier": "standard",
+            "secret": true,
             "restart": false,
             "default": ""
         },
@@ -180,19 +314,19 @@
             "description": "Controls self-service signup: 'open' creates active accounts immediately, 'approval' creates pending accounts that an administrator must approve before they can log in, 'disabled' rejects all new signups. The first registered user is always created active and admin regardless of this setting.",
             "group": "auth",
             "label": "New user signup mode",
-            "helpText": "Controls what happens when a new person tries to register an account. 'Open' is suitable for personal or trusted networks \u2014 accounts are active immediately. 'Approval' sends a notification to all administrators and creates the account in a pending state until an admin approves it. 'Disabled' completely blocks new registrations; use this on public servers where you want to manage accounts manually. Note: the very first account ever created on a fresh install is always made active and an administrator, regardless of this setting.",
+            "helpText": "Controls what happens when a new person tries to register an account. 'Open' is suitable for personal or trusted networks — accounts are active immediately. 'Approval' sends a notification to all administrators and creates the account in a pending state until an admin approves it. 'Disabled' completely blocks new registrations; use this on public servers where you want to manage accounts manually. Note: the very first account ever created on a fresh install is always made active and an administrator, regardless of this setting.",
             "helpLinks": [
                 {
-                    "text": "OAuth 2.0",
-                    "url": "https://datatracker.ietf.org/doc/html/rfc6749"
+                    "text": "Registered user",
+                    "url": "https://en.wikipedia.org/wiki/Registered_user"
                 }
             ],
             "tier": "standard",
             "restart": false,
             "enumLabels": {
-                "open": "Open \u2014 account active immediately",
-                "approval": "Approval \u2014 admin must approve new accounts",
-                "disabled": "Disabled \u2014 new signups are rejected"
+                "open": "Open — account active immediately",
+                "approval": "Approval — admin must approve new accounts",
+                "disabled": "Disabled — new signups are rejected"
             },
             "optionHelp": {
                 "open": "Anyone can register and log in immediately without administrator involvement. Best for personal or trusted private servers.",
@@ -213,7 +347,7 @@
             "minimum": 0,
             "maximum": 1,
             "label": "Marker similarity threshold",
-            "helpText": "Phlix detects recurring segments like intros and credits by comparing the audio/video fingerprint of each segment against a reference fingerprint. This value controls how strictly segments must match to be flagged as a marker. At 0.0, nearly every repeated segment is marked (high false-positive rate). At 1.0, only near-perfect matches are marked (many markers will be missed). The default of 0.75 is a reasonable balance for most content, but you may need to lower it if your library contains heavily edited or re-encoded content where fingerprints are distorted.",
+            "helpText": "Phlix detects recurring segments like intros and credits by comparing the audio/video fingerprint of each segment against a reference fingerprint. This value controls how strictly segments must match to be flagged as a marker. At 0.0, nearly every repeated segment is marked (high false-positive rate). At 1.0, only near-perfect matches are marked (many markers will be missed). Lower the value if your library contains heavily edited or re-encoded content where fingerprints are distorted.",
             "helpLinks": [
                 {
                     "text": "Audio fingerprinting",
@@ -230,11 +364,11 @@
             "group": "markers",
             "minimum": 0,
             "label": "Maximum intro duration",
-            "helpText": "During marker detection, any candidate intro segment longer than this value will not be treated as an intro, even if its similarity score passes the threshold. This prevents false positives from long recurring scenes (like a 'previously on...' segment) being flagged as full intros. Set this to the longest typical intro length in your library \u2014 most TV shows have intros between 10 and 90 seconds, but anime and some documentaries may differ.",
+            "helpText": "During marker detection, any candidate intro segment longer than this value will not be treated as an intro, even if its similarity score passes the threshold. This prevents false positives from long recurring scenes (like a 'previously on...' segment) being flagged as full intros. Set this to the longest typical intro length in your library — most TV shows have intros between 10 and 90 seconds, but anime and some documentaries may differ.",
             "helpLinks": [
                 {
-                    "text": "Chapter (media)",
-                    "url": "https://en.wikipedia.org/wiki/Chapter_(media)"
+                    "text": "Opening credits",
+                    "url": "https://en.wikipedia.org/wiki/Opening_credits"
                 }
             ],
             "tier": "standard",
@@ -262,7 +396,7 @@
             "description": "Preferred subtitle language (ISO 639 code) selected by default for new playback sessions.",
             "group": "subtitles",
             "label": "Default subtitle language",
-            "helpText": "When a new playback session starts and the user's preferred language has not been set, Phlix will automatically select this subtitle language if a matching track is available. Use a standard ISO 639-2 or ISO 639-1 language code such as 'eng', 'spa', 'fre', 'ger', or 'jpn'. This is only the default \u2014 users can override it in their personal settings per session.",
+            "helpText": "When a new playback session starts and the user's preferred language has not been set, Phlix will automatically select this subtitle language if a matching track is available. Use a standard ISO 639-2 or ISO 639-1 language code such as 'eng', 'spa', 'fre', 'ger', or 'jpn'. This is only the default — users can override it in their personal settings per session.",
             "helpLinks": [
                 {
                     "text": "ISO 639 language codes",
@@ -296,7 +430,7 @@
             "minimum": 1,
             "maximum": 65535,
             "label": "Server discovery UDP port",
-            "helpText": "Phlix servers advertise themselves on the local network via UDP broadcast on this port, allowing the mobile app and other clients to automatically discover available servers without manual IP entry. Only change this if you have a specific networking requirement such as a port conflict or firewall rule. Clients must be on the same broadcast domain for discovery to work \u2014 it does not cross routers.",
+            "helpText": "Phlix servers advertise themselves on the local network via UDP broadcast on this port, allowing the mobile app and other clients to automatically discover available servers without manual IP entry. Only change this if you have a specific networking requirement such as a port conflict or firewall rule. Clients must be on the same broadcast domain for discovery to work — it does not cross routers.",
             "helpLinks": [
                 {
                     "text": "UDP",
@@ -319,8 +453,8 @@
             "helpText": "Trickplay generates a strip of preview thumbnails that appear when scrubbing through a video, giving users a visual preview of the scene at each point. Enabling this causes thumbnails to be generated during library scans and stored on disk. Disabling it hides the trickplay feature from the UI entirely and stops generation for new content, though existing thumbnails are retained.",
             "helpLinks": [
                 {
-                    "text": "Trickplay",
-                    "url": "https://en.wikipedia.org/wiki/Trick_mode"
+                    "text": "Trick play",
+                    "url": "https://en.wikipedia.org/wiki/Trick_play"
                 }
             ],
             "tier": "standard",
@@ -333,7 +467,7 @@
             "group": "trickplay",
             "minimum": 1,
             "label": "Trickplay thumbnail interval",
-            "helpText": "Controls how frequently trickplay thumbnails are captured along the timeline. Lower values (e.g., 5 seconds) give more precise visual scrubbing but require more storage and generation time. Higher values (e.g., 30 seconds) are faster to generate and use less storage, but scrubbing preview is less detailed. The sweet spot for most libraries is 10\u201315 seconds. This only affects newly generated trickplay strips; existing ones are not regenerated.",
+            "helpText": "Controls how frequently trickplay thumbnails are captured along the timeline. Lower values (e.g., 5 seconds) give more precise visual scrubbing but require more storage and generation time. Higher values (e.g., 30 seconds) are faster to generate and use less storage, but scrubbing preview is less detailed. The sweet spot for most libraries is 10–15 seconds. This only affects newly generated trickplay strips; existing ones are not regenerated.",
             "helpLinks": [
                 {
                     "text": "Keyframe",
@@ -346,10 +480,10 @@
         },
         "newsletter.enabled": {
             "type": "boolean",
-            "description": "Master switch for the periodic newsletter digest.",
+            "description": "Master switch for the weekly newsletter digest.",
             "group": "newsletter",
             "label": "Enable newsletter digest",
-            "helpText": "When enabled, Phlix will compile and send a periodic digest email to all users summarizing recently added or updated content in the library. The digest is sent at the hour specified by the 'send hour' setting. Users can opt out individually from their account settings. Disable this to hide the newsletter feature entirely and prevent any digest emails from being sent.",
+            "helpText": "When enabled, Phlix will compile and send a weekly digest email to all users summarizing recently added or updated content in the library. The digest is sent on the configured day at the hour specified by the 'send hour' setting. Users can opt out individually from their account settings. Disable this to hide the newsletter feature entirely and prevent any digest emails from being sent.",
             "helpLinks": [
                 {
                     "text": "Email newsletter",
@@ -398,55 +532,6 @@
             "restart": false,
             "default": true
         },
-        "trakt.client_id": {
-            "type": "string",
-            "description": "Trakt.tv application client ID. Register an application at https://trakt.tv/oauth/applications to obtain one; required before users can connect their Trakt account.",
-            "group": "scrobblers",
-            "label": "Trakt client ID",
-            "helpText": "The Trakt.tv Client ID identifies your Phlix server to the Trakt API. Users who want to sync their watch history and scrobble playback to Trakt.tv must have this configured, along with the client secret and redirect URI. You can register a free application at Trakt.tv to obtain these credentials. Without a client ID, the 'Connect to Trakt' button will not appear in user settings.",
-            "helpLinks": [
-                {
-                    "text": "Trakt.tv",
-                    "url": "https://trakt.tv"
-                }
-            ],
-            "tier": "standard",
-            "restart": false,
-            "default": ""
-        },
-        "trakt.client_secret": {
-            "type": "string",
-            "description": "Trakt.tv application client secret, paired with the client ID from https://trakt.tv/oauth/applications.",
-            "group": "scrobblers",
-            "label": "Trakt client secret",
-            "helpText": "The Trakt.tv Client Secret is the private counterpart to the client ID. It is used in the OAuth2 authorization flow when users connect their Trakt account. Treat this like a password \u2014 never expose it in logs, client-side code, or public repositories. If you suspect it has been compromised, you can regenerate it from your Trakt application settings page.",
-            "helpLinks": [
-                {
-                    "text": "Trakt.tv",
-                    "url": "https://trakt.tv"
-                }
-            ],
-            "tier": "standard",
-            "secret": true,
-            "restart": false,
-            "default": ""
-        },
-        "trakt.redirect_uri": {
-            "type": "string",
-            "description": "OAuth2 redirect URI registered with the Trakt application; must exactly match this server's /api/v1/oauth/trakt/callback URL.",
-            "group": "scrobblers",
-            "label": "Trakt OAuth redirect URI",
-            "helpText": "The redirect URI is the URL that Trakt sends the user back to after they authorize Phlix to access their Trakt account. It must exactly match the URI you registered in your Trakt application settings. For most standard Phlix installations this is https://your-server-domain/api/v1/oauth/trakt/callback. If there is any mismatch (including http vs https, trailing slashes, or subdomain differences), the OAuth flow will fail.",
-            "helpLinks": [
-                {
-                    "text": "OAuth 2.0 redirect URI",
-                    "url": "https://datatracker.ietf.org/doc/html/rfc6749#section-3.1.2"
-                }
-            ],
-            "tier": "standard",
-            "restart": false,
-            "default": "https://your-server.com/api/v1/oauth/trakt/callback"
-        },
         "lastfm.api_key": {
             "type": "string",
             "description": "Last.fm API key used to identify this application when scrobbling listening activity.",
@@ -460,6 +545,7 @@
                 }
             ],
             "tier": "standard",
+            "secret": true,
             "restart": false,
             "default": ""
         },
@@ -485,7 +571,7 @@
             "description": "Master switch for Last.fm scrobbling. When disabled the Connect button is hidden from the UI regardless of whether credentials are configured.",
             "group": "scrobblers",
             "label": "Enable Last.fm scrobbling",
-            "helpText": "Controls whether the Last.fm integration is available to users. When disabled, the 'Connect to Last.fm' button is completely hidden from the user settings UI, and no scrobbling data is sent \u2014 even if API credentials are configured. When enabled, individual users can still choose to enable or disable scrobbling from their own account settings.",
+            "helpText": "Controls whether the Last.fm integration is available to users. When disabled, the 'Connect to Last.fm' button is completely hidden from the user settings UI, and no scrobbling data is sent — even if API credentials are configured. When enabled, individual users can still choose to enable or disable scrobbling from their own account settings.",
             "helpLinks": [
                 {
                     "text": "Scrobbling",
@@ -504,11 +590,15 @@
             "items": {
                 "type": "string"
             },
-            "helpText": "When Phlix looks up metadata for a media file, it first strips known noise suffixes from the title to improve match accuracy. For example, 'Movie Name (2023) Directors Cut' becomes 'Movie Name' before querying TMDb. The built-in list covers common terms like 'director's cut', 'extended', 'remastered', and 'uncut'. You can add custom phrases here \u2014 for example, studio-specific release tags that appear in your library but not in metadata databases. The longest phrase is matched first to prevent shorter suffixes from partially stripping longer ones.",
+            "helpText": "When Phlix looks up metadata for a media file, it first strips known noise suffixes from the title to improve match accuracy. For example, 'Movie Name (2023) Directors Cut' becomes 'Movie Name' before querying TMDb. The built-in list covers common terms like 'director's cut', 'extended', 'remastered', and 'uncut'. You can add custom phrases here — for example, studio-specific release tags that appear in your library but not in metadata databases. The longest phrase is matched first to prevent shorter suffixes from partially stripping longer ones.",
             "helpLinks": [
                 {
-                    "text": "Release group naming conventions",
-                    "url": "https://en.wikipedia.org/wiki/P2p_release_group_naming_conventions"
+                    "text": "TMDb",
+                    "url": "https://www.themoviedb.org"
+                },
+                {
+                    "text": "Release naming standards",
+                    "url": "https://en.wikipedia.org/wiki/Standard_(warez)"
                 }
             ],
             "tier": "advanced",
@@ -590,73 +680,30 @@
             ],
             "default": "first",
             "enumLabels": {
-                "first": "First \u2014 use genres from highest-priority source only",
-                "union": "Union \u2014 merge genres from all sources"
+                "first": "First — use genres from highest-priority source only",
+                "union": "Union — merge genres from all sources"
             },
             "optionHelp": {
                 "first": "Only the genres from the first metadata source in the priority list that provides any genres are used. This keeps the genre taxonomy consistent and avoids duplicate or conflicting terms.",
                 "union": "Genres from all configured metadata sources are combined into one list, deduplicated. Useful when sources use different taxonomies and you want maximum genre coverage."
             }
         },
-        "metadata.preferred_language": {
-            "type": "string",
-            "group": "metadata",
-            "description": "Preferred language for metadata and subtitle selection.",
-            "label": "Preferred language",
-            "helpText": "When searching for metadata or subtitles, prefer results in this language. Applies to TMDB, Open Movie Database, and subtitle provider lookups. Use ISO 639-1 codes (e.g. 'en', 'de', 'ja', 'fr').",
-            "tier": "standard",
-            "default": "en"
-        },
-        "metadata.preferred_country": {
-            "type": "string",
-            "group": "metadata",
-            "description": "Preferred country for metadata results (influences release country and certification).",
-            "label": "Preferred country",
-            "helpText": "Used as a tiebreaker when multiple release regions match. TMDB uses this to weight regional metadata. Use ISO 3166-1 alpha-2 codes (e.g. 'US', 'GB', 'JP', 'DE').",
-            "tier": "advanced",
-            "default": "US"
-        },
-        "metadata.fanart_api_key": {
-            "type": "string",
-            "group": "metadata",
-            "description": "Fanart.tv API key for retrieving high-quality movie and TV show artwork.",
-            "label": "Fanart.tv API key",
-            "helpText": "Fanart.tv provides high-resolution backdrop, poster, and banner images. Get a free API key at https://fanart.tv/get-an-api-key/. Leave blank to use the bundled fallback artwork only.",
-            "helpLinks": [{"text": "Fanart.tv", "url": "https://fanart.tv"}],
-            "tier": "standard",
-            "default": "",
-            "secret": true
-        },
-        "database.pool_size": {
-            "type": "integer",
-            "group": "infrastructure",
-            "description": "MySQL connection pool size per worker.",
-            "label": "Database connection pool size",
-            "helpText": "Controls how many concurrent MySQL connections each worker process maintains in its pool. Higher values handle more concurrent DB operations but increase memory usage and may exceed the MySQL server's max_connections. Each worker typically needs 1-2 connections.",
-            "tier": "advanced",
-            "minimum": 1,
-            "maximum": 64,
-            "default": 8,
-            "restart": true
-        },
-        "database.timeout": {
-            "type": "integer",
-            "group": "infrastructure",
-            "description": "MySQL connection timeout in seconds.",
-            "label": "Database connection timeout",
-            "helpText": "Number of seconds to wait when establishing a MySQL connection before giving up. The default of 5 seconds is adequate for local databases. Increase this if your database server is on a congested or remote network.",
-            "tier": "advanced",
-            "minimum": 1,
-            "maximum": 60,
-            "default": 5,
-            "restart": true
-        },
         "relay.reconnect_delay": {
             "type": "integer",
             "group": "infrastructure",
             "description": "Seconds to wait before reconnection attempts after a relay connection is lost.",
             "label": "Relay reconnect delay",
-            "helpText": "When the relay tunnel connection drops, the server waits this many seconds before attempting to reconnect. Shorter delays restore connectivity faster but increase database pressure from repeated connection attempts. Default is 5 seconds.",
+            "helpText": "When the relay tunnel connection to the hub drops, the server waits this many seconds before attempting to reconnect. Shorter delays restore connectivity faster but increase load from repeated connection attempts.",
+            "helpLinks": [
+                {
+                    "text": "WebSocket",
+                    "url": "https://en.wikipedia.org/wiki/WebSocket"
+                },
+                {
+                    "text": "Reconnect backoff",
+                    "url": "https://en.wikipedia.org/wiki/Exponential_backoff"
+                }
+            ],
             "tier": "advanced",
             "minimum": 1,
             "maximum": 60,
@@ -668,168 +715,138 @@
             "group": "infrastructure",
             "description": "Seconds between relay keepalive pings.",
             "label": "Relay ping interval",
-            "helpText": "The relay client sends a WebSocket ping to the hub every N seconds to keep the connection alive and detect dead connections. Default is 30 seconds. Increase if your hub runs behind a connection timeout-sensitive proxy.",
+            "helpText": "The relay client sends a WebSocket ping to the hub every N seconds to keep the connection alive and detect dead connections. Increase if your hub runs behind a connection timeout-sensitive proxy.",
+            "helpLinks": [
+                {
+                    "text": "WebSocket",
+                    "url": "https://en.wikipedia.org/wiki/WebSocket"
+                },
+                {
+                    "text": "Keepalive",
+                    "url": "https://en.wikipedia.org/wiki/Keepalive"
+                }
+            ],
             "tier": "advanced",
             "minimum": 5,
             "maximum": 300,
             "default": 30,
             "restart": false
         },
-        "hls.segment_seconds": {
+        "server.hls.segment_seconds": {
             "type": "integer",
             "group": "infrastructure",
             "description": "Target segment duration in seconds for HLS adaptive streaming.",
             "label": "HLS segment duration",
-            "helpText": "Each HLS video segment is encoded to be approximately this many seconds long. Shorter segments (2–4s) switch more quickly on bandwidth changes but produce more HTTP requests and slightly lower compression efficiency. The industry standard is 6 seconds.",
+            "helpText": "Each HLS video segment is encoded to be approximately this many seconds long. Shorter segments (2–4s) switch more quickly on bandwidth changes but produce more HTTP requests and slightly lower compression efficiency. 6 seconds is the Apple-recommended value. Read once when workers boot, so a change only takes effect after a restart.",
+            "helpLinks": [
+                {
+                    "text": "HTTP Live Streaming (HLS)",
+                    "url": "https://en.wikipedia.org/wiki/HTTP_Live_Streaming"
+                }
+            ],
             "tier": "advanced",
             "minimum": 1,
             "maximum": 30,
             "default": 6,
-            "restart": false
+            "restart": true
         },
-        "hls.max_concurrent_segments": {
+        "server.hls.max_concurrent_segments": {
             "type": "integer",
             "group": "infrastructure",
-            "description": "Maximum concurrent HLS segment encoding jobs.",
+            "description": "Global ceiling on simultaneous on-demand HLS segment encodes across all active jobs.",
             "label": "Maximum concurrent HLS segment jobs",
-            "helpText": "Controls how many HLS segment encode jobs can run simultaneously. Each segment job encodes a small portion of the video. Default of 8 is suitable for servers with 4+ cores. Reduce if CPU usage is very high during live TV recording.",
-            "tier": "advanced",
-            "minimum": 1,
-            "maximum": 32,
-            "default": 8,
-            "restart": false
-        },
-        "transcoding.segment_max_inflight_global": {
-            "type": "integer",
-            "group": "transcoding",
-            "description": "Global ceiling on simultaneous in-flight segment encodes across all active jobs.",
-            "label": "Maximum in-flight segment encodes",
-            "helpText": "The total number of video segments that can be simultaneously waiting for their encode to complete. This is a global hard ceiling — individual jobs may have lower per-job limits. Raising this can improve throughput on high-core-count servers but increases memory pressure. Default is 8.",
+            "helpText": "Controls how many on-demand HLS segment encodes can run simultaneously across every playback session. Each segment is a full decode plus encode, so unbounded concurrency saturates the CPU and every encode slows past the player's fragment timeout. Requests over the ceiling get a fast 503 with Retry-After so the client backs off. Tune toward the box's core count. Read once when workers boot, so a change only takes effect after a restart.",
+            "helpLinks": [
+                {
+                    "text": "HTTP Live Streaming (HLS)",
+                    "url": "https://en.wikipedia.org/wiki/HTTP_Live_Streaming"
+                }
+            ],
             "tier": "advanced",
             "minimum": 1,
             "maximum": 32,
             "default": 8,
             "restart": true
         },
-        "transcoding.segment_cache_max_age": {
-            "type": "integer",
-            "group": "transcoding",
-            "description": "Maximum idle time in seconds before a cached segment is considered stale.",
-            "label": "Segment cache max age",
-            "helpText": "Cached HLS segments that have not been accessed for this many seconds are eligible for eviction by the cache reaper. Default is 10800 seconds (3 hours). Longer values improve cache hit rates for frequently rewatched content but consume more disk.",
-            "tier": "advanced",
-            "minimum": 60,
-            "maximum": 86400,
-            "default": 10800,
-            "restart": false
-        },
-        "transcoding.segment_cache_max_bytes": {
-            "type": "integer",
-            "group": "transcoding",
-            "description": "Maximum disk space in bytes allocated for the HLS segment cache.",
-            "label": "Segment cache size limit",
-            "helpText": "The total bytes of disk space the segment cache is allowed to consume. When this limit is reached, the cache reaper evicts the least-recently-accessed segments. Default is 8 GiB (8589934592 bytes). Set based on available disk and the number of concurrent HLS streams.",
-            "tier": "advanced",
-            "minimum": 1073741824,
-            "maximum": 1099511627776,
-            "default": 8589934592,
-            "restart": false
-        },
-        "transcoding.stale_job_max_age": {
-            "type": "integer",
-            "group": "transcoding",
-            "description": "Seconds after which a 'running' job with no output is considered stale.",
-            "label": "Stale job timeout",
-            "helpText": "If a transcode job reports itself as 'running' but produces no output for this many seconds, the worker marks it as stale and reclaims it. Default is 120 seconds. This is a safety net — the primary timeout is transcoding.transcode_timeout.",
-            "tier": "advanced",
-            "minimum": 10,
-            "maximum": 600,
-            "default": 120,
-            "restart": false
-        },
-        "subsystem.library_scan_enabled": {
+        "process.library-scan.enabled": {
             "type": "boolean",
             "group": "subsystem",
-            "description": "Master kill switch for the media library scanner worker.",
+            "description": "Master kill switch for the media library scanner worker process.",
             "label": "Enable library scanner",
-            "helpText": "When disabled, the library scanner worker stops polling for new media files. New files added to watched folders will not be picked up until this is re-enabled. Use this for temporary maintenance windows.",
+            "helpText": "When disabled, the library scanner worker is not spawned, so new media files added to watched folders will not be picked up. Use this for temporary maintenance windows. Worker processes are forked when the server boots, so a change only takes effect after a restart.",
+            "helpLinks": [
+                {
+                    "text": "Worker process",
+                    "url": "https://en.wikipedia.org/wiki/Process_(computing)"
+                }
+            ],
             "tier": "standard",
             "default": true,
-            "restart": false
+            "restart": true
         },
-        "subsystem.plugin_auto_update_enabled": {
+        "process.plugin-auto-update.enabled": {
             "type": "boolean",
             "group": "subsystem",
-            "description": "Master kill switch for the plugin auto-update worker.",
-            "label": "Enable plugin auto-update",
-            "helpText": "When disabled, the plugin update checker worker stops checking for new plugin versions. Existing plugins continue to work normally.",
+            "description": "Master kill switch for the plugin auto-update worker process.",
+            "label": "Enable plugin auto-update worker",
+            "helpText": "When disabled, the plugin update-checker worker is not spawned and no plugin version checks run. Installed plugins continue to work normally. This is the process-level switch; whether the worker actually performs updates is additionally governed by the auto-update toggle in the admin Plugins section. Worker processes are forked when the server boots, so a change only takes effect after a restart.",
+            "helpLinks": [
+                {
+                    "text": "Plug-in (computing)",
+                    "url": "https://en.wikipedia.org/wiki/Plug-in_(computing)"
+                }
+            ],
             "tier": "standard",
             "default": true,
-            "restart": false
+            "restart": true
         },
-        "subsystem.marker_detection_enabled": {
+        "process.marker-detection.enabled": {
             "type": "boolean",
             "group": "subsystem",
-            "description": "Master kill switch for the intro/outro marker detection worker.",
-            "label": "Enable marker detection",
-            "helpText": "When disabled, the marker detection worker stops queuing new episodes for intro/outro analysis. Existing markers are preserved. Disable when marker detection CPU usage impacts playback performance.",
+            "description": "Master kill switch for the intro/outro marker detection worker process.",
+            "label": "Enable marker detection worker",
+            "helpText": "When disabled, the marker detection worker is not spawned and queued episodes are never analysed for intro/outro markers. Existing markers are preserved. Disable when marker detection CPU usage impacts playback performance. Worker processes are forked when the server boots, so a change only takes effect after a restart.",
+            "helpLinks": [
+                {
+                    "text": "Audio fingerprinting",
+                    "url": "https://en.wikipedia.org/wiki/Audio_fingerprinting"
+                }
+            ],
             "tier": "standard",
             "default": true,
-            "restart": false
+            "restart": true
         },
-        "subsystem.media_asset_jobs_enabled": {
+        "process.media-asset.enabled": {
             "type": "boolean",
             "group": "subsystem",
-            "description": "Master kill switch for the chapter thumbnail and trickplay image generation worker.",
-            "label": "Enable media asset jobs",
-            "helpText": "When disabled, the worker stops generating chapter thumbnails, sprite sheets, and trickplay images. These assets will be missing for newly added content until re-enabled.",
+            "description": "Master kill switch for the chapter-thumbnail and trickplay image generation worker process.",
+            "label": "Enable media asset worker",
+            "helpText": "When disabled, the media-asset worker is not spawned, so chapter thumbnails and trickplay sprite sheets are not generated and newly added content will be missing them. Note that the scanner keeps enqueueing jobs while this worker is off, so the on-disk job queue grows until it is re-enabled. Worker processes are forked when the server boots, so a change only takes effect after a restart.",
+            "helpLinks": [
+                {
+                    "text": "Thumbnail",
+                    "url": "https://en.wikipedia.org/wiki/Thumbnail"
+                }
+            ],
             "tier": "standard",
             "default": true,
-            "restart": false
+            "restart": true
         },
-        "subsystem.similarity_enabled": {
+        "process.similarity.enabled": {
             "type": "boolean",
             "group": "subsystem",
-            "description": "Master kill switch for the similarity/comparison worker.",
-            "label": "Enable similarity engine",
-            "helpText": "When disabled, the similarity worker stops computing similarity scores between media items. Existing similarity data is preserved.",
+            "description": "Master kill switch for the item-similarity computation worker process.",
+            "label": "Enable similarity worker",
+            "helpText": "When disabled, the similarity worker is not spawned and no similarity scores are computed between media items, so 'more like this' recommendations go stale. Existing similarity data is preserved. Note that the scanner keeps enqueueing jobs while this worker is off, so the on-disk job queue grows until it is re-enabled. Worker processes are forked when the server boots, so a change only takes effect after a restart.",
+            "helpLinks": [
+                {
+                    "text": "Recommender system",
+                    "url": "https://en.wikipedia.org/wiki/Recommender_system"
+                }
+            ],
             "tier": "standard",
             "default": true,
-            "restart": false
-        },
-        "auth.enabled": {
-            "type": "boolean",
-            "group": "auth",
-            "description": "Master kill switch for local username/password authentication.",
-            "label": "Enable local authentication",
-            "helpText": "When disabled, local username/password login is unavailable. This is only recommended if you are exclusively using SSO, OAuth, or Hub-managed authentication. If no other auth method is configured, this cannot be disabled.",
-            "tier": "standard",
-            "default": true,
-            "restart": false
-        },
-        "auth.rate_limit": {
-            "type": "integer",
-            "group": "auth",
-            "description": "Maximum login attempts per IP address per hour before rate limiting kicks in.",
-            "label": "Login rate limit",
-            "helpText": "After this many failed login attempts from the same IP address within one hour, subsequent login requests from that IP are rejected with a 429 response. Set to 0 to disable rate limiting (not recommended).",
-            "tier": "advanced",
-            "minimum": 0,
-            "maximum": 1000,
-            "default": 20,
-            "restart": false
-        },
-        "auth.session_lifetime": {
-            "type": "integer",
-            "group": "auth",
-            "description": "Session cookie lifetime in seconds before automatic re-authentication is required.",
-            "label": "Session lifetime",
-            "helpText": "How long a login session remains valid before the user must re-authenticate. Default is 86400 seconds (24 hours). Longer values are more convenient but increase the window of compromise if a session cookie is stolen.",
-            "tier": "standard",
-            "minimum": 300,
-            "maximum": 604800,
-            "default": 86400,
-            "restart": false
+            "restart": true
         }
     }
 }

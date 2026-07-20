@@ -41,14 +41,24 @@ admin SPA under `schemas/` (resolve their absolute paths via
   loaded at runtime by `phlix-server`'s `Phlix\Plugins\Manifest\ManifestSchema` validator (0.6.0+).
   Per-setting `label` and `description` are permitted, and `integer`/`boolean` are accepted as
   aliases of `int`/`bool` in the setting `type` enum (0.9.1+).
-- `schemas/hub-settings.schema.json` — JSON Schema (draft 2020-12) for hub configuration,
-  resolved via `SchemaPaths::hubSettings()` (Phase 0, unreleased).
+- `schemas/hub-settings.schema.json` — JSON Schema (draft 2020-12) for the editable hub
+  settings (`/api/v1/me/hub-settings`), resolved via `SchemaPaths::hubSettings()` (0.22.0+).
+  Its property keys must stay in lockstep with `phlix-hub`'s
+  `HubSettingsRepository::ALLOWED_KEYS` — that constant is what the hub settings controller
+  enumerates, and the schema supplies only the render metadata for those keys (0.24.0+).
 - `schemas/server-settings.schema.json` — JSON Schema (draft 2020-12) for the editable
-  server settings (`/api/v1/admin/settings`); mirrors phlix-server's
-  `AdminSettingsController::ALLOWED_KEYS` allow-list and drives the admin SPA settings form (0.7.0+).
+  server settings (`/api/v1/admin/settings`); phlix-server derives its writable allow-list
+  from this schema and the admin SPA renders the settings form from it (0.7.0+).
   Extended with optional UI-metadata keywords (`label`, `helpText`, `helpLinks`, `tier`,
   `enumLabels`, `optionHelp`, `secret`, `restart`) so the admin settings UI can render
-  per-option help text and split Standard vs Advanced options (Phase 0, unreleased).
+  per-option help text and split Standard vs Advanced options (0.22.0+).
+
+  **Key-naming contract (0.24.0+).** Every property key must be a dotted path that
+  `Phlix\Admin\SettingsRepository::getDefault()` can resolve: the FIRST segment is a flat
+  `config/<file>.php` name in the consuming repo (subdirectories are not supported — the
+  lookup is jailed to `/^[A-Za-z0-9_-]+$/`), and the remaining segments index into that
+  file's returned array. A key that does not resolve renders an empty control and can never
+  take effect, so no such key may be declared.
   Adds `matching.noise_suffixes` (array of strings; the admin-extensible match-title noise list —
   0.13.0+) and `metadata.provider_priority` (object: media type → ordered array of source names;
   defaults `movie`/`series` = `["tmdb","imdb"]`, `anime` = `["anidb","myanimelist","tvdb","fanart","local"]`)

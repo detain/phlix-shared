@@ -1,10 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd" bootstrap="vendor/autoload.php" colors="true" cacheDirectory=".phpunit.cache" executionOrder="random" failOnRisky="true" failOnWarning="true" beStrictAboutOutputDuringTests="true" displayDetailsOnTestsThatTriggerDeprecations="true" displayDetailsOnTestsThatTriggerWarnings="true" displayDetailsOnTestsThatTriggerErrors="true">
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd" bootstrap="vendor/autoload.php" colors="true" cacheDirectory=".phpunit.cache" executionOrder="random" failOnEmptyTestSuite="true" failOnRisky="true" failOnWarning="true" beStrictAboutOutputDuringTests="true" displayDetailsOnTestsThatTriggerDeprecations="true" displayDetailsOnTestsThatTriggerWarnings="true" displayDetailsOnTestsThatTriggerErrors="true">
+  <!--
+    There is exactly ONE test suite and its name is "Unit" (capital U).
+    `failOnEmptyTestSuite` above is load-bearing: without it a mistyped
+    testsuite name (lowercase "unit") printed "No tests executed!" and still
+    exited 0, so a CI job could go green having run nothing. With it, an empty
+    selection fails loudly instead.
+  -->
   <testsuites>
     <testsuite name="Unit">
       <directory suffix="Test.php">tests</directory>
     </testsuite>
   </testsuites>
+  <!--
+    `network` covers the helpLinks liveness probes, which make real HTTP
+    requests. Excluded by default so the suite stays offline and deterministic;
+    run them deliberately with `vendor/bin/phpunit` and the `group network`
+    option.
+  -->
+  <groups>
+    <exclude>
+      <group>network</group>
+    </exclude>
+  </groups>
   <source>
     <include>
       <directory suffix=".php">src</directory>

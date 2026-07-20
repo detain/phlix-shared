@@ -16,6 +16,8 @@ use PHPUnit\Framework\TestCase;
 
 final class ServerSettingsSchemaTest extends TestCase
 {
+    use SettingsSchemaAssertions;
+
     /**
      * Decoded server-settings schema document.
      *
@@ -79,64 +81,71 @@ final class ServerSettingsSchemaTest extends TestCase
     /**
      * The expected property keys mapped to their JSON-Schema type.
      *
+     * Every key here MUST be a dotted path that
+     * `Phlix\Admin\SettingsRepository::getDefault()` can resolve in
+     * phlix-server: the first segment is a FLAT `config/<file>.php` name
+     * (subdirectories are unsupported) and the remaining segments index into
+     * that file's array. The cross-repo resolvability assertion itself lives in
+     * phlix-server, which owns the `config/` tree.
+     *
      * @return array<string, array{0: string, 1: string}>
      */
     public static function propertyProvider(): array
     {
         return [
+            // config/hwaccel.php (delegates to config/hwaccel_base.php)
             'hwaccel.enabled' => ['hwaccel.enabled', 'boolean'],
             'hwaccel.prefer_hardware' => ['hwaccel.prefer_hardware', 'boolean'],
             'hwaccel.probe_timeout' => ['hwaccel.probe_timeout', 'integer'],
+            // config/transcoding.php
+            'transcoding.preferred_accelerator' => ['transcoding.preferred_accelerator', 'string'],
+            'transcoding.include_software_fallback' => ['transcoding.include_software_fallback', 'boolean'],
+            'transcoding.tone_mapping_mode' => ['transcoding.tone_mapping_mode', 'string'],
+            'transcoding.prefer_hdr_output' => ['transcoding.prefer_hdr_output', 'boolean'],
+            // config/ffmpeg.php
+            'ffmpeg.max_concurrent_transcodes' => ['ffmpeg.max_concurrent_transcodes', 'integer'],
+            'ffmpeg.transcode_timeout' => ['ffmpeg.transcode_timeout', 'integer'],
+            'ffmpeg.max_concurrent_scan_probes' => ['ffmpeg.max_concurrent_scan_probes', 'integer'],
+            // config/server.php -> 'hls'
+            'server.hls.segment_seconds' => ['server.hls.segment_seconds', 'integer'],
+            'server.hls.max_concurrent_segments' => ['server.hls.max_concurrent_segments', 'integer'],
+            'server.hls.cache_max_age' => ['server.hls.cache_max_age', 'integer'],
+            'server.hls.cache_max_bytes' => ['server.hls.cache_max_bytes', 'integer'],
+            // config/tmdb.php, config/metadata.php, config/matching.php
             'tmdb.api_key' => ['tmdb.api_key', 'string'],
+            'matching.noise_suffixes' => ['matching.noise_suffixes', 'array'],
+            'metadata.provider_priority' => ['metadata.provider_priority', 'object'],
+            'metadata.genres_mode' => ['metadata.genres_mode', 'string'],
+            // config/auth.php
             'auth.signup_mode' => ['auth.signup_mode', 'string'],
+            // config/marker_detection.php
             'marker_detection.similarity_threshold' => ['marker_detection.similarity_threshold', 'number'],
             'marker_detection.intro_max_duration' => ['marker_detection.intro_max_duration', 'integer'],
+            // config/subtitles.php
             'subtitles.enabled' => ['subtitles.enabled', 'boolean'],
             'subtitles.default_language' => ['subtitles.default_language', 'string'],
             'subtitles.burn_in_by_default' => ['subtitles.burn_in_by_default', 'boolean'],
+            // config/discovery.php, config/trickplay.php, config/newsletter.php
             'discovery.discovery_port' => ['discovery.discovery_port', 'integer'],
             'trickplay.enabled' => ['trickplay.enabled', 'boolean'],
             'trickplay.interval_seconds' => ['trickplay.interval_seconds', 'integer'],
             'newsletter.enabled' => ['newsletter.enabled', 'boolean'],
             'newsletter.send_hour' => ['newsletter.send_hour', 'integer'],
+            // config/port-forward.php
             'port-forward.port_forwarding.upnp_enabled' => ['port-forward.port_forwarding.upnp_enabled', 'boolean'],
-            'trakt.client_id' => ['trakt.client_id', 'string'],
-            'trakt.client_secret' => ['trakt.client_secret', 'string'],
-            'trakt.redirect_uri' => ['trakt.redirect_uri', 'string'],
+            // config/lastfm.php
             'lastfm.api_key' => ['lastfm.api_key', 'string'],
-            'lastfm.enabled' => ['lastfm.enabled', 'boolean'],
             'lastfm.shared_secret' => ['lastfm.shared_secret', 'string'],
-            'matching.noise_suffixes' => ['matching.noise_suffixes', 'array'],
-            'metadata.provider_priority' => ['metadata.provider_priority', 'object'],
-            'metadata.genres_mode' => ['metadata.genres_mode', 'string'],
-            'transcoding.preferred_accelerator' => ['transcoding.preferred_accelerator', 'string'],
-            'transcoding.include_software_fallback' => ['transcoding.include_software_fallback', 'boolean'],
-            'transcoding.tone_mapping_mode' => ['transcoding.tone_mapping_mode', 'string'],
-            'transcoding.prefer_hdr_output' => ['transcoding.prefer_hdr_output', 'boolean'],
-            'transcoding.max_concurrent_transcodes' => ['transcoding.max_concurrent_transcodes', 'integer'],
-            'transcoding.transcode_timeout' => ['transcoding.transcode_timeout', 'integer'],
-            'transcoding.max_concurrent_scan_probes' => ['transcoding.max_concurrent_scan_probes', 'integer'],
-            'metadata.preferred_language' => ['metadata.preferred_language', 'string'],
-            'metadata.preferred_country' => ['metadata.preferred_country', 'string'],
-            'metadata.fanart_api_key' => ['metadata.fanart_api_key', 'string'],
-            'database.pool_size' => ['database.pool_size', 'integer'],
-            'database.timeout' => ['database.timeout', 'integer'],
+            'lastfm.enabled' => ['lastfm.enabled', 'boolean'],
+            // config/relay.php
             'relay.reconnect_delay' => ['relay.reconnect_delay', 'integer'],
             'relay.ping_interval' => ['relay.ping_interval', 'integer'],
-            'hls.segment_seconds' => ['hls.segment_seconds', 'integer'],
-            'hls.max_concurrent_segments' => ['hls.max_concurrent_segments', 'integer'],
-            'transcoding.segment_max_inflight_global' => ['transcoding.segment_max_inflight_global', 'integer'],
-            'transcoding.segment_cache_max_age' => ['transcoding.segment_cache_max_age', 'integer'],
-            'transcoding.segment_cache_max_bytes' => ['transcoding.segment_cache_max_bytes', 'integer'],
-            'transcoding.stale_job_max_age' => ['transcoding.stale_job_max_age', 'integer'],
-            'subsystem.library_scan_enabled' => ['subsystem.library_scan_enabled', 'boolean'],
-            'subsystem.plugin_auto_update_enabled' => ['subsystem.plugin_auto_update_enabled', 'boolean'],
-            'subsystem.marker_detection_enabled' => ['subsystem.marker_detection_enabled', 'boolean'],
-            'subsystem.media_asset_jobs_enabled' => ['subsystem.media_asset_jobs_enabled', 'boolean'],
-            'subsystem.similarity_enabled' => ['subsystem.similarity_enabled', 'boolean'],
-            'auth.enabled' => ['auth.enabled', 'boolean'],
-            'auth.rate_limit' => ['auth.rate_limit', 'integer'],
-            'auth.session_lifetime' => ['auth.session_lifetime', 'integer'],
+            // config/process.php — worker names are HYPHENATED
+            'process.library-scan.enabled' => ['process.library-scan.enabled', 'boolean'],
+            'process.plugin-auto-update.enabled' => ['process.plugin-auto-update.enabled', 'boolean'],
+            'process.marker-detection.enabled' => ['process.marker-detection.enabled', 'boolean'],
+            'process.media-asset.enabled' => ['process.media-asset.enabled', 'boolean'],
+            'process.similarity.enabled' => ['process.similarity.enabled', 'boolean'],
         ];
     }
 
@@ -156,6 +165,20 @@ final class ServerSettingsSchemaTest extends TestCase
     ];
 
     /**
+     * Keys that must be masked in the admin UI (`"secret": true`).
+     *
+     * Every service API key / shared secret belongs here; the schema is the
+     * only thing standing between a credential and a plaintext form field.
+     *
+     * @var list<string>
+     */
+    private const SECRET_KEYS = [
+        'tmdb.api_key',
+        'lastfm.api_key',
+        'lastfm.shared_secret',
+    ];
+
+    /**
      * Numeric constraints (minimum/maximum) the constrained keys must carry.
      *
      * @return array<string, array{0: string, 1: array<string, int|float>}>
@@ -172,21 +195,18 @@ final class ServerSettingsSchemaTest extends TestCase
             'discovery.discovery_port' => ['discovery.discovery_port', ['minimum' => 1, 'maximum' => 65535]],
             'trickplay.interval_seconds' => ['trickplay.interval_seconds', ['minimum' => 1]],
             'newsletter.send_hour' => ['newsletter.send_hour', ['minimum' => 0, 'maximum' => 23]],
-            'transcoding.max_concurrent_transcodes' => ['transcoding.max_concurrent_transcodes', ['minimum' => 1, 'maximum' => 64]],
-            'transcoding.transcode_timeout' => ['transcoding.transcode_timeout', ['minimum' => 60, 'maximum' => 86400]],
-            'transcoding.max_concurrent_scan_probes' => ['transcoding.max_concurrent_scan_probes', ['minimum' => 1, 'maximum' => 16]],
-            'database.pool_size' => ['database.pool_size', ['minimum' => 1, 'maximum' => 64]],
-            'database.timeout' => ['database.timeout', ['minimum' => 1, 'maximum' => 60]],
+            'ffmpeg.max_concurrent_transcodes' => ['ffmpeg.max_concurrent_transcodes', ['minimum' => 1, 'maximum' => 64]],
+            'ffmpeg.transcode_timeout' => ['ffmpeg.transcode_timeout', ['minimum' => 60, 'maximum' => 86400]],
+            'ffmpeg.max_concurrent_scan_probes' => ['ffmpeg.max_concurrent_scan_probes', ['minimum' => 1, 'maximum' => 16]],
             'relay.reconnect_delay' => ['relay.reconnect_delay', ['minimum' => 1, 'maximum' => 60]],
             'relay.ping_interval' => ['relay.ping_interval', ['minimum' => 5, 'maximum' => 300]],
-            'hls.segment_seconds' => ['hls.segment_seconds', ['minimum' => 1, 'maximum' => 30]],
-            'hls.max_concurrent_segments' => ['hls.max_concurrent_segments', ['minimum' => 1, 'maximum' => 32]],
-            'transcoding.segment_max_inflight_global' => ['transcoding.segment_max_inflight_global', ['minimum' => 1, 'maximum' => 32]],
-            'transcoding.segment_cache_max_age' => ['transcoding.segment_cache_max_age', ['minimum' => 60, 'maximum' => 86400]],
-            'transcoding.segment_cache_max_bytes' => ['transcoding.segment_cache_max_bytes', ['minimum' => 1073741824, 'maximum' => 1099511627776]],
-            'transcoding.stale_job_max_age' => ['transcoding.stale_job_max_age', ['minimum' => 10, 'maximum' => 600]],
-            'auth.rate_limit' => ['auth.rate_limit', ['minimum' => 0, 'maximum' => 1000]],
-            'auth.session_lifetime' => ['auth.session_lifetime', ['minimum' => 300, 'maximum' => 604800]],
+            'server.hls.segment_seconds' => ['server.hls.segment_seconds', ['minimum' => 1, 'maximum' => 30]],
+            'server.hls.max_concurrent_segments' => ['server.hls.max_concurrent_segments', ['minimum' => 1, 'maximum' => 32]],
+            'server.hls.cache_max_age' => ['server.hls.cache_max_age', ['minimum' => 60, 'maximum' => 86400]],
+            'server.hls.cache_max_bytes' => [
+                'server.hls.cache_max_bytes',
+                ['minimum' => 1073741824, 'maximum' => 1099511627776],
+            ],
         ];
     }
 
@@ -211,7 +231,40 @@ final class ServerSettingsSchemaTest extends TestCase
         sort($expected);
 
         $this->assertSame($expected, $actual, 'server-settings schema must declare exactly the expected settings keys.');
-        $this->assertCount(53, $actual);
+        $this->assertCount(40, $actual);
+    }
+
+    /**
+     * Guard the key-shape rules the resolver imposes on phlix-server's side.
+     *
+     * `SettingsRepository::loadConfig()` jails the first dotted segment to
+     * `/^[A-Za-z0-9_-]+$/` and only ever tries `config/<segment>.php`, so a key
+     * whose first segment contains a `/` (or any other character) can never
+     * resolve. `config/scrobblers/trakt.php`-style subdirectory keys were
+     * removed for exactly this reason.
+     */
+    public function test_every_key_first_segment_is_a_flat_config_file_name(): void
+    {
+        foreach (array_keys(self::properties()) as $key) {
+            $this->assertStringContainsString('.', $key, sprintf('Setting key "%s" must be dotted.', $key));
+
+            $segments = explode('.', $key);
+            $file = $segments[0];
+
+            $this->assertMatchesRegularExpression(
+                '/^[A-Za-z0-9_-]+$/',
+                $file,
+                sprintf(
+                    'Setting key "%s" starts with "%s", which SettingsRepository::loadConfig() would reject — the first segment must be a flat config file name.',
+                    $key,
+                    $file
+                )
+            );
+
+            foreach (array_slice($segments, 1) as $segment) {
+                $this->assertNotSame('', $segment, sprintf('Setting key "%s" must not contain an empty path segment.', $key));
+            }
+        }
     }
 
     public function test_noise_suffixes_is_an_array_of_strings_with_canonical_default(): void
@@ -307,6 +360,37 @@ final class ServerSettingsSchemaTest extends TestCase
     }
 
     /**
+     * The accelerator enum must use FFmpeg *hwaccel* names, not encoder names.
+     *
+     * `FfmpegRunner::getBestAcceleratorForCodec()` looks the configured value
+     * up in the map keyed by the hwaccel names probed in
+     * `probeHardwareAcceleration()`. `nvenc` is an ENCODER family
+     * (`h264_nvenc`), never a hwaccel, so pinning it silently never matched;
+     * likewise `v4l2` (the hwaccel is `v4l2m2m`). The empty string is the
+     * auto-detect sentinel: `FfmpegRunner` only applies a preference when the
+     * configured value is a non-empty string.
+     */
+    public function test_preferred_accelerator_enum_uses_ffmpeg_hwaccel_names(): void
+    {
+        $properties = self::properties();
+        $this->assertArrayHasKey('transcoding.preferred_accelerator', $properties);
+
+        $property = $properties['transcoding.preferred_accelerator'];
+
+        $this->assertSame('string', $property['type'] ?? null);
+        $this->assertSame('', $property['default'] ?? null, 'The auto-detect sentinel must be the empty string.');
+
+        $enum = $property['enum'] ?? null;
+        $this->assertIsArray($enum);
+        $this->assertSame(
+            ['', 'cuda', 'qsv', 'vaapi', 'videotoolbox', 'amf', 'opencl', 'd3d11va', 'dxva2', 'v4l2m2m'],
+            $enum
+        );
+        $this->assertNotContains('nvenc', $enum, '"nvenc" is an encoder family, not an FFmpeg hwaccel name.');
+        $this->assertNotContains('v4l2', $enum, 'The V4L2 hwaccel name is "v4l2m2m", not "v4l2".');
+    }
+
+    /**
      * @dataProvider propertyProvider
      */
     public function test_property_has_the_expected_json_schema_type(string $key, string $expectedType): void
@@ -335,15 +419,44 @@ final class ServerSettingsSchemaTest extends TestCase
 
         $this->assertIsString($description, sprintf('Property "%s" must have a string description.', $key));
         $this->assertNotSame('', $description, sprintf('Property "%s" description must be non-empty.', $key));
+    }
 
-        $label = $properties[$key]['label'] ?? null;
-        $helpText = $properties[$key]['helpText'] ?? null;
+    /**
+     * @dataProvider propertyProvider
+     */
+    public function test_property_declares_a_valid_tier(string $key, string $expectedType): void
+    {
+        $this->assertNotSame('', $expectedType);
 
-        $this->assertIsString($label, sprintf('Property "%s" must have a string label.', $key));
-        $this->assertNotSame('', $label, sprintf('Property "%s" label must be non-empty.', $key));
+        $properties = self::properties();
+        $this->assertArrayHasKey($key, $properties);
+        $this->assertPropertyDeclaresTier($key, $properties[$key]);
+    }
 
-        $this->assertIsString($helpText, sprintf('Property "%s" must have a string helpText.', $key));
-        $this->assertNotSame('', $helpText, sprintf('Property "%s" helpText must be non-empty.', $key));
+    /**
+     * @dataProvider propertyProvider
+     */
+    public function test_property_default_is_type_consistent_and_within_bounds(string $key, string $expectedType): void
+    {
+        $this->assertNotSame('', $expectedType);
+
+        $properties = self::properties();
+        $this->assertArrayHasKey($key, $properties);
+
+        $this->assertDefaultMatchesDeclaredType($key, $properties[$key]);
+        $this->assertDefaultIsWithinBounds($key, $properties[$key]);
+    }
+
+    /**
+     * @dataProvider propertyProvider
+     */
+    public function test_property_enum_options_are_fully_documented(string $key, string $expectedType): void
+    {
+        $this->assertNotSame('', $expectedType);
+
+        $properties = self::properties();
+        $this->assertArrayHasKey($key, $properties);
+        $this->assertEnumOptionsAreFullyDocumented($key, $properties[$key]);
     }
 
     /**
@@ -357,59 +470,8 @@ final class ServerSettingsSchemaTest extends TestCase
         $properties = self::properties();
         $this->assertArrayHasKey($key, $properties);
 
-        $property = $properties[$key];
-
-        // helpLinks — if present, each entry must be {text: non-empty-string, url: https://...}
-        if (isset($property['helpLinks']) && is_array($property['helpLinks'])) {
-            foreach ($property['helpLinks'] as $index => $link) {
-                $this->assertIsArray($link, sprintf('Property "%s" helpLinks[%d] must be an object.', $key, $index));
-                $this->assertArrayHasKey('text', $link);
-                $this->assertArrayHasKey('url', $link);
-                $this->assertIsString($link['text']);
-                $this->assertNotSame('', $link['text'], sprintf('Property "%s" helpLinks[%d].text must be non-empty.', $key, $index));
-                $this->assertIsString($link['url']);
-                $this->assertStringStartsWith('https://', $link['url'], sprintf('Property "%s" helpLinks[%d].url must start with https://.', $key, $index));
-            }
-        }
-
-        // tier — if present, must be "standard" or "advanced"
-        if (array_key_exists('tier', $property)) {
-            $this->assertContains(
-                $property['tier'],
-                ['standard', 'advanced'],
-                sprintf('Property "%s" tier must be "standard" or "advanced".', $key)
-            );
-        }
-
-        // enumLabels — if present, must be a dict of strings
-        if (isset($property['enumLabels']) && is_array($property['enumLabels'])) {
-            foreach ($property['enumLabels'] as $enumKey => $enumLabel) {
-                $this->assertIsString(
-                    $enumLabel,
-                    sprintf('Property "%s" enumLabels["%s"] must be a string.', $key, $enumKey)
-                );
-                $this->assertNotSame(
-                    '',
-                    $enumLabel,
-                    sprintf('Property "%s" enumLabels["%s"] must be non-empty.', $key, $enumKey)
-                );
-            }
-        }
-
-        // optionHelp — if present, must be a dict of strings
-        if (isset($property['optionHelp']) && is_array($property['optionHelp'])) {
-            foreach ($property['optionHelp'] as $optionKey => $optionHelpText) {
-                $this->assertIsString(
-                    $optionHelpText,
-                    sprintf('Property "%s" optionHelp["%s"] must be a string.', $key, $optionKey)
-                );
-                $this->assertNotSame(
-                    '',
-                    $optionHelpText,
-                    sprintf('Property "%s" optionHelp["%s"] must be non-empty.', $key, $optionKey)
-                );
-            }
-        }
+        $this->assertHelpLinksAreWellFormed($key, $properties[$key]);
+        $this->assertFlagKeywordsAreBooleans($key, $properties[$key]);
     }
 
     /**
@@ -431,6 +493,52 @@ final class ServerSettingsSchemaTest extends TestCase
 
         $this->assertIsString($helpText, sprintf('Property "%s" must have a string helpText.', $key));
         $this->assertNotSame('', $helpText, sprintf('Property "%s" helpText must be non-empty.', $key));
+    }
+
+    public function test_credential_keys_are_marked_secret(): void
+    {
+        $properties = self::properties();
+
+        foreach (self::SECRET_KEYS as $key) {
+            $this->assertArrayHasKey($key, $properties);
+            $this->assertTrue(
+                $properties[$key]['secret'] ?? false,
+                sprintf('Property "%s" holds a credential and must declare "secret": true.', $key)
+            );
+        }
+
+        // ... and nothing else claims to be a secret without being listed above.
+        foreach ($properties as $key => $property) {
+            if (!empty($property['secret'])) {
+                $this->assertContains(
+                    $key,
+                    self::SECRET_KEYS,
+                    sprintf('Property "%s" is marked secret but is not in the documented credential list.', $key)
+                );
+            }
+        }
+    }
+
+    /**
+     * Forbidden namespaces must never reappear in the schema.
+     *
+     * The settings plan bars DB credentials/pool sizing from the admin surface
+     * outright; `database.*` was exposed once and is explicitly listed as
+     * DO-NOT-EXPOSE.
+     */
+    public function test_forbidden_key_namespaces_are_absent(): void
+    {
+        $forbiddenPrefixes = ['database.', 'jwt.', 'websocket.'];
+
+        foreach (array_keys(self::properties()) as $key) {
+            foreach ($forbiddenPrefixes as $prefix) {
+                $this->assertStringStartsNotWith(
+                    $prefix,
+                    $key,
+                    sprintf('Setting key "%s" is in a DO-NOT-EXPOSE namespace ("%s").', $key, $prefix)
+                );
+            }
+        }
     }
 
     /**
@@ -455,5 +563,29 @@ final class ServerSettingsSchemaTest extends TestCase
                 sprintf('Property "%s" "%s" must equal the documented bound.', $key, $constraintKey)
             );
         }
+    }
+
+    /**
+     * Liveness check for every documentation link in the schema.
+     *
+     * Excluded from the default suite (see `phpunit.xml`) because it performs
+     * real network I/O; run it deliberately with `--group network`.
+     *
+     * @group network
+     */
+    public function test_help_links_resolve(): void
+    {
+        $urls = self::collectHelpLinkUrls(self::properties());
+        $this->assertNotEmpty($urls);
+
+        $dead = [];
+        foreach ($urls as $url) {
+            $status = SchemaLinkProbe::status($url);
+            if (!SchemaLinkProbe::isAcceptable($status)) {
+                $dead[] = sprintf('%s -> %d', $url, $status);
+            }
+        }
+
+        $this->assertSame([], $dead, "Dead helpLinks URLs:\n" . implode("\n", $dead));
     }
 }

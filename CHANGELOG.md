@@ -4,6 +4,177 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.24.0] - 2026-07-20
+
+Settings-schema correctness pass. An audit of all 109 schema properties found 37
+with wrong or unreachable values; the two settings schemas are rewritten so every
+declared key resolves through the consuming repo's settings resolver, and the
+schema tests are strengthened so the same class of defect cannot pass CI again.
+
+### Changed — BREAKING (settings key renames)
+
+Nothing was deployed with these keys, so there are no persisted overrides to
+migrate. Each old key resolved to `null` in `phlix-server` — the first dotted
+segment must be a FLAT `config/<file>.php` name (`SettingsRepository::getDefault()`
+/ `loadConfig()`; subdirectories are rejected by the `/^[A-Za-z0-9_-]+$/` jail), and
+these pointed at files or paths that do not exist.
+
+`schemas/server-settings.schema.json`:
+
+- `transcoding.max_concurrent_transcodes` → **`ffmpeg.max_concurrent_transcodes`** (`config/ffmpeg.php:33`)
+- `transcoding.transcode_timeout` → **`ffmpeg.transcode_timeout`** (`config/ffmpeg.php:34`)
+- `transcoding.max_concurrent_scan_probes` → **`ffmpeg.max_concurrent_scan_probes`** (`config/ffmpeg.php:39`)
+- `hls.segment_seconds` → **`server.hls.segment_seconds`** (`config/server.php:95`; there is no `config/hls.php`)
+- `hls.max_concurrent_segments` → **`server.hls.max_concurrent_segments`** (`config/server.php:102`)
+- `transcoding.segment_cache_max_age` → **`server.hls.cache_max_age`** (`config/server.php:110`)
+- `transcoding.segment_cache_max_bytes` → **`server.hls.cache_max_bytes`** (`config/server.php:107`)
+- `subsystem.library_scan_enabled` → **`process.library-scan.enabled`** (`config/process.php:37`)
+- `subsystem.plugin_auto_update_enabled` → **`process.plugin-auto-update.enabled`** (`config/process.php:46`)
+- `subsystem.marker_detection_enabled` → **`process.marker-detection.enabled`** (`config/process.php:55`)
+- `subsystem.media_asset_jobs_enabled` → **`process.media-asset.enabled`** (`config/process.php:65`)
+- `subsystem.similarity_enabled` → **`process.similarity.enabled`** (`config/process.php:76`)
+
+Note the `process.*` worker names are HYPHENATED, matching `config/process.php`.
+
+`schemas/hub-settings.schema.json`:
+
+- `auth.access_token_ttl` → **`auth.access_ttl`** (`phlix-hub/config/auth.php`)
+- `auth.refresh_token_ttl` → **`auth.refresh_ttl`** (`phlix-hub/config/auth.php`)
+
+The `*_token_ttl` spellings match no hub config path. `phlix-hub/config/auth.php`
+documents that this exact rename previously disabled `HUB_JWT_ACCESS_TTL` in
+production, so the schema is corrected rather than the config.
+
+### Removed — BREAKING (unresolvable or forbidden keys)
+
+`schemas/server-settings.schema.json` (53 → 40 properties):
+
+- `database.pool_size`, `database.timeout` — the settings plan lists all
+  `database.*` as DO-NOT-EXPOSE. Both also resolved to `null` (the real paths are
+  nested under `database.connections.mysql.*`).
+- `metadata.preferred_language`, `metadata.preferred_country`,
+  `metadata.fanart_api_key` — no config path and no consumer anywhere in
+  `phlix-server/src/`. `preferred_language`/`region` remain legitimate future work,
+  but shipping a key before its consumer exists is what produced this audit.
+- `auth.enabled` — describes a local-auth kill switch that does not exist.
+- `auth.rate_limit` — no config path; the login limiter is a fixed
+  `AuthManager::RATE_LIMIT_MAX_ATTEMPTS = 5` const (`src/Auth/AuthManager.php:45`)
+  with a 900-second window (`:46`), neither configurable. The schema advertised
+  `20` attempts per hour, i.e. 4× the real count over 4× the real window.
+- `auth.session_lifetime` — no config path and no consumer; this is a bearer-JWT
+  server with no session cookie. The nearest real value is the access-token TTL,
+  which falls back to a hardcoded `3600`
+  (`src/Common/Container/Providers/AuthServicesProvider.php:146`), not the `86400`
+  the schema advertised.
+- `transcoding.segment_max_inflight_global` — a duplicate of
+  `server.hls.max_concurrent_segments`; two keys, one knob.
+- `transcoding.stale_job_max_age` — not configurable in any namespace
+  (`TranscodeManager::STALE_JOB_MAX_AGE` is a const).
+- `trakt.client_id`, `trakt.client_secret`, `trakt.redirect_uri` — the config lives
+  at `config/scrobblers/trakt.php` and the resolver's path jail forbids the `/`, so
+  no dotted key can reach it. Re-add once the file is reachable as `config/trakt.php`.
+
+`schemas/hub-settings.schema.json` (12 → 3 properties) — the file previously
+mirrored an orphaned allow-list. It now matches `HubSettingsRepository::ALLOWED_KEYS`
+exactly, which is what the hub settings controller enumerates:
+
+- `server.domain`, `server.tls_enabled`, `server.subdomain_auto_claim` — forbidden
+  hub identity / ACME-TLS keys; all three are in `HubSettingsRepository::DENIED_KEYS`.
+- `server.relay_ping_interval`, `server.max_servers_per_user`,
+  `server.heartbeat_interval`, `server.enrollment_renewal_threshold`,
+  `logger.level`, `logger.audit_enabled` — none resolves against `phlix-hub/config/`.
+  `phlix-hub/config/logger.php` explicitly documents that there is no top-level
+  `level`/`audit_enabled` key and that one must not be added to make a settings key
+  resolve.
+
+### Fixed
+
+- **`transcoding.preferred_accelerator` enum was factually wrong.** It offered
+  `nvenc` (an *encoder* family, `h264_nvenc` — never an FFmpeg hwaccel name) and
+  `v4l2` (the hwaccel is `v4l2m2m`), so
+  `FfmpegRunner::getBestAcceleratorForCodec()`'s `$accelerators[$preferred]` lookup
+  (`src/Media/Transcoding/FfmpegRunner.php:2846`) always missed and the pin silently
+  did nothing. The enum is now the hwaccel vocabulary probed at
+  `FfmpegRunner.php:2758-2767` and documented at `config/transcoding.php:14`:
+  `cuda`, `qsv`, `vaapi`, `videotoolbox`, `amf`, `opencl`, `d3d11va`, `dxva2`,
+  `v4l2m2m`, plus `""` for auto-detect.
+- **`transcoding.preferred_accelerator` default was unsettable.** It declared
+  `"type": "string"` with `"default": null` and `null` in the enum;
+  `AdminSettingsController::valueMatchesType()` maps `string` to `is_string()`, so a
+  PUT of `null` was rejected and "Auto-detect" could never be restored. A type union
+  is not an option either — `loadAllowedKeysFromSchema()` requires
+  `is_string($def['type'])` and would drop the key from the writable allow-list
+  entirely. The sentinel is now the empty string, which `FfmpegRunner` already
+  treats as "no preference": it only applies a preference when the configured value
+  is a non-empty string (`FfmpegRunner.php:1364-1366`).
+- **`tmdb.api_key` and `lastfm.api_key` are now `"secret": true`.** Both are literal
+  service API keys and were rendered as plaintext form fields, inconsistently with
+  the other credentials in the same schema.
+- **Five dead (404) `helpLinks` URLs replaced**, each verified live:
+  `Trick_mode` → `Trick_play`; `Chapter_(media)` → `Opening_credits`;
+  `Intel_Media_SDK` → `Intel_Quick_Sync_Video`;
+  `P2p_release_group_naming_conventions` → `Standard_(warez)` (plus a TMDb link,
+  which is what that help text actually references); and
+  `github.com/videoblade/zscale` → `github.com/sekrit-twc/zimg`, the real zscale
+  upstream. The previous commit that claimed to fix the zscale URL replaced one
+  404 with another.
+- **`marker_detection.similarity_threshold` help contradicted its own default** —
+  it described "the default of 0.75" where both the schema and
+  `config/marker_detection.php:32` are `0.85`. The help no longer restates the
+  number, since restating defaults in prose is what let this drift.
+- **`transcoding.tone_mapping_mode` help documented an "Auto-detect" option that
+  does not exist** in its three-value enum (`none`, `zscale`, `libplacebo`).
+- **`transcoding.preferred_accelerator` help said "CUDA"** while the enum offered
+  `nvenc`; the enum now genuinely offers `cuda`.
+- `auth.signup_mode` no longer links to the OAuth 2.0 RFC, which has nothing to do
+  with self-service signup mode.
+- `tmdb.api_key` now links to `developer.themoviedb.org/docs` rather than the legacy
+  documentation path.
+- The duplicate NVENC Wikipedia URL (`/NVENC` vs `/Nvidia_NVENC`, the same article
+  via a redirect) is collapsed to one spelling.
+- `newsletter.enabled` now says "weekly" consistently with `newsletter.send_hour`
+  and `config/newsletter.php`, which has a `send_day` and a weekly subject template.
+- The hub schema `description` no longer contains the `handlesarr` typo and no
+  longer describes library scanning, which is the server's job, not the hub's.
+
+### Added
+
+- **`helpLinks` on 16 server keys that had none** but name a technical term —
+  x264/x265, HDR10/Dolby Vision, FFmpeg/ffprobe, OOM, HLS, WebSocket/keepalive,
+  GiB, and cache-eviction policy. The ~22 original keys all carried links; the keys
+  batch-added in later phases did not.
+- **`helpLinks` on every hub key** — the hub schema previously had zero.
+- `"restart": true` on the boot-only keys whose consumers read them once at worker
+  start: `ffmpeg.*` and `server.hls.*` (read in
+  `TranscodeServicesProvider::register()`) and `process.*.enabled` (read by
+  `start.php:803` when it forks the managed workers).
+- **`tests/Schema/SettingsSchemaAssertions.php`** — shared assertions used by both
+  schema tests. These would have failed on the defects above, where the previous
+  tests were green:
+  - `tier` is now REQUIRED and must be `standard` or `advanced` (it was only
+    validated when present, so a missing `tier` silently became "standard").
+  - Every `enum` property must carry `enumLabels` AND `optionHelp` covering exactly
+    its members — no missing entries and no stale ones — and every member must be a
+    string. This is the assertion `preferred_accelerator`'s 7-member enum with
+    6 `optionHelp` entries and a `null` member would have failed.
+  - Every `default` must be type-consistent with its declared `type`, and must fall
+    inside its own `minimum`/`maximum`.
+  - `helpLinks` entries must be well-formed, https, syntactically valid, and
+    non-duplicated within a property. Shape only — no network I/O.
+- **`tests/Schema/SchemaLinkProbe.php`** and a `@group network` liveness test per
+  schema, excluded from the default run via `phpunit.xml` so the suite stays
+  offline; run with `vendor/bin/phpunit --group network`.
+- Tests asserting that every key's first dotted segment is a flat config file name,
+  that the credential keys are marked secret (and that nothing else claims to be),
+  that the `database.*`/`jwt.*`/`websocket.*` namespaces stay absent from the server
+  schema, and that every `DENIED_KEYS` entry stays absent from the hub schema.
+
+### Fixed — tooling
+
+- **`phpunit.xml` now sets `failOnEmptyTestSuite="true"`.** A mistyped
+  `--testsuite=unit` (lowercase) printed "No tests executed!" and exited **0**, so a
+  CI job could pass having run nothing. Verified: the same invocation now exits 1.
+
 ## [0.23.0] - 2026-07-20
 
 ### Added
