@@ -70,7 +70,7 @@ final class SchemaPaths
      *
      * @return non-empty-string Absolute path to `hub-settings.schema.json`.
      *
-     * @since 0.9.0
+     * @since 0.7.0
      */
     public static function hubSettings(): string
     {

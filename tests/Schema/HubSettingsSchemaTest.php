@@ -14,9 +14,6 @@ namespace Phlix\Shared\Tests\Schema;
 use Phlix\Shared\Schema\SchemaPaths;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @covers \Phlix\Shared\Schema\SchemaPaths
- */
 final class HubSettingsSchemaTest extends TestCase
 {
     /**
