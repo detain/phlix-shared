@@ -6,6 +6,28 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+- **`schemas/server-settings.schema.json`** — extended with optional UI-metadata keywords:
+  `label`, `helpText`, `helpLinks`, `tier`, `secret`, `restart`, `enumLabels`, and
+  `optionHelp` so the admin settings UI can render per-option help text and split
+  Standard vs Advanced options (Phase 0; commits `0f8747e`–`eda28cd`).
+- **`schemas/hub-settings.schema.json`** — new JSON Schema (draft 2020-12) scaffold for hub
+  configuration, resolved via the new `SchemaPaths::hubSettings()` path helper (Phase 0;
+  commits `0f8747e`–`eda28cd`).
+- **`src/Schema/SchemaPaths::hubSettings()`** — new path helper returning the absolute path
+  to `schemas/hub-settings.schema.json`, mirroring the existing `serverSettings()` method
+  (Phase 0; commits `0f8747e`–`eda28cd`).
+- **`tests/Schema/HubSettingsSchemaTest.php`** — new test file covering hub-settings schema
+  validation (Phase 0; commits `0f8747e`–`eda28cd`).
+- **`tests/Schema/ServerSettingsSchemaTest.php`** — extended with tests for the new
+  `label`, `helpText`, `helpLinks`, `tier`, `enumLabels`, and `optionHelp` keywords
+  (Phase 0; commits `0f8747e`–`eda28cd`).
+
+### Fixed
+- **`@since` version annotation** on affected schema classes corrected (Phase 0;
+  commit `eda28cd`).
+- **Misleading `@covers` annotations** removed from test files (Phase 0; commit `eda28cd`).
+
 ## [0.21.0] - 2026-07-20
 
 ### Added
