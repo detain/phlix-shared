@@ -4,9 +4,10 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.22.0] - 2026-07-20
 
 ### Added
+- Phase 2A: 7 new transcoding settings — `transcoding.preferred_accelerator`, `transcoding.include_software_fallback`, `transcoding.tone_mapping_mode`, `transcoding.prefer_hdr_output`, `transcoding.max_concurrent_transcodes`, `transcoding.transcode_timeout`, `transcoding.max_concurrent_scan_probes`
 - **`schemas/server-settings.schema.json`** — extended with optional UI-metadata keywords:
   `label`, `helpText`, `helpLinks`, `tier`, `secret`, `restart`, `enumLabels`, and
   `optionHelp` so the admin settings UI can render per-option help text and split

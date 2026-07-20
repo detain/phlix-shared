@@ -1,6 +1,5 @@
 {
     "name": "detain/phlix-shared",
-    "version": "0.21.0",
     "description": "Shared interfaces, DTOs, event names, and protocol types used by both phlix-server and phlix-hub. Composer-installable, PHP 8.3+, zero I/O by charter — the only bundled network code is the blocking CurlArrTransport (CLI/test only); event-loop consumers MUST inject an async ArrTransportInterface.",
     "type": "library",
     "license": "MIT",
