@@ -576,6 +576,239 @@
                 "first": "Only the genres from the first metadata source in the priority list that provides any genres are used. This keeps the genre taxonomy consistent and avoids duplicate or conflicting terms.",
                 "union": "Genres from all configured metadata sources are combined into one list, deduplicated. Useful when sources use different taxonomies and you want maximum genre coverage."
             }
+        },
+        "metadata.preferred_language": {
+            "type": "string",
+            "group": "metadata",
+            "description": "Preferred language for metadata and subtitle selection.",
+            "label": "Preferred language",
+            "helpText": "When searching for metadata or subtitles, prefer results in this language. Applies to TMDB, Open Movie Database, and subtitle provider lookups. Use ISO 639-1 codes (e.g. 'en', 'de', 'ja', 'fr').",
+            "tier": "standard",
+            "default": "en"
+        },
+        "metadata.preferred_country": {
+            "type": "string",
+            "group": "metadata",
+            "description": "Preferred country for metadata results (influences release country and certification).",
+            "label": "Preferred country",
+            "helpText": "Used as a tiebreaker when multiple release regions match. TMDB uses this to weight regional metadata. Use ISO 3166-1 alpha-2 codes (e.g. 'US', 'GB', 'JP', 'DE').",
+            "tier": "advanced",
+            "default": "US"
+        },
+        "metadata.fanart_api_key": {
+            "type": "string",
+            "group": "metadata",
+            "description": "Fanart.tv API key for retrieving high-quality movie and TV show artwork.",
+            "label": "Fanart.tv API key",
+            "helpText": "Fanart.tv provides high-resolution backdrop, poster, and banner images. Get a free API key at https://fanart.tv/get-an-api-key/. Leave blank to use the bundled fallback artwork only.",
+            "helpLinks": [{"text": "Fanart.tv", "url": "https://fanart.tv"}],
+            "tier": "standard",
+            "default": "",
+            "secret": true
+        },
+        "database.pool_size": {
+            "type": "integer",
+            "group": "infrastructure",
+            "description": "MySQL connection pool size per worker.",
+            "label": "Database connection pool size",
+            "helpText": "Controls how many concurrent MySQL connections each worker process maintains in its pool. Higher values handle more concurrent DB operations but increase memory usage and may exceed the MySQL server's max_connections. Each worker typically needs 1-2 connections.",
+            "tier": "advanced",
+            "minimum": 1,
+            "maximum": 64,
+            "default": 8,
+            "restart": true
+        },
+        "database.timeout": {
+            "type": "integer",
+            "group": "infrastructure",
+            "description": "MySQL connection timeout in seconds.",
+            "label": "Database connection timeout",
+            "helpText": "Number of seconds to wait when establishing a MySQL connection before giving up. The default of 5 seconds is adequate for local databases. Increase this if your database server is on a congested or remote network.",
+            "tier": "advanced",
+            "minimum": 1,
+            "maximum": 60,
+            "default": 5,
+            "restart": true
+        },
+        "relay.reconnect_delay": {
+            "type": "integer",
+            "group": "infrastructure",
+            "description": "Seconds to wait before reconnection attempts after a relay connection is lost.",
+            "label": "Relay reconnect delay",
+            "helpText": "When the relay tunnel connection drops, the server waits this many seconds before attempting to reconnect. Shorter delays restore connectivity faster but increase database pressure from repeated connection attempts. Default is 5 seconds.",
+            "tier": "advanced",
+            "minimum": 1,
+            "maximum": 60,
+            "default": 5,
+            "restart": false
+        },
+        "relay.ping_interval": {
+            "type": "integer",
+            "group": "infrastructure",
+            "description": "Seconds between relay keepalive pings.",
+            "label": "Relay ping interval",
+            "helpText": "The relay client sends a WebSocket ping to the hub every N seconds to keep the connection alive and detect dead connections. Default is 30 seconds. Increase if your hub runs behind a connection timeout-sensitive proxy.",
+            "tier": "advanced",
+            "minimum": 5,
+            "maximum": 300,
+            "default": 30,
+            "restart": false
+        },
+        "hls.segment_seconds": {
+            "type": "integer",
+            "group": "infrastructure",
+            "description": "Target segment duration in seconds for HLS adaptive streaming.",
+            "label": "HLS segment duration",
+            "helpText": "Each HLS video segment is encoded to be approximately this many seconds long. Shorter segments (2–4s) switch more quickly on bandwidth changes but produce more HTTP requests and slightly lower compression efficiency. The industry standard is 6 seconds.",
+            "tier": "advanced",
+            "minimum": 1,
+            "maximum": 30,
+            "default": 6,
+            "restart": false
+        },
+        "hls.max_concurrent_segments": {
+            "type": "integer",
+            "group": "infrastructure",
+            "description": "Maximum concurrent HLS segment encoding jobs.",
+            "label": "Maximum concurrent HLS segment jobs",
+            "helpText": "Controls how many HLS segment encode jobs can run simultaneously. Each segment job encodes a small portion of the video. Default of 8 is suitable for servers with 4+ cores. Reduce if CPU usage is very high during live TV recording.",
+            "tier": "advanced",
+            "minimum": 1,
+            "maximum": 32,
+            "default": 8,
+            "restart": false
+        },
+        "transcoding.segment_max_inflight_global": {
+            "type": "integer",
+            "group": "transcoding",
+            "description": "Global ceiling on simultaneous in-flight segment encodes across all active jobs.",
+            "label": "Maximum in-flight segment encodes",
+            "helpText": "The total number of video segments that can be simultaneously waiting for their encode to complete. This is a global hard ceiling — individual jobs may have lower per-job limits. Raising this can improve throughput on high-core-count servers but increases memory pressure. Default is 8.",
+            "tier": "advanced",
+            "minimum": 1,
+            "maximum": 32,
+            "default": 8,
+            "restart": true
+        },
+        "transcoding.segment_cache_max_age": {
+            "type": "integer",
+            "group": "transcoding",
+            "description": "Maximum idle time in seconds before a cached segment is considered stale.",
+            "label": "Segment cache max age",
+            "helpText": "Cached HLS segments that have not been accessed for this many seconds are eligible for eviction by the cache reaper. Default is 10800 seconds (3 hours). Longer values improve cache hit rates for frequently rewatched content but consume more disk.",
+            "tier": "advanced",
+            "minimum": 60,
+            "maximum": 86400,
+            "default": 10800,
+            "restart": false
+        },
+        "transcoding.segment_cache_max_bytes": {
+            "type": "integer",
+            "group": "transcoding",
+            "description": "Maximum disk space in bytes allocated for the HLS segment cache.",
+            "label": "Segment cache size limit",
+            "helpText": "The total bytes of disk space the segment cache is allowed to consume. When this limit is reached, the cache reaper evicts the least-recently-accessed segments. Default is 8 GiB (8589934592 bytes). Set based on available disk and the number of concurrent HLS streams.",
+            "tier": "advanced",
+            "minimum": 1073741824,
+            "maximum": 1099511627776,
+            "default": 8589934592,
+            "restart": false
+        },
+        "transcoding.stale_job_max_age": {
+            "type": "integer",
+            "group": "transcoding",
+            "description": "Seconds after which a 'running' job with no output is considered stale.",
+            "label": "Stale job timeout",
+            "helpText": "If a transcode job reports itself as 'running' but produces no output for this many seconds, the worker marks it as stale and reclaims it. Default is 120 seconds. This is a safety net — the primary timeout is transcoding.transcode_timeout.",
+            "tier": "advanced",
+            "minimum": 10,
+            "maximum": 600,
+            "default": 120,
+            "restart": false
+        },
+        "subsystem.library_scan_enabled": {
+            "type": "boolean",
+            "group": "subsystem",
+            "description": "Master kill switch for the media library scanner worker.",
+            "label": "Enable library scanner",
+            "helpText": "When disabled, the library scanner worker stops polling for new media files. New files added to watched folders will not be picked up until this is re-enabled. Use this for temporary maintenance windows.",
+            "tier": "standard",
+            "default": true,
+            "restart": false
+        },
+        "subsystem.plugin_auto_update_enabled": {
+            "type": "boolean",
+            "group": "subsystem",
+            "description": "Master kill switch for the plugin auto-update worker.",
+            "label": "Enable plugin auto-update",
+            "helpText": "When disabled, the plugin update checker worker stops checking for new plugin versions. Existing plugins continue to work normally.",
+            "tier": "standard",
+            "default": true,
+            "restart": false
+        },
+        "subsystem.marker_detection_enabled": {
+            "type": "boolean",
+            "group": "subsystem",
+            "description": "Master kill switch for the intro/outro marker detection worker.",
+            "label": "Enable marker detection",
+            "helpText": "When disabled, the marker detection worker stops queuing new episodes for intro/outro analysis. Existing markers are preserved. Disable when marker detection CPU usage impacts playback performance.",
+            "tier": "standard",
+            "default": true,
+            "restart": false
+        },
+        "subsystem.media_asset_jobs_enabled": {
+            "type": "boolean",
+            "group": "subsystem",
+            "description": "Master kill switch for the chapter thumbnail and trickplay image generation worker.",
+            "label": "Enable media asset jobs",
+            "helpText": "When disabled, the worker stops generating chapter thumbnails, sprite sheets, and trickplay images. These assets will be missing for newly added content until re-enabled.",
+            "tier": "standard",
+            "default": true,
+            "restart": false
+        },
+        "subsystem.similarity_enabled": {
+            "type": "boolean",
+            "group": "subsystem",
+            "description": "Master kill switch for the similarity/comparison worker.",
+            "label": "Enable similarity engine",
+            "helpText": "When disabled, the similarity worker stops computing similarity scores between media items. Existing similarity data is preserved.",
+            "tier": "standard",
+            "default": true,
+            "restart": false
+        },
+        "auth.enabled": {
+            "type": "boolean",
+            "group": "auth",
+            "description": "Master kill switch for local username/password authentication.",
+            "label": "Enable local authentication",
+            "helpText": "When disabled, local username/password login is unavailable. This is only recommended if you are exclusively using SSO, OAuth, or Hub-managed authentication. If no other auth method is configured, this cannot be disabled.",
+            "tier": "standard",
+            "default": true,
+            "restart": false
+        },
+        "auth.rate_limit": {
+            "type": "integer",
+            "group": "auth",
+            "description": "Maximum login attempts per IP address per hour before rate limiting kicks in.",
+            "label": "Login rate limit",
+            "helpText": "After this many failed login attempts from the same IP address within one hour, subsequent login requests from that IP are rejected with a 429 response. Set to 0 to disable rate limiting (not recommended).",
+            "tier": "advanced",
+            "minimum": 0,
+            "maximum": 1000,
+            "default": 20,
+            "restart": false
+        },
+        "auth.session_lifetime": {
+            "type": "integer",
+            "group": "auth",
+            "description": "Session cookie lifetime in seconds before automatic re-authentication is required.",
+            "label": "Session lifetime",
+            "helpText": "How long a login session remains valid before the user must re-authenticate. Default is 86400 seconds (24 hours). Longer values are more convenient but increase the window of compromise if a session cookie is stolen.",
+            "tier": "standard",
+            "minimum": 300,
+            "maximum": 604800,
+            "default": 86400,
+            "restart": false
         }
     }
 }

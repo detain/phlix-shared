@@ -116,6 +116,27 @@ final class ServerSettingsSchemaTest extends TestCase
             'transcoding.max_concurrent_transcodes' => ['transcoding.max_concurrent_transcodes', 'integer'],
             'transcoding.transcode_timeout' => ['transcoding.transcode_timeout', 'integer'],
             'transcoding.max_concurrent_scan_probes' => ['transcoding.max_concurrent_scan_probes', 'integer'],
+            'metadata.preferred_language' => ['metadata.preferred_language', 'string'],
+            'metadata.preferred_country' => ['metadata.preferred_country', 'string'],
+            'metadata.fanart_api_key' => ['metadata.fanart_api_key', 'string'],
+            'database.pool_size' => ['database.pool_size', 'integer'],
+            'database.timeout' => ['database.timeout', 'integer'],
+            'relay.reconnect_delay' => ['relay.reconnect_delay', 'integer'],
+            'relay.ping_interval' => ['relay.ping_interval', 'integer'],
+            'hls.segment_seconds' => ['hls.segment_seconds', 'integer'],
+            'hls.max_concurrent_segments' => ['hls.max_concurrent_segments', 'integer'],
+            'transcoding.segment_max_inflight_global' => ['transcoding.segment_max_inflight_global', 'integer'],
+            'transcoding.segment_cache_max_age' => ['transcoding.segment_cache_max_age', 'integer'],
+            'transcoding.segment_cache_max_bytes' => ['transcoding.segment_cache_max_bytes', 'integer'],
+            'transcoding.stale_job_max_age' => ['transcoding.stale_job_max_age', 'integer'],
+            'subsystem.library_scan_enabled' => ['subsystem.library_scan_enabled', 'boolean'],
+            'subsystem.plugin_auto_update_enabled' => ['subsystem.plugin_auto_update_enabled', 'boolean'],
+            'subsystem.marker_detection_enabled' => ['subsystem.marker_detection_enabled', 'boolean'],
+            'subsystem.media_asset_jobs_enabled' => ['subsystem.media_asset_jobs_enabled', 'boolean'],
+            'subsystem.similarity_enabled' => ['subsystem.similarity_enabled', 'boolean'],
+            'auth.enabled' => ['auth.enabled', 'boolean'],
+            'auth.rate_limit' => ['auth.rate_limit', 'integer'],
+            'auth.session_lifetime' => ['auth.session_lifetime', 'integer'],
         ];
     }
 
@@ -154,6 +175,18 @@ final class ServerSettingsSchemaTest extends TestCase
             'transcoding.max_concurrent_transcodes' => ['transcoding.max_concurrent_transcodes', ['minimum' => 1, 'maximum' => 64]],
             'transcoding.transcode_timeout' => ['transcoding.transcode_timeout', ['minimum' => 60, 'maximum' => 86400]],
             'transcoding.max_concurrent_scan_probes' => ['transcoding.max_concurrent_scan_probes', ['minimum' => 1, 'maximum' => 16]],
+            'database.pool_size' => ['database.pool_size', ['minimum' => 1, 'maximum' => 64]],
+            'database.timeout' => ['database.timeout', ['minimum' => 1, 'maximum' => 60]],
+            'relay.reconnect_delay' => ['relay.reconnect_delay', ['minimum' => 1, 'maximum' => 60]],
+            'relay.ping_interval' => ['relay.ping_interval', ['minimum' => 5, 'maximum' => 300]],
+            'hls.segment_seconds' => ['hls.segment_seconds', ['minimum' => 1, 'maximum' => 30]],
+            'hls.max_concurrent_segments' => ['hls.max_concurrent_segments', ['minimum' => 1, 'maximum' => 32]],
+            'transcoding.segment_max_inflight_global' => ['transcoding.segment_max_inflight_global', ['minimum' => 1, 'maximum' => 32]],
+            'transcoding.segment_cache_max_age' => ['transcoding.segment_cache_max_age', ['minimum' => 60, 'maximum' => 86400]],
+            'transcoding.segment_cache_max_bytes' => ['transcoding.segment_cache_max_bytes', ['minimum' => 1073741824, 'maximum' => 1099511627776]],
+            'transcoding.stale_job_max_age' => ['transcoding.stale_job_max_age', ['minimum' => 10, 'maximum' => 600]],
+            'auth.rate_limit' => ['auth.rate_limit', ['minimum' => 0, 'maximum' => 1000]],
+            'auth.session_lifetime' => ['auth.session_lifetime', ['minimum' => 300, 'maximum' => 604800]],
         ];
     }
 
@@ -178,7 +211,7 @@ final class ServerSettingsSchemaTest extends TestCase
         sort($expected);
 
         $this->assertSame($expected, $actual, 'server-settings schema must declare exactly the expected settings keys.');
-        $this->assertCount(32, $actual);
+        $this->assertCount(53, $actual);
     }
 
     public function test_noise_suffixes_is_an_array_of_strings_with_canonical_default(): void
