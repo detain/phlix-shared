@@ -4,6 +4,11 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.0] - 2026-07-20
+
+### Changed
+- Phase 0: extend server-settings.schema.json with help/tier keywords, add hub-settings.schema.json, update tests
+
 ## [Unreleased]
 
 ### Changed
