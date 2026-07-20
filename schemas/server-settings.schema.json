@@ -56,6 +56,106 @@
             "tier": "advanced",
             "restart": true
         },
+        "transcoding.preferred_accelerator": {
+            "type": "string",
+            "group": "transcoding",
+            "description": "Preferred hardware accelerator for transcoding.",
+            "label": "Preferred hardware accelerator",
+            "helpText": "Select which GPU vendor to prioritize for transcoding. The system will probe available hardware at startup and fall back to software encoding if the selected accelerator is unavailable. CUDA is fastest on NVIDIA GPUs; QSV on Intel; VAAPI on Linux AMD/Intel.",
+            "helpLinks": [
+                { "text": "NVENC CUDA", "url": "https://en.wikipedia.org/wiki/NVENC" },
+                { "text": "VAAPI", "url": "https://en.wikipedia.org/wiki/Video_Acceleration_API" },
+                { "text": "Intel QSV", "url": "https://en.wikipedia.org/wiki/Intel_Media_SDK" }
+            ],
+            "tier": "advanced",
+            "default": null,
+            "enum": ["nvenc", "vaapi", "qsv", "videotoolbox", "amf", "v4l2", null],
+            "enumLabels": {"nvenc": "NVIDIA NVENC", "vaapi": "VAAPI (Linux)", "qsv": "Intel QSV", "videotoolbox": "Apple VideoToolbox", "amf": "AMD AMF", "v4l2": "V4L2 (Linux)", "null": "Auto-detect"},
+            "optionHelp": {
+                "nvenc": "NVIDIA GPU encoding — best quality/speed on NVIDIA hardware",
+                "vaapi": "Linux VAAPI — supports AMD and Intel GPUs on Linux",
+                "qsv": "Intel Quick Sync Video — fast on Intel CPUs/iGPUs",
+                "videotoolbox": "Apple VideoToolbox — hardware encoding on macOS",
+                "amf": "AMD Advanced Media Framework on Windows",
+                "v4l2": "Video4Linux2 — Linux hardware encoding"
+            }
+        },
+        "transcoding.include_software_fallback": {
+            "type": "boolean",
+            "group": "transcoding",
+            "description": "Whether to fall back to software x264/x265 encoding when hardware acceleration is unavailable or fails.",
+            "label": "Enable software fallback",
+            "helpText": "When enabled, if the selected hardware accelerator is not available or an encode fails, the system will automatically use software x264/x265 encoding instead. Software encoding is slower but produces reliable output.",
+            "tier": "standard",
+            "default": true,
+            "restart": false
+        },
+        "transcoding.tone_mapping_mode": {
+            "type": "string",
+            "group": "transcoding",
+            "description": "HDR tone mapping mode when converting HDR content for SDR displays.",
+            "label": "HDR tone mapping mode",
+            "helpText": "Controls how HDR10 and other HDR video is tone-mapped for display on SDR screens. 'Auto-detect' picks based on output codec; 'None' passes through HDR metadata unchanged (may look washed out on SDR screens); 'zscale' uses the zscale library for high-quality tone mapping; 'libplacebo' uses the libplacebo library for GPU-accelerated tone mapping.",
+            "helpLinks": [
+                { "text": "HDR tone mapping", "url": "https://en.wikipedia.org/wiki/High-dynamic-range_video#Tone_mapping" },
+                { "text": "zscale", "url": "https://github.com/sekno/zscale" }
+            ],
+            "tier": "standard",
+            "default": "none",
+            "enum": ["none", "zscale", "libplacebo"],
+            "enumLabels": {"none": "None (passthrough)", "zscale": "zscale (high quality)", "libplacebo": "libplacebo (GPU accelerated)"},
+            "optionHelp": {
+                "none": "No tone mapping — HDR content may look washed out on SDR displays",
+                "zscale": "High-quality tone mapping using the zscale library — slower but accurate",
+                "libplacebo": "GPU-accelerated tone mapping using libplacebo — fast with good quality"
+            }
+        },
+        "transcoding.prefer_hdr_output": {
+            "type": "boolean",
+            "group": "transcoding",
+            "description": "Prefer preserving HDR metadata in output when the playback device supports it.",
+            "label": "Prefer HDR output",
+            "helpText": "When enabled, the transcoder will attempt to preserve HDR10 or Dolby Vision metadata in the output stream rather than tone-mapping to SDR. Only enable if your playback devices (TV, receiver) support HDMI 2.0b or later and HDR.",
+            "tier": "standard",
+            "default": false,
+            "restart": false
+        },
+        "transcoding.max_concurrent_transcodes": {
+            "type": "integer",
+            "group": "transcoding",
+            "description": "Maximum number of concurrent transcoding jobs allowed across all workers.",
+            "label": "Maximum concurrent transcode jobs",
+            "helpText": "Controls the global concurrency limit for simultaneous transcoding jobs. Each job consumes CPU/GPU resources. Setting this too high can cause encoding quality degradation or worker OOM kills. The default of 4 is conservative; raise it based on your hardware (e.g., a 16-core CPU with an NVIDIA GPU can typically handle 6–8).",
+            "tier": "advanced",
+            "minimum": 1,
+            "maximum": 64,
+            "default": 4,
+            "restart": true
+        },
+        "transcoding.transcode_timeout": {
+            "type": "integer",
+            "group": "transcoding",
+            "description": "Maximum time in seconds before a single transcode job is considered stalled and killed.",
+            "label": "Transcode job timeout",
+            "helpText": "If a transcode job runs longer than this many seconds without producing output, it is considered stalled and the worker will terminate it and retry. The default of 7200 seconds (2 hours) is very generous. For most movies, transcoding completes in 10–60 minutes.",
+            "tier": "advanced",
+            "minimum": 60,
+            "maximum": 86400,
+            "default": 7200,
+            "restart": true
+        },
+        "transcoding.max_concurrent_scan_probes": {
+            "type": "integer",
+            "group": "transcoding",
+            "description": "Maximum concurrent FFprobe media analysis jobs during library scans.",
+            "label": "Maximum concurrent scan probes",
+            "helpText": "Controls how many media files can be analyzed simultaneously during a library scan. Higher values speed up initial scans but use more file descriptors and CPU. The default of 4 is safe for most systems.",
+            "tier": "advanced",
+            "minimum": 1,
+            "maximum": 16,
+            "default": 4,
+            "restart": true
+        },
         "tmdb.api_key": {
             "type": "string",
             "description": "TMDb API key used to fetch movie and TV metadata.",

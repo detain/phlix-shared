@@ -109,6 +109,13 @@ final class ServerSettingsSchemaTest extends TestCase
             'matching.noise_suffixes' => ['matching.noise_suffixes', 'array'],
             'metadata.provider_priority' => ['metadata.provider_priority', 'object'],
             'metadata.genres_mode' => ['metadata.genres_mode', 'string'],
+            'transcoding.preferred_accelerator' => ['transcoding.preferred_accelerator', 'string'],
+            'transcoding.include_software_fallback' => ['transcoding.include_software_fallback', 'boolean'],
+            'transcoding.tone_mapping_mode' => ['transcoding.tone_mapping_mode', 'string'],
+            'transcoding.prefer_hdr_output' => ['transcoding.prefer_hdr_output', 'boolean'],
+            'transcoding.max_concurrent_transcodes' => ['transcoding.max_concurrent_transcodes', 'integer'],
+            'transcoding.transcode_timeout' => ['transcoding.transcode_timeout', 'integer'],
+            'transcoding.max_concurrent_scan_probes' => ['transcoding.max_concurrent_scan_probes', 'integer'],
         ];
     }
 
@@ -144,6 +151,9 @@ final class ServerSettingsSchemaTest extends TestCase
             'discovery.discovery_port' => ['discovery.discovery_port', ['minimum' => 1, 'maximum' => 65535]],
             'trickplay.interval_seconds' => ['trickplay.interval_seconds', ['minimum' => 1]],
             'newsletter.send_hour' => ['newsletter.send_hour', ['minimum' => 0, 'maximum' => 23]],
+            'transcoding.max_concurrent_transcodes' => ['transcoding.max_concurrent_transcodes', ['minimum' => 1, 'maximum' => 64]],
+            'transcoding.transcode_timeout' => ['transcoding.transcode_timeout', ['minimum' => 60, 'maximum' => 86400]],
+            'transcoding.max_concurrent_scan_probes' => ['transcoding.max_concurrent_scan_probes', ['minimum' => 1, 'maximum' => 16]],
         ];
     }
 
@@ -168,7 +178,7 @@ final class ServerSettingsSchemaTest extends TestCase
         sort($expected);
 
         $this->assertSame($expected, $actual, 'server-settings schema must declare exactly the expected settings keys.');
-        $this->assertCount(25, $actual);
+        $this->assertCount(32, $actual);
     }
 
     public function test_noise_suffixes_is_an_array_of_strings_with_canonical_default(): void
