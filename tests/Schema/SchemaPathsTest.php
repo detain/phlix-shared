@@ -82,9 +82,23 @@ final class SchemaPathsTest extends TestCase
         $this->assertIsArray($typeProp);
         $typeEnum = $typeProp['enum'] ?? [];
         $this->assertIsArray($typeEnum);
-        foreach (['movie', 'series', 'season', 'episode', 'audio', 'image'] as $expected) {
-            $this->assertContains($expected, $typeEnum, "media-item type enum must include '{$expected}'.");
-        }
+        // The enum must mirror the `media_items.type` column ENUM (server
+        // migrations 001 -> 011 -> 034) member-for-member. It previously listed
+        // only 6 of the 13 members plus a non-existent `image`, which let the
+        // server's shaper relabel real photo/book/audiobook rows as `movie`.
+        $this->assertSame(
+            [
+                'movie', 'series', 'season', 'episode', 'track', 'music', 'album',
+                'artist', 'video', 'audio', 'book', 'photo', 'audiobook',
+            ],
+            $typeEnum,
+            'media-item type enum must mirror the media_items.type column ENUM exactly.'
+        );
+        $this->assertNotContains(
+            'image',
+            $typeEnum,
+            "'image' is a scanner-side label, not a media_items.type member — the column calls it 'photo'."
+        );
 
         // The hierarchy/ordering fields the series detail page relies on.
         foreach (['parent_id', 'season_number', 'episode_number', 'episode_title'] as $field) {

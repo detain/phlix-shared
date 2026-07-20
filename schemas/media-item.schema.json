@@ -18,8 +18,22 @@
         },
         "type": {
             "type": "string",
-            "description": "Media type discriminator. `series`/`season`/`episode` form the TV/anime hierarchy: a `series` (the show) parents `season` items, which parent `episode` items. Standalone shows may parent `episode` items directly (no `season` row), in which case the client derives season grouping from `season_number`.",
-            "enum": ["movie", "series", "season", "episode", "audio", "image"]
+            "description": "Media type discriminator, mirroring the `media_items.type` column ENUM exactly. `series`/`season`/`episode` form the TV/anime hierarchy: a `series` (the show) parents `season` items, which parent `episode` items. Standalone shows may parent `episode` items directly (no `season` row), in which case the client derives season grouping from `season_number`. Note there is no `image` member — the photo concept is named `photo`, matching the column.",
+            "enum": [
+                "movie",
+                "series",
+                "season",
+                "episode",
+                "track",
+                "music",
+                "album",
+                "artist",
+                "video",
+                "audio",
+                "book",
+                "photo",
+                "audiobook"
+            ]
         },
         "parent_id": {
             "type": ["string", "null"],
