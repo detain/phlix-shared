@@ -4,14 +4,22 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.18.0] - 2026-07-20
-
-### Changed
-- Phase 0: extend server-settings.schema.json with help/tier keywords, add hub-settings.schema.json, update tests
-
 ## [Unreleased]
 
+## [0.21.0] - 2026-07-20
+
+### Added
+- **`schemas/hub-settings.schema.json`** — new schema for hub configuration, alongside
+  `server-settings.schema.json` gaining `help`/`tier` keywords so the admin settings UI can render
+  per-option help text and split Standard vs Advanced options (Phase 0).
+- **`schemas/server-settings.schema.json`** — `lastfm.*` keys.
+- **`schemas/media-item.schema.json`** — five new OPTIONAL, nullable detail-only fields the server now
+  emits on `GET /api/v1/media/{id}`: `trailer_url`, `trailer_key`, `trailer_site`, `logo_url`, and
+  `still_url` (episodes only). All are absent from the lean list responses and null when unavailable,
+  so existing consumers are unaffected.
+
 ### Changed
+- **Relay protocol docs** — the `HTTP_CANCEL` (`0x12`) frame contract is now documented.
 - **`schemas/media-item.schema.json`** & **`schemas/library-query.schema.json`** — the content-rating
   vocabulary is expanded (Phase C) to cover the US TV Parental Guidelines scale alongside the existing
   MPAA film scale. The `rating` enum (media-item) and the `ratings[]` filter enum (library-query) now
@@ -19,11 +27,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   `NR` is normalized to `UNRATED` server-side and is deliberately not part of the vocabulary. Purely
   additive — existing consumers using only the film-scale values are unaffected.
 
+## [0.20.0] - 2026-07-12
+
 ### Added
-- **`schemas/media-item.schema.json`** — five new OPTIONAL, nullable detail-only fields the server now
-  emits on `GET /api/v1/media/{id}`: `trailer_url`, `trailer_key`, `trailer_site`, `logo_url`, and
-  `still_url` (episodes only). All are absent from the lean list responses and null when unavailable,
-  so existing consumers are unaffected.
+- **`Phlix\Shared\Relay\RelayHttpRequestHead`** / **`RelayHttpRequestCodec`** /
+  **`RelayHttpRequestChunk`** — chunked relay request bodies. Published as a tagged release so
+  phlix-server and phlix-hub can consume it from Packagist instead of a local path repository.
+  (Release cut from master; this entry was written retroactively in 0.21.0.)
 
 ## [0.19.0] - 2026-07-10
 
