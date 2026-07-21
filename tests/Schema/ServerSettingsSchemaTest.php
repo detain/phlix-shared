@@ -162,6 +162,28 @@ final class ServerSettingsSchemaTest extends TestCase
             // each caller must remember. Local statistics only; nothing is
             // transmitted off the server.
             'stats.enabled' => ['stats.enabled', 'boolean'],
+            // Resolves to config/dlna.php -> ['enabled'] (a NET-NEW config file;
+            // it did not exist before 1.3.0). Gates the SSDP advertiser, which is
+            // the DLNA surface that genuinely runs: SsdpAdvertiser::onWorkerStart
+            // consults it on every graceful reload and idles without opening its
+            // socket when false, while start.php's master-side spawn decision
+            // stays on the FILE default (a DB read in the master would be
+            // inherited by every fork). Same disable-on-reload / enable-needs-
+            // service-restart asymmetry as the five process.* keys, and the
+            // helpText states it in the same words.
+            //
+            // SCOPE IS DELIBERATELY NARROW. This key does NOT claim to control
+            // DLNA browsing, because DLNA browsing does not currently work:
+            // Application::loadCdsRoutes() resolves Phlix\Dlna\CdsServer inside a
+            // bare catch(\Throwable), and that resolution ALWAYS throws because
+            // Phlix\Dlna\DlnaServer is registered in no DI provider and its
+            // constructor takes three un-autowirable string parameters. Verified
+            // on production 2026-07-21: POST /dlna/content_directory, POST
+            // /cds/control and GET /scpd/ContentDirectory.xml all 404, while GET
+            // /dlna/description.xml returns 200 only because a STATIC file sits at
+            // public/dlna/description.xml. Do not widen this key's helpText to
+            // promise browsing until that is wired -- see plan_settings.md.
+            'dlna.enabled' => ['dlna.enabled', 'boolean'],
             // NOTE: both `marker_detection.*` keys were DELETED in 0.28.0. They
             // resolved to real config defaults but had NO consumer: the only reads
             // of config/marker_detection.php are MediaServicesProvider.php:521,539,
@@ -302,7 +324,7 @@ final class ServerSettingsSchemaTest extends TestCase
         sort($expected);
 
         $this->assertSame($expected, $actual, 'server-settings schema must declare exactly the expected settings keys.');
-        $this->assertCount(38, $actual);
+        $this->assertCount(39, $actual);
     }
 
     /**

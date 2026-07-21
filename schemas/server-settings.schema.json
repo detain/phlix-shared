@@ -816,6 +816,26 @@
             "tier": "standard",
             "restart": false,
             "default": true
+        },
+        "dlna.enabled": {
+            "type": "boolean",
+            "description": "Announce this server to DLNA/UPnP devices on the local network. When off, the SSDP advertiser stops broadcasting and sends a byebye notice, so smart TVs, games consoles and other UPnP clients no longer list this server. Takes effect on the next restart.",
+            "group": "subsystem",
+            "label": "Announce server via DLNA/UPnP",
+            "helpText": "Phlix broadcasts a short SSDP message on your local network every 30 seconds so that DLNA/UPnP clients — smart TVs, games consoles, some media players — can discover it without being told an address. Turning this off stops those broadcasts and sends a single \"byebye\" notice, after which the server disappears from those devices' lists; nothing else about Phlix changes, and the web and app clients are unaffected. This is worth switching off if you do not use DLNA at all, if the server is on an untrusted or shared network, or if a device keeps rediscovering it unwantedly. Turning it OFF takes effect after a restart. Turning it back ON also takes effect after a restart — unless it was switched off in the server's DLNA configuration file on disk, in which case restarting from this page is not enough and the service itself has to be restarted. The advertiser switched off here still occupies an idle process; it simply stops broadcasting.",
+            "helpLinks": [
+                {
+                    "text": "DLNA",
+                    "url": "https://en.wikipedia.org/wiki/Digital_Living_Network_Alliance"
+                },
+                {
+                    "text": "SSDP",
+                    "url": "https://en.wikipedia.org/wiki/Simple_Service_Discovery_Protocol"
+                }
+            ],
+            "tier": "standard",
+            "restart": true,
+            "default": true
         }
     }
 }

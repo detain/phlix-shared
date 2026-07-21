@@ -4,6 +4,36 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.32.0] - 2026-07-21
+
+Adds one settings key: `dlna.enabled` (38 -> 39 properties).
+
+Ships with a NET-NEW `config/dlna.php` in `phlix-server` (the file did not
+exist) and a net-new guard in `SsdpAdvertiser::isEnabled()`, consulted by that
+worker's `onWorkerStart`. Turning it off stops the SSDP broadcasts that make
+this server appear in smart TVs' and games consoles' source lists.
+
+Same disable-on-reload / enable-needs-a-service-restart asymmetry as the five
+`process.*` keys, for the same reason: the master process spawns the advertiser
+before `Worker::runAll()` and cannot consult the settings store without leaving
+a DB connection inherited by every fork. So the spawn decision reads the config
+FILE, and the fork applies the EFFECTIVE value on every graceful reload. The
+helpText states this in the same words the `process.*` keys use.
+
+**The scope of this key is deliberately narrow, and the reason is a bug worth
+recording.** It gates the advertiser only — NOT DLNA browsing — because DLNA
+browsing is not currently wired at all. `Application::loadCdsRoutes()` resolves
+`Phlix\Dlna\CdsServer` inside a bare `catch (\Throwable)`, and that resolution
+always throws: `Phlix\Dlna\DlnaServer` is registered in no DI provider and its
+constructor takes three un-autowirable `string` parameters. Verified against
+production on 2026-07-21 — `POST /dlna/content_directory`, `POST /cds/control`
+and `GET /scpd/ContentDirectory.xml` all return 404, while
+`GET /dlna/description.xml` returns 200 only because a static file happens to
+sit at `public/dlna/description.xml`. The net effect is that the server
+advertises itself as a MediaServer that then 404s every browse request, which
+makes switching the advertisement off a genuine improvement today. Do not widen
+this key's helpText to promise browsing until the CDS is wired.
+
 ## [0.31.0] - 2026-07-21
 
 Adds one settings key: `stats.enabled` (37 -> 38 properties).
