@@ -107,7 +107,20 @@ final class ServerSettingsSchemaTest extends TestCase
             // first citing the file:line that reads the effective value.
             // config/transcoding.php
             'transcoding.preferred_accelerator' => ['transcoding.preferred_accelerator', 'string'],
-            'transcoding.include_software_fallback' => ['transcoding.include_software_fallback', 'boolean'],
+            // NOTE: `transcoding.include_software_fallback` was DELETED in 0.27.0 for the
+            // same reason as `hwaccel.probe_timeout` above: it resolved to a real config
+            // default (`phlix-server/config/transcoding.php:44`) and was copied into the
+            // merged array by `HwAccelConfig::get()`
+            // (`phlix-server/src/Config/HwAccelConfig.php:118`), but NOTHING read the
+            // merged value. The only consumers of that array are `FfmpegRunner::setConfig()`
+            // — which reads exactly `tone_mapping_mode`, `prefer_hdr_output`,
+            // `preferred_accelerator`, `enabled` and `prefer_hardware` — and
+            // `HwaccelRegistry`, whose software-fallback decision reads the SEPARATE
+            // `hwaccel.fallback_to_software` key
+            // (`HwaccelRegistry.php:160,206`, sourced from `config/hwaccel_base.php`).
+            // Do not re-add it without first citing the file:line that reads the
+            // effective value; if a software-fallback toggle is wanted, expose
+            // `hwaccel.fallback_to_software`, which is genuinely consumed.
             'transcoding.tone_mapping_mode' => ['transcoding.tone_mapping_mode', 'string'],
             'transcoding.prefer_hdr_output' => ['transcoding.prefer_hdr_output', 'boolean'],
             // config/ffmpeg.php
@@ -255,7 +268,90 @@ final class ServerSettingsSchemaTest extends TestCase
         sort($expected);
 
         $this->assertSame($expected, $actual, 'server-settings schema must declare exactly the expected settings keys.');
-        $this->assertCount(42, $actual);
+        $this->assertCount(41, $actual);
+    }
+
+    /**
+     * Keys deleted from this schema because they had NO CONSUMER in phlix-server.
+     *
+     * Each entry records the audit that removed it. A key here resolved to a real
+     * `config/*.php` default — so it passed every resolvability test — yet no line
+     * of `phlix-server` ever read the effective value. Per plan §4 rule 10 such a
+     * key is deleted, not shipped.
+     *
+     * @var array<string, string>
+     */
+    private const CONSUMERLESS_KEY_DENYLIST = [
+        'hwaccel.probe_timeout' =>
+            'Deleted in 0.26.0. HwaccelRegistry is built via getInstance() with no config, '
+            . 'and the real probe timeouts are the hardcoded ShellTimeout::FFMPEG_TIMEOUT (10) '
+            . '/ ::GPU_TOOL_TIMEOUT (5) constants that no config value is threaded into.',
+        'transcoding.include_software_fallback' =>
+            'Deleted in 0.27.0. HwAccelConfig::get() copied it into the merged hwaccel array, '
+            . 'but FfmpegRunner reads only tone_mapping_mode/prefer_hdr_output/'
+            . 'preferred_accelerator/enabled/prefer_hardware from that array, and '
+            . "HwaccelRegistry's software-fallback branch reads the SEPARATE "
+            . 'hwaccel.fallback_to_software key. Expose that one instead.',
+    ];
+
+    /**
+     * Regression guard: a key deleted for having no consumer must never come back.
+     *
+     * **This is deliberately a denylist, not a general consumerless-key detector.**
+     * A general detector is not implementable here and would not be reliable if it
+     * were:
+     *
+     * - `phlix-shared` has no access to `phlix-server`'s source tree at all, so the
+     *   question "does any line read this key's effective value?" is unanswerable
+     *   from this repo.
+     * - Even inside `phlix-server` the question is a whole-program dataflow problem,
+     *   not a grep. A consumed key can be read as a literal
+     *   (`getEffective('auth.signup_mode')`), through a merged array handed across a
+     *   DI boundary (`FfmpegRunner::setConfig()` then `$this->config['...']`), or
+     *   through a variable array key (`EffectiveConfig::file('process')[$procKey]`
+     *   in `start.php`). Any name-matching heuristic strong enough to catch case 3
+     *   matches common leaf names like `enabled`/`timeout` everywhere and yields
+     *   false PASSES; any heuristic strict enough to avoid that produces false
+     *   FAILURES on cases 2 and 3, which get silenced by an allow-list that then
+     *   rots into a rubber stamp.
+     *
+     * A guard whose allow-list must be grown every time it misfires proves nothing.
+     * So the invariant asserted here is the narrow one that *is* decidable and *is*
+     * the observed recurrence: the specific keys a human audit already proved dead
+     * stay dead. New keys are covered by plan §4 rule 1 instead — cite the
+     * `file:line` that reads the effective value, in the PR that adds the key.
+     */
+    public function test_no_schema_key_is_a_known_consumerless_key(): void
+    {
+        $properties = array_keys(self::properties());
+        $expected = array_map(
+            static fn (array $row): string => $row[0],
+            array_values(self::propertyProvider())
+        );
+
+        foreach (self::CONSUMERLESS_KEY_DENYLIST as $key => $why) {
+            $this->assertNotContains(
+                $key,
+                $properties,
+                sprintf(
+                    'Settings key "%s" was deleted because it has no consumer in phlix-server '
+                    . 'and must not be re-added to server-settings.schema.json. %s '
+                    . 'If you believe it is now genuinely consumed, cite the file:line that '
+                    . 'reads the EFFECTIVE value and remove it from CONSUMERLESS_KEY_DENYLIST '
+                    . 'in the same change.',
+                    $key,
+                    $why
+                )
+            );
+
+            // The hand-written expectation list must not resurrect it either — a key
+            // added to both places would otherwise still satisfy the key-set test.
+            $this->assertNotContains(
+                $key,
+                $expected,
+                sprintf('Consumerless key "%s" must not be re-added to propertyProvider().', $key)
+            );
+        }
     }
 
     /**
@@ -587,27 +683,6 @@ final class ServerSettingsSchemaTest extends TestCase
                 sprintf('Property "%s" "%s" must equal the documented bound.', $key, $constraintKey)
             );
         }
-    }
-
-    /**
-     * A key with no consumer must not be re-added.
-     *
-     * `hwaccel.probe_timeout` resolved to a config default and was rendered by
-     * the admin SPA with a "requires a server restart to take effect" note, but
-     * nothing in phlix-server ever read the effective value: the real probe
-     * timeouts are the hardcoded `ShellTimeout::FFMPEG_TIMEOUT` (10s) and
-     * `::GPU_TOOL_TIMEOUT` (5s) constants, reached via static calls from seven
-     * `VendorProbe` classes that take no timeout argument. Shipping it was the
-     * false advertising this schema exists to prevent (plan §4 rule 10).
-     */
-    public function test_consumerless_probe_timeout_key_is_not_reintroduced(): void
-    {
-        $this->assertArrayNotHasKey(
-            'hwaccel.probe_timeout',
-            self::properties(),
-            'hwaccel.probe_timeout has no consumer in phlix-server and must stay deleted. '
-            . 'Re-adding it requires first citing the file:line that reads the effective value.'
-        );
     }
 
     /**

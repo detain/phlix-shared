@@ -102,26 +102,6 @@
                 "v4l2m2m": "Video4Linux2 memory-to-memory devices, used by embedded boards and single-board computers such as the Raspberry Pi."
             }
         },
-        "transcoding.include_software_fallback": {
-            "type": "boolean",
-            "group": "transcoding",
-            "description": "Whether to fall back to software x264/x265 encoding when hardware acceleration is unavailable or fails.",
-            "label": "Enable software fallback",
-            "helpText": "When enabled, if the selected hardware accelerator is not available or an encode fails, the system will automatically use software x264/x265 encoding instead. Software encoding is slower but produces reliable output.",
-            "helpLinks": [
-                {
-                    "text": "x264",
-                    "url": "https://en.wikipedia.org/wiki/X264"
-                },
-                {
-                    "text": "x265",
-                    "url": "https://en.wikipedia.org/wiki/X265"
-                }
-            ],
-            "tier": "standard",
-            "default": true,
-            "restart": false
-        },
         "transcoding.tone_mapping_mode": {
             "type": "string",
             "group": "transcoding",

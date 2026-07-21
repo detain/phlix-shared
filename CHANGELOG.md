@@ -4,6 +4,78 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.27.0] - 2026-07-20
+
+Deletes the last known consumerless settings key. `server-settings` goes from
+42 to 41 properties.
+
+### Removed
+
+`schemas/server-settings.schema.json` — **`transcoding.include_software_fallback`**
+(was `boolean`, `default: true`, `tier: standard`, `restart: false`).
+
+Same defect shape as `hwaccel.probe_timeout` in 0.26.0: the key *resolved*
+cleanly, so `SettingsDefaultResolvabilityTest` was green, but **nothing in
+`phlix-server` ever read the effective value.** Verified by an exhaustive sweep
+of `src/`, `config/`, `public/index.php`, `start.php`, `bin/`, `scripts/` and
+the vendored tree — for the literal key name, for variable-key array access on
+every config array, and for concatenated/fragmented key construction. Exactly
+three live hits existed, none of them a read:
+
+1. `phlix-server/config/transcoding.php:44` — the default literal.
+2. `phlix-server/src/Config/HwAccelConfig.php:118` — copies it into the merged
+   hwaccel array.
+3. `phlix-server/tests/.../AdminSettingsControllerTest.php:84` — the
+   hand-written allow-list assertion.
+
+The merged array has exactly two consumers, and neither reads the key:
+
+- `FfmpegRunner::setConfig()` (`Application.php:2971`,
+  `TranscodeServicesProvider.php:149`). `FfmpegRunner` reads precisely
+  `tone_mapping_mode`, `prefer_hdr_output`, `preferred_accelerator`, `enabled`
+  and `prefer_hardware` from `$this->config` — nothing else. Its `getConfig()`
+  accessor has no caller in `src/`.
+- `HwaccelRegistry`, whose *actual* software-fallback decision
+  (`HwaccelRegistry.php:160,206`) reads the **separate**
+  `hwaccel.fallback_to_software` key, sourced from `config/hwaccel_base.php`.
+
+So the toggle was inert in both directions: turning it off never disabled
+software fallback, and turning it on never enabled anything. Deleted rather
+than wired (plan §4 rule 10) because the working equivalent already exists —
+`hwaccel.fallback_to_software` is genuinely consumed and is the key to expose
+if a software-fallback toggle is wanted. Shipping a second, dead key beside it
+would have been strictly worse than absence.
+
+The `config/transcoding.php` default and the `HwAccelConfig::get()` merge line
+are deliberately retained (with an explanatory comment) so the merged array
+shape is unchanged for any caller reading it defensively — mirroring exactly
+what 0.26.0 did for `probe_timeout`.
+
+### Changed
+
+`tests/Schema/ServerSettingsSchemaTest.php` — the single-key
+`test_consumerless_probe_timeout_key_is_not_reintroduced()` guard added in
+0.26.0 is generalised into `test_no_schema_key_is_a_known_consumerless_key()`,
+driven by a `CONSUMERLESS_KEY_DENYLIST` map that now carries both keys deleted
+for having no consumer (`hwaccel.probe_timeout`,
+`transcoding.include_software_fallback`), each with the audit note that killed
+it. The new guard additionally asserts the key is absent from the hand-written
+`propertyProvider()` expectation list, so a key re-added to *both* places still
+fails rather than quietly satisfying the key-set test.
+
+This stays a **denylist regression guard, not a general consumerless-key
+detector.** The general case is not decidable here: `phlix-shared` cannot see
+`phlix-server`'s source, and even inside `phlix-server` "is this key's effective
+value ever read?" is a whole-program dataflow question — consumers appear as
+literals (`getEffective('auth.signup_mode')`), as reads of a merged array handed
+across a DI boundary (`FfmpegRunner::setConfig()` → `$this->config['...']`), and
+as variable array keys (`EffectiveConfig::file('process')[$procKey]` in
+`start.php`). A name-matching heuristic strong enough for the third form matches
+common leaf names like `enabled`/`timeout` everywhere and yields false passes; a
+stricter one yields false failures that get silenced by an allow-list which then
+rots into a rubber stamp. Plan §4 rule 1 — cite the `file:line` consumer in the
+PR that adds the key — remains the control for new keys.
+
 ## [0.26.0] - 2026-07-20
 
 Makes the last two dishonest `restart: true` settings honest. `server-settings`
