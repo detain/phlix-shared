@@ -4,6 +4,25 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.30.0] - 2026-07-21
+
+Adds one settings key: `webhooks.enabled` (36 -> 37 properties).
+
+This key ships together with the consumer that makes it real. Before this,
+`config/webhooks.php`'s `'enabled' => true` had **zero consumers** in
+`phlix-server`: the literal appeared only inside the fallback array
+`WebhookDispatcher::getConfig()` returns when the config file is MISSING, and was
+never read on any path. `getConfig()` also raw-`include`d the file (read-path
+class (d) NOT REACHABLE), so no `webhooks.*` admin override could reach it even
+if something had read it.
+
+Both halves were fixed in `phlix-server`: `getConfig()` now goes through
+`EffectiveConfig::file('webhooks')`, and `WebhookDispatcher::isEnabled()` gates
+`dispatch()` before the per-event DB lookup, so switching webhooks off also stops
+the query. Registrations are left intact and resume when switched back on.
+
+Defaults to `true` so existing installs keep delivering exactly as before.
+
 ## [0.29.0] - 2026-07-21
 
 Adds one settings key: `auth.password.min_length` (35 -> 36 properties).

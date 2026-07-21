@@ -148,6 +148,13 @@ final class ServerSettingsSchemaTest extends TestCase
             // PasswordPolicy::ABSOLUTE_MIN_LENGTH so the control can only ever
             // strengthen the shipped policy.
             'auth.password.min_length' => ['auth.password.min_length', 'integer'],
+            // Resolves to config/webhooks.php -> ['enabled']. Consumed via
+            // WebhookDispatcher::isEnabled(), which gates dispatch() before the
+            // per-event DB lookup. Both halves of this shipped together: the key
+            // previously had NO consumer at all ('enabled' => true appeared only in
+            // getConfig()'s file-missing fallback and was never read), and getConfig()
+            // raw-included the file so no override could reach it either.
+            'webhooks.enabled' => ['webhooks.enabled', 'boolean'],
             // NOTE: both `marker_detection.*` keys were DELETED in 0.28.0. They
             // resolved to real config defaults but had NO consumer: the only reads
             // of config/marker_detection.php are MediaServicesProvider.php:521,539,
@@ -288,7 +295,7 @@ final class ServerSettingsSchemaTest extends TestCase
         sort($expected);
 
         $this->assertSame($expected, $actual, 'server-settings schema must declare exactly the expected settings keys.');
-        $this->assertCount(36, $actual);
+        $this->assertCount(37, $actual);
     }
 
     /**

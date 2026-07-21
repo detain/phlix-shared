@@ -784,6 +784,22 @@
             "tier": "standard",
             "default": true,
             "restart": true
+        },
+        "webhooks.enabled": {
+            "type": "boolean",
+            "description": "Master on/off switch for outbound webhook delivery. When off, no webhook is sent for any event and no per-event database lookup is performed; individual webhook registrations are left untouched and resume delivering when this is switched back on.",
+            "group": "integrations",
+            "label": "Enable outbound webhooks",
+            "helpText": "Webhooks let Phlix notify other services when something happens — a library scan finishes, playback starts, an item is added. Turning this off is a single kill-switch for ALL outbound delivery: your configured webhook endpoints are kept exactly as they are, they simply stop being called until you turn it back on. That makes it the right control when a downstream endpoint is misbehaving, noisy, or being maintained, since you do not have to delete and re-create your webhooks. Individual webhooks can still be disabled separately if you only want to silence one of them.",
+            "helpLinks": [
+                {
+                    "text": "Webhook",
+                    "url": "https://en.wikipedia.org/wiki/Webhook"
+                }
+            ],
+            "tier": "standard",
+            "restart": false,
+            "default": true
         }
     }
 }
