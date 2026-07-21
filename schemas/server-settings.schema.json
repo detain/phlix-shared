@@ -819,10 +819,10 @@
         },
         "dlna.enabled": {
             "type": "boolean",
-            "description": "Announce this server to DLNA/UPnP devices on the local network. When off, the SSDP advertiser stops broadcasting and sends a byebye notice, so smart TVs, games consoles and other UPnP clients no longer list this server. Takes effect on the next restart.",
+            "description": "Announce this server to DLNA/UPnP devices on the local network. Only has an effect when the DLNA media server itself is enabled; announcing a server that is not serving would list a device that cannot be opened. When off, the SSDP advertiser stops broadcasting and sends a byebye notice. Takes effect on the next restart.",
             "group": "subsystem",
             "label": "Announce server via DLNA/UPnP",
-            "helpText": "Phlix broadcasts a short SSDP message on your local network every 30 seconds so that DLNA/UPnP clients — smart TVs, games consoles, some media players — can discover it without being told an address. Turning this off stops those broadcasts and sends a single \"byebye\" notice, after which the server disappears from those devices' lists; nothing else about Phlix changes, and the web and app clients are unaffected. This is worth switching off if you do not use DLNA at all, if the server is on an untrusted or shared network, or if a device keeps rediscovering it unwantedly. Turning it OFF takes effect after a restart. Turning it back ON also takes effect after a restart — unless it was switched off in the server's DLNA configuration file on disk, in which case restarting from this page is not enough and the service itself has to be restarted. The advertiser switched off here still occupies an idle process; it simply stops broadcasting.",
+            "helpText": "Phlix broadcasts a short SSDP message on your local network every 30 seconds so that DLNA/UPnP clients \u2014 smart TVs, games consoles, some media players \u2014 can discover it without being told an address. This only does anything when \"Enable DLNA media server\" is also on: announcing a server whose browse service is switched off would put Phlix in every TV's source list as a device that fails to open. Turning discovery off while leaving the server on is a valid combination \u2014 clients you give the address to directly still work. Turning it OFF takes effect after a restart. Turning it back ON also takes effect after a restart \u2014 unless it was switched off in the server's DLNA configuration file on disk, in which case restarting from this page is not enough and the service itself has to be restarted. The advertiser switched off here still occupies an idle process; it simply stops broadcasting.",
             "helpLinks": [
                 {
                     "text": "DLNA",
@@ -896,6 +896,42 @@
             "tier": "standard",
             "restart": false,
             "default": true
+        },
+        "dlna.cds_enabled": {
+            "type": "boolean",
+            "description": "Run the DLNA media server, letting devices on your local network browse and play your library. WARNING: DLNA has no authentication of any kind \u2014 anything on the network can browse and stream without signing in. Off by default. Takes effect on the next restart.",
+            "group": "subsystem",
+            "label": "Enable DLNA media server",
+            "helpText": "This is the master switch for serving media over DLNA/UPnP, which is how smart TVs, games consoles and similar devices browse a media server without an app. READ THIS BEFORE TURNING IT ON: the DLNA protocol has NO concept of a username, password or token. Switching this on means any device on your local network can list and stream your entire library without signing in, deliberately bypassing the sign-in that every other way into Phlix requires. That is a reasonable trade on a home network you control, and a bad one on a shared, office, dormitory or public network. It ships off for that reason. Leaving it off costs you nothing else: the web and app clients, casting and remote access are all unaffected. If you turn it on and devices still cannot see the server, check that \"Announce server via DLNA/UPnP\" is also on.",
+            "helpLinks": [
+                {
+                    "text": "DLNA",
+                    "url": "https://en.wikipedia.org/wiki/Digital_Living_Network_Alliance"
+                },
+                {
+                    "text": "UPnP",
+                    "url": "https://en.wikipedia.org/wiki/Universal_Plug_and_Play"
+                }
+            ],
+            "tier": "advanced",
+            "restart": true,
+            "default": false
+        },
+        "dlna.friendly_name": {
+            "type": "string",
+            "description": "Name shown for this server in a TV's or games console's source list. Only visible when the DLNA media server is enabled. Takes effect on the next restart.",
+            "group": "subsystem",
+            "label": "DLNA server name",
+            "helpText": "The name devices display when they find this server over DLNA \u2014 what you see in a TV's input or media-source list. Worth changing if you run more than one Phlix server, or more than one media server generally, since the default leaves them indistinguishable. It has no effect anywhere else in Phlix and nothing outside your local network sees it. This only reaches devices while the DLNA media server is switched on.",
+            "helpLinks": [
+                {
+                    "text": "DLNA",
+                    "url": "https://en.wikipedia.org/wiki/Digital_Living_Network_Alliance"
+                }
+            ],
+            "tier": "standard",
+            "restart": true,
+            "default": "Phlix Media Server"
         }
     }
 }

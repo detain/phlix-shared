@@ -4,6 +4,38 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.34.0] - 2026-07-21
+
+Adds two settings keys: `dlna.cds_enabled` and `dlna.friendly_name`
+(42 -> 44 properties), and corrects `dlna.enabled`'s description/helpText.
+
+`phlix-server` 1.3.0 finally WIRES the DLNA media server. Until now
+`Phlix\Dlna\DlnaServer` was registered in no DI provider and takes three
+un-autowirable `string` constructor parameters, so `CdsServer` could never be
+resolved; `Application::loadCdsRoutes()` swallowed the failure in a bare
+`catch (\Throwable)` and **no DLNA browse route was ever registered on any
+install**. A new `DlnaServicesProvider` registers the server, and the route
+loader now logs a resolution failure instead of hiding it.
+
+**`dlna.cds_enabled` ships FALSE and that is deliberate.** DLNA/UPnP has no
+authentication of any kind: serving it lets anything on the local network browse
+and stream the entire library without signing in, bypassing the auth gate every
+other entry point enforces. It is therefore `advanced`-tier, with the warning
+stated plainly in both `description` and `helpText` rather than buried.
+
+`dlna.enabled` (announce over SSDP) now requires `dlna.cds_enabled` as well.
+Announcing a server whose browse service is off puts Phlix in every TV's source
+list as a device that cannot be opened — which was the real production state.
+The reverse combination, server on with announcement off, remains valid for
+clients given the address directly. Both texts say so.
+
+`dlna.friendly_name` only became exposable now: it is one of `DlnaServer`'s
+un-autowirable constructor parameters, so before this there was no instance for
+it to configure. The name devices actually displayed came from a hand-written
+static `public/dlna/description.xml` (hardcoded `uuid:PHLIX_SERVER`,
+`localhost:8080`, and SCPD URLs matching no real route), which shadowed the
+route via the static-file fast path and has been deleted.
+
 ## [0.33.0] - 2026-07-21
 
 Adds three settings keys: `casting.chromecast.enabled`, `casting.roku.enabled`

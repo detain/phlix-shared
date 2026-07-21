@@ -209,6 +209,26 @@ final class ServerSettingsSchemaTest extends TestCase
             'casting.chromecast.enabled' => ['casting.chromecast.enabled', 'boolean'],
             'casting.roku.enabled' => ['casting.roku.enabled', 'boolean'],
             'casting.airplay.enabled' => ['casting.airplay.enabled', 'boolean'],
+            // Resolve to config/dlna.php. `cds_enabled` is the master "run a DLNA
+            // server" switch and ships FALSE: DLNA/UPnP has NO authentication, so
+            // serving it lets any device on the LAN browse and stream the whole
+            // library without signing in -- deliberately bypassing the auth gate
+            // every other entry point enforces. Hence tier "advanced" and an
+            // explicit warning in both description and helpText.
+            //
+            // Consumed by Application::loadCdsRoutes(), which registers the
+            // description/SOAP/SCPD routes only when it is true, and by
+            // SsdpAdvertiser::isEnabled(), which refuses to ANNOUNCE a server
+            // whose browse service is off -- announcing one puts Phlix in every
+            // TV's source list as a device that cannot be opened, which was the
+            // real production state before 1.3.0.
+            //
+            // `friendly_name` is the name devices display. It only became
+            // exposable once DlnaServer gained a DI registration: it is one of
+            // that class's three un-autowirable string constructor parameters,
+            // so before 1.3.0 there was no instance for it to configure.
+            'dlna.cds_enabled' => ['dlna.cds_enabled', 'boolean'],
+            'dlna.friendly_name' => ['dlna.friendly_name', 'string'],
             // NOTE: both `marker_detection.*` keys were DELETED in 0.28.0. They
             // resolved to real config defaults but had NO consumer: the only reads
             // of config/marker_detection.php are MediaServicesProvider.php:521,539,
@@ -349,7 +369,7 @@ final class ServerSettingsSchemaTest extends TestCase
         sort($expected);
 
         $this->assertSame($expected, $actual, 'server-settings schema must declare exactly the expected settings keys.');
-        $this->assertCount(42, $actual);
+        $this->assertCount(44, $actual);
     }
 
     /**
