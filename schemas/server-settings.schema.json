@@ -357,6 +357,30 @@
             "maximum": 7776000,
             "default": 604800
         },
+        "auth.max_profiles": {
+            "type": "integer",
+            "description": "Maximum number of viewing profiles a single user account may create. Clamped to 1..50 in code.",
+            "group": "auth",
+            "label": "Maximum profiles per account",
+            "helpText": "Each account can hold several viewing profiles, so the people sharing it keep separate watch history, resume points and content-rating limits. This is the cap on how many one account may create. Profiles that already exist are never removed by lowering this \u2014 the limit is only checked when a new one is created, so an account already over a reduced cap keeps what it has and simply cannot add more. Raise it for a household with more members than the shipped five, or lower it to keep accounts tidy. Each profile carries its own settings, watch history and stream-limit records, which is why the value cannot be set above 50.",
+            "tier": "standard",
+            "restart": false,
+            "minimum": 1,
+            "maximum": 50,
+            "default": 5
+        },
+        "access.default_concurrent_streams": {
+            "type": "integer",
+            "description": "How many streams one profile may play simultaneously when no explicit per-profile limit has been set. Applies at playback time, so it takes effect immediately. Clamped to 1..100 in code.",
+            "group": "auth",
+            "label": "Default simultaneous streams per profile",
+            "helpText": "This is the number of things one profile can be watching at the same time on different devices. It applies to every profile for which an administrator has not set an explicit limit \u2014 which in practice is most of them, because Phlix does not create a per-profile limit when a profile is made. Changing it therefore affects the whole server straight away, without a restart. The shipped value of 1 means starting playback on a second device stops nothing but is refused; raise it if people in your household legitimately watch on several devices at once. Bear in mind each simultaneous stream may need its own transcode, so this is also a cap on how much work one profile can ask of the server. An explicit per-profile limit, set on the account's page, always overrides this.",
+            "tier": "standard",
+            "restart": false,
+            "minimum": 1,
+            "maximum": 100,
+            "default": 1
+        },
         "subtitles.default_language": {
             "type": "string",
             "description": "Preferred subtitle language (ISO 639 code) selected by default for new playback sessions.",

@@ -160,6 +160,18 @@ final class ServerSettingsSchemaTest extends TestCase
             // Read-path class (a) LIVE: resolved per mint, no restart.
             'auth.access_ttl' => ['auth.access_ttl', 'integer'],
             'auth.refresh_ttl' => ['auth.refresh_ttl', 'integer'],
+            // Resolves to config/auth.php -> ['max_profiles']. Consumed via
+            // UserProfileManager::maxProfiles(), which BOTH cap checks call —
+            // create() and AdminProfileController's pre-check. The pre-check
+            // is the one an operator actually hits (it 400s first), so wiring
+            // only create() would have pinned the admin API at 5.
+            'auth.max_profiles' => ['auth.max_profiles', 'integer'],
+            // Resolves to config/access.php -> ['default_concurrent_streams'].
+            // Consumed via StreamSessionService::defaultConcurrentStreams(),
+            // read per playback. Not a creation-time seed: nothing writes a
+            // profile_stream_limits row when a profile is made, so this is the
+            // value nearly every profile actually runs on.
+            'access.default_concurrent_streams' => ['access.default_concurrent_streams', 'integer'],
             // Resolves to config/webhooks.php -> ['enabled']. Consumed via
             // WebhookDispatcher::isEnabled(), which gates dispatch() before the
             // per-event DB lookup. Both halves of this shipped together: the key
@@ -381,7 +393,7 @@ final class ServerSettingsSchemaTest extends TestCase
         sort($expected);
 
         $this->assertSame($expected, $actual, 'server-settings schema must declare exactly the expected settings keys.');
-        $this->assertCount(46, $actual);
+        $this->assertCount(48, $actual);
     }
 
     /**

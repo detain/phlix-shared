@@ -4,6 +4,55 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.36.0] - 2026-07-21
+
+Adds two settings keys: `auth.max_profiles` and
+`access.default_concurrent_streams` (46 -> 48 properties). Both are
+`standard`-tier, `restart: false`, read-path class (a) LIVE.
+
+`auth.max_profiles` exposes the per-account profile cap, previously the
+compile-time `UserProfileManager::MAX_PROFILES_PER_USER = 5`. There are TWO
+enforcement sites and only one of them ever fires in practice: the pre-check in
+`AdminProfileController::createForUser()` returns 400 before
+`UserProfileManager::create()`'s own guard is reached. Wiring only `create()` —
+the obvious choice — would have left the admin API, the only route that creates
+profiles, still pinned at 5 while the setting appeared wired. Both now call
+`UserProfileManager::maxProfiles()`.
+
+`access.default_concurrent_streams` exposes the fallback in
+`StreamSessionService::getStreamLimit()`. This is **not** a creation-time seed:
+nothing writes a `profile_stream_limits` row when a profile is created — the
+only writer is `updateStreamLimit()`, reached solely from the admin API — so the
+fallback is what every profile an administrator has not explicitly configured
+actually runs on, evaluated per playback.
+
+`StreamSessionService` has TWO construction paths (the container, and a direct
+`new` in `Application::getStreamLimitController()`'s no-container fallback) and
+both now receive the settings store. It was also resolved by *implicit*
+autowiring, which silently skips optional constructor parameters — so it needed
+an explicit registration or the key would have been inert by construction.
+
+Both keys are clamped in code as well as by the schema (profiles 1..50, streams
+1..100). The floors matter: a configured 0 would have made profile creation
+impossible, and denied playback to nearly every profile, respectively.
+
+**Rejected in the same pass, with evidence:**
+
+- **`access.default_rating`** — `UserProfileManager::DEFAULT_CONTENT_RATING`
+  has five read sites, of which two (`isContentRatingAllowed()`,
+  `getAllowedRatings()`) have ZERO production callers — class (g). The one live
+  read is a narrow fallback that fires only when a `profile_settings` row
+  exists with a NULL `content_rating`. Meanwhile `AdminProfileController:150`
+  and `:229` both default to a literal `'R'` and bypass the constant entirely.
+  A "default rating" control would visibly do nothing for most users.
+- **`auth.methods.{password,webauthn,oidc,ldap}`** — no per-method check exists
+  at any of the six auth entry points, so the keys would be class (f) DEAD on
+  arrival; `oidc`/`ldap` would additionally collide with the existing plugin
+  enable/disable as a second source of truth; and there is still no lock-out
+  fail-safe. Separately, `AuthProviderController::enableProvider()`/
+  `disableProvider()` are no-op stubs that report success while persisting
+  nothing — that already-shipped lie must be fixed before any related toggle.
+
 ## [0.35.0] - 2026-07-21
 
 Adds two settings keys: `auth.access_ttl` and `auth.refresh_ttl`
