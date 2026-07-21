@@ -142,6 +142,28 @@ final class ServerSettingsSchemaTest extends TestCase
             'transcoding.preset' => ['transcoding.preset', 'string'],
             'transcoding.crf_h264' => ['transcoding.crf_h264', 'integer'],
             'transcoding.audio_bitrate' => ['transcoding.audio_bitrate', 'string'],
+            // config/artwork.php -> ['download_enabled']. Consumed via
+            // Phlix\Media\Storage\ArtworkDownloadPolicy, which gates BOTH
+            // download choke points in LibraryMetadataMatcher — the
+            // poster/backdrop path and the separate logo path. Gating only one
+            // would leave logos downloading while the control claimed
+            // downloads were off. Class (a) LIVE.
+            'artwork.download_enabled' => ['artwork.download_enabled', 'boolean'],
+            // config/scanner.php -> ['ignore_patterns']. Consumed via
+            // Phlix\Media\Library\ScanIgnorePatterns at MediaScanner::
+            // shouldSkipFile(), a genuine single choke point with 7 in-file
+            // callers. Class (a) LIVE, memoised per scan.
+            //
+            // NB config/scanner.php is NOT composed into config/server.php, so
+            // the consumer reads via EffectiveConfig/SettingsRepository — a
+            // boot $appConfig['scanner'] lookup would resolve to nothing.
+            //
+            // The default list deliberately EXCLUDES 'sample': token matching
+            // makes it safe to offer but not to impose, since it would still
+            // skip a title where the word stands alone, and a silently-missing
+            // film is undiagnosable. Shipped defaults stay equivalent in effect
+            // to the literal they replaced.
+            'scanner.ignore_patterns' => ['scanner.ignore_patterns', 'array'],
             // config/ffmpeg.php
             'ffmpeg.max_concurrent_transcodes' => ['ffmpeg.max_concurrent_transcodes', 'integer'],
             'ffmpeg.transcode_timeout' => ['ffmpeg.transcode_timeout', 'integer'],
@@ -440,7 +462,7 @@ final class ServerSettingsSchemaTest extends TestCase
         sort($expected);
 
         $this->assertSame($expected, $actual, 'server-settings schema must declare exactly the expected settings keys.');
-        $this->assertCount(63, $actual);
+        $this->assertCount(65, $actual);
     }
 
     /**

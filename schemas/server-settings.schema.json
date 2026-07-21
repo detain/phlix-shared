@@ -602,6 +602,35 @@
             "restart": false,
             "default": "128k"
         },
+        "artwork.download_enabled": {
+            "type": "boolean",
+            "description": "Download and cache poster, backdrop and logo images from metadata providers. Turning this off stops NEW downloads only; artwork already cached on disk is unaffected and keeps being served.",
+            "group": "metadata",
+            "label": "Download artwork",
+            "helpText": "When Phlix matches an item against a metadata provider it also fetches the poster, backdrop and logo images and stores them locally, so they load quickly and keep working if the provider is unreachable later. Switching this off stops those fetches. It does NOT delete or hide anything you already have \u2014 every image already cached stays on disk and keeps being served, so the effect is only on newly matched or newly refreshed items, which will simply have no local artwork. Reasons to turn it off include being close to a disk quota, running on a metered connection, or being rate-limited by a provider. Both the poster/backdrop path and the separate logo path are covered by this one switch. It takes effect immediately, without a restart.",
+            "tier": "standard",
+            "restart": false,
+            "default": true
+        },
+        "scanner.ignore_patterns": {
+            "type": "array",
+            "description": "Filename fragments that mark a file as not-real-media, so the library scanner skips it. Matched case-insensitively. Files whose name begins with a dot are always skipped regardless of this list.",
+            "group": "general",
+            "label": "Scanner ignore patterns",
+            "helpText": "While scanning a library, Phlix skips any file whose name contains one of these fragments. The shipped list covers part-downloaded and temporary files \u2014 `.part`, `.tmp`, `.download`, `.!ut` \u2014 and SABnzbd's `_UNPACK_` staging folders, so a download still in progress is not imported as a broken item. Matching ignores capitalisation.\n\nHow a pattern matches depends on what it contains. A fragment with punctuation in it, such as `.tmp`, matches anywhere in the name, which is safe because the leading dot makes it unambiguous. A fragment made only of letters and numbers, such as `sample`, matches only as a whole word bounded by punctuation or spaces \u2014 so it will catch `Movie-sample.mkv` but leave `Resample.mkv` and `Free Samples (2012).mkv` alone.\n\nA USEFUL ADDITION: `sample`. Release groups often ship a short sample clip alongside the real file, and adding `sample` here skips them. It is not switched on by default because it would also skip a film whose title is just the word, such as \"Sample People (2000)\" \u2014 and a film that silently never appears is very hard to diagnose. Add it if sample clips bother you, and remove it again if something goes missing.\n\nClearing this list entirely is allowed and means \"skip nothing extra\". It does NOT start importing hidden files: names beginning with a dot, such as `.DS_Store`, are always skipped by a separate rule this list cannot switch off. Changes apply to the next scan; no restart is needed.",
+            "items": {
+                "type": "string"
+            },
+            "tier": "advanced",
+            "restart": false,
+            "default": [
+                ".part",
+                ".tmp",
+                ".download",
+                ".!ut",
+                "_unpack"
+            ]
+        },
         "subtitles.default_language": {
             "type": "string",
             "description": "Preferred subtitle language (ISO 639 code) selected by default for new playback sessions.",

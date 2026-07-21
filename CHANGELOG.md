@@ -4,6 +4,43 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.39.0] - 2026-07-21
+
+Adds `artwork.download_enabled` and `scanner.ignore_patterns` (63 -> 65
+properties). Both `restart: false`, read-path class (a) LIVE.
+
+`artwork.download_enabled` gates BOTH artwork download choke points in
+`LibraryMetadataMatcher` — the poster/backdrop path and the separate logo path.
+Gating only the first would have left logos downloading while the control
+claimed downloads were off. Turning it off stops NEW fetches only; artwork
+already cached on disk is untouched and keeps serving, which the help text
+states explicitly since it is the first thing an operator will worry about.
+
+`scanner.ignore_patterns` replaces a hardcoded list at
+`MediaScanner::shouldSkipFile()`, a genuine single choke point with seven
+in-file callers. Two things came out of wiring it:
+
+- **The old list was matched case-SENSITIVELY**, so SABnzbd's actual marker
+  directory `_UNPACK_` was never skipped despite `_unpack` being in the list,
+  and `movie.TMP` slipped past `.tmp`. Matching is now case-insensitive. This is
+  the only behaviour change at shipped defaults and is unambiguously a fix.
+- **Matching is two-tier.** A pattern containing punctuation is self-delimiting
+  and matches as a substring, exactly as before. A purely alphanumeric pattern
+  matches only as a delimited token, so enabling `sample` cannot drop
+  `Resample.mkv` or `Free Samples (2012).mkv`.
+
+**`sample` is deliberately NOT a shipped default.** Token matching makes it safe
+to offer but not to impose: it would still skip a title where the word stands
+alone — "Sample People (2000)" is a real film — and the failure mode is a movie
+that silently never appears, which an operator cannot diagnose. Enabling that
+for every install at upgrade time is not a decision this release makes. The
+shipped list therefore stays equivalent in effect to the literal it replaced,
+and the help text names `sample` as the first thing worth adding.
+
+Clearing the list is legal and means "skip nothing extra". It does not
+re-enable scanning of dotfiles, which are handled by a separate hardcoded rule
+the list cannot reach.
+
 ## [0.38.0] - 2026-07-21
 
 Adds three software-encode keys: `transcoding.preset`, `transcoding.crf_h264`
