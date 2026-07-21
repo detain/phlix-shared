@@ -800,6 +800,22 @@
             "tier": "standard",
             "restart": false,
             "default": true
+        },
+        "stats.enabled": {
+            "type": "boolean",
+            "description": "Record local playback, library-change, user-activity and storage statistics. These are stored only in this server's own database and are never transmitted anywhere. Turning this off stops the writes and leaves the admin dashboard's activity and storage cards empty; existing rows are kept.",
+            "group": "general",
+            "label": "Record usage statistics",
+            "helpText": "Phlix keeps a local record of what was played, what changed in your libraries, when users signed in, and how much storage each media type uses. This is NOT phone-home telemetry — nothing leaves your server, and there is no reporting endpoint. It exists purely to populate the admin dashboard. Switching it off is a performance and retention choice rather than a privacy one: it removes several small database writes per playback and per scan, which is worth doing on very low-powered hardware or a heavily loaded database. The cost is that the dashboard's activity feed and Storage card will have no new data to show, since these tables are their only source. Statistics already recorded are not deleted, and switching it back on resumes recording immediately.",
+            "helpLinks": [
+                {
+                    "text": "Telemetry",
+                    "url": "https://en.wikipedia.org/wiki/Telemetry"
+                }
+            ],
+            "tier": "standard",
+            "restart": false,
+            "default": true
         }
     }
 }

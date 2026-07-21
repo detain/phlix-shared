@@ -155,6 +155,13 @@ final class ServerSettingsSchemaTest extends TestCase
             // getConfig()'s file-missing fallback and was never read), and getConfig()
             // raw-included the file so no override could reach it either.
             'webhooks.enabled' => ['webhooks.enabled', 'boolean'],
+            // Resolves to config/stats.php -> ['enabled'] (a NET-NEW config file;
+            // it did not exist before 1.3.0). Enforced centrally in
+            // StatsCollector::isEnabled(), which every public record*() method
+            // consults -- one switch covering ~52 call sites, rather than a guard
+            // each caller must remember. Local statistics only; nothing is
+            // transmitted off the server.
+            'stats.enabled' => ['stats.enabled', 'boolean'],
             // NOTE: both `marker_detection.*` keys were DELETED in 0.28.0. They
             // resolved to real config defaults but had NO consumer: the only reads
             // of config/marker_detection.php are MediaServicesProvider.php:521,539,
@@ -295,7 +302,7 @@ final class ServerSettingsSchemaTest extends TestCase
         sort($expected);
 
         $this->assertSame($expected, $actual, 'server-settings schema must declare exactly the expected settings keys.');
-        $this->assertCount(37, $actual);
+        $this->assertCount(38, $actual);
     }
 
     /**

@@ -4,6 +4,27 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.31.0] - 2026-07-21
+
+Adds one settings key: `stats.enabled` (37 -> 38 properties).
+
+Ships with a NET-NEW `config/stats.php` in `phlix-server` (the file did not
+exist) and a net-new guard. Enforced centrally in `StatsCollector::isEnabled()`,
+which every public `record*()` method consults — one switch covering ~52 call
+sites rather than a guard each caller must remember to apply.
+
+Note the framing: plan_settings.md called this "telemetry no opt-out", which is
+misleading. These statistics are entirely LOCAL — written to the server's own
+`stats_*` tables and read back only by the admin dashboard. Nothing is
+transmitted anywhere and there is no reporting endpoint. Switching it off is a
+performance/retention choice, not a privacy one, and the helpText says so
+plainly rather than implying the admin is disabling data collection that leaves
+the machine.
+
+Turning it off blanks the dashboard's activity and storage cards, since these
+tables are their only source. The helpText states that too. Defaults to `true`
+so existing installs are unaffected.
+
 ## [0.30.0] - 2026-07-21
 
 Adds one settings key: `webhooks.enabled` (36 -> 37 properties).
