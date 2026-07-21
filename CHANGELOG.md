@@ -4,6 +4,54 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.28.0] - 2026-07-20
+
+Deletes six settings keys that shipped without a consumer. `server-settings`
+goes from 41 to 35 properties.
+
+Context: `plan_settings.md` §11 asserted the shipped keys were "verified
+consumed-and-reachable". A key-by-key sweep of all 41 disproved that for **14**.
+Eight were repaired or wired in `phlix-server`; the six below could not be made
+honest without building the feature behind them, so per §4 rule 10 they are
+deleted rather than shipped.
+
+**Two of them had live admin overrides on production** — an operator had set a
+subtitle language and switched trickplay off, and both did nothing. Every one of
+these passed `SettingsDefaultResolvabilityTest`, which by design only proves a
+default resolves, never that anything reads it.
+
+### Removed
+
+- **`marker_detection.similarity_threshold`**, **`marker_detection.intro_max_duration`**
+  — no consumer. The only reads of `config/marker_detection.php` are
+  `MediaServicesProvider.php:521,539`, which take `job_queue_dir` and
+  `min_episodes_for_detection` through a raw `@include` that bypasses
+  `EffectiveConfig` entirely.
+- **`subtitles.enabled`**, **`subtitles.burn_in_by_default`** — `config/subtitles.php`
+  is composed only into `config/ffmpeg.php:52`, so it lives at
+  `$config['ffmpeg']['subtitles']`, a path these keys do not address. Neither
+  identifier occurs anywhere in `phlix-server/src/`.
+- **`discovery.discovery_port`** — `config/discovery.php` has no loader anywhere,
+  and `Application::startDiscoveryIfEnabled()` reads no flag before starting.
+  Its helpText was also factually wrong (described UDP broadcast; 8200 is the
+  DLNA HTTP port).
+- **`trickplay.interval_seconds`** — configures the dead trickplay
+  implementation. `StreamManager::setTrickplay()` has no callers, so
+  `StreamManager::generateTrickplay()` always throws; the live implementation
+  (`MediaAssetGenerationJob`) has no interval concept, only a fixed sprite count.
+
+All six are recorded in `CONSUMERLESS_KEY_DENYLIST` with their evidence, so they
+cannot be reintroduced without deleting the citation that says why they are dead.
+
+### Kept and made real (in `phlix-server`, same release)
+
+- **`trickplay.enabled`** — now gates the LIVE sprite path in
+  `MediaAssetGenerationJob::generateTrickplaySprites()`.
+- **`subtitles.default_language`** — now backs the server-wide fallback for
+  `preferred_subtitle_language` in `GET /api/v1/user/settings`. Its config
+  default was corrected from `'eng'` (ISO 639-2) to `'en'` (ISO 639-1) to match
+  the vocabulary of its consumer, per plan §4 rule 8.
+
 ## [0.27.0] - 2026-07-20
 
 Deletes the last known consumerless settings key. `server-settings` goes from

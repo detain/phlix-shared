@@ -303,57 +303,6 @@
             ],
             "default": "approval"
         },
-        "marker_detection.similarity_threshold": {
-            "type": "number",
-            "description": "Audio/video fingerprint similarity threshold (0.0-1.0) above which a segment is treated as a repeated intro/credits marker.",
-            "group": "markers",
-            "minimum": 0,
-            "maximum": 1,
-            "label": "Marker similarity threshold",
-            "helpText": "Phlix detects recurring segments like intros and credits by comparing the audio/video fingerprint of each segment against a reference fingerprint. This value controls how strictly segments must match to be flagged as a marker. At 0.0, nearly every repeated segment is marked (high false-positive rate). At 1.0, only near-perfect matches are marked (many markers will be missed). Lower the value if your library contains heavily edited or re-encoded content where fingerprints are distorted.",
-            "helpLinks": [
-                {
-                    "text": "Audio fingerprinting",
-                    "url": "https://en.wikipedia.org/wiki/Audio_fingerprinting"
-                }
-            ],
-            "tier": "standard",
-            "restart": false,
-            "default": 0.85
-        },
-        "marker_detection.intro_max_duration": {
-            "type": "integer",
-            "description": "Upper bound in seconds for how long a detected intro marker may be.",
-            "group": "markers",
-            "minimum": 0,
-            "label": "Maximum intro duration",
-            "helpText": "During marker detection, any candidate intro segment longer than this value will not be treated as an intro, even if its similarity score passes the threshold. This prevents false positives from long recurring scenes (like a 'previously on...' segment) being flagged as full intros. Set this to the longest typical intro length in your library — most TV shows have intros between 10 and 90 seconds, but anime and some documentaries may differ.",
-            "helpLinks": [
-                {
-                    "text": "Opening credits",
-                    "url": "https://en.wikipedia.org/wiki/Opening_credits"
-                }
-            ],
-            "tier": "standard",
-            "restart": false,
-            "default": 180
-        },
-        "subtitles.enabled": {
-            "type": "boolean",
-            "description": "Master switch for subtitle fetching and rendering.",
-            "group": "subtitles",
-            "label": "Enable subtitles",
-            "helpText": "Controls whether Phlix fetches subtitle tracks from external providers (like OpenSubtitles) and whether subtitle rendering is available in the player. When disabled, subtitle features are completely hidden from the UI and no subtitle fetching is attempted. When enabled, individual users can still disable subtitles in their personal playback settings.",
-            "helpLinks": [
-                {
-                    "text": "Subtitles",
-                    "url": "https://en.wikipedia.org/wiki/Subtitle_(captioning)"
-                }
-            ],
-            "tier": "standard",
-            "restart": false,
-            "default": true
-        },
         "subtitles.default_language": {
             "type": "string",
             "description": "Preferred subtitle language (ISO 639 code) selected by default for new playback sessions.",
@@ -370,44 +319,6 @@
             "restart": false,
             "default": "eng"
         },
-        "subtitles.burn_in_by_default": {
-            "type": "boolean",
-            "description": "Burn subtitles into the video stream by default instead of delivering them as a soft track.",
-            "group": "subtitles",
-            "label": "Burn subtitles into video by default",
-            "helpText": "When enabled, subtitles are permanently embedded (burned) into the video stream during playback rather than being delivered as a separate selectable track. Burning ensures subtitles are always visible on all devices and players, including those that do not support external subtitle tracks. However, this requires re-encoding the video, increasing CPU/GPU load, and the burned subtitles cannot be turned off by the viewer. When disabled, subtitles are delivered as a separate track that can be toggled.",
-            "helpLinks": [
-                {
-                    "text": "Subtitle burn-in (hardsubbing)",
-                    "url": "https://en.wikipedia.org/wiki/Subtitle_(captioning)#Hardsubtitling"
-                }
-            ],
-            "tier": "standard",
-            "restart": false,
-            "default": false
-        },
-        "discovery.discovery_port": {
-            "type": "integer",
-            "description": "UDP port used for local network server discovery.",
-            "group": "discovery",
-            "minimum": 1,
-            "maximum": 65535,
-            "label": "Server discovery UDP port",
-            "helpText": "Phlix servers advertise themselves on the local network via UDP broadcast on this port, allowing the mobile app and other clients to automatically discover available servers without manual IP entry. Only change this if you have a specific networking requirement such as a port conflict or firewall rule. Clients must be on the same broadcast domain for discovery to work — it does not cross routers.",
-            "helpLinks": [
-                {
-                    "text": "UDP",
-                    "url": "https://en.wikipedia.org/wiki/User_Datagram_Protocol"
-                },
-                {
-                    "text": "Service discovery",
-                    "url": "https://en.wikipedia.org/wiki/Zero-configuration_networking"
-                }
-            ],
-            "tier": "advanced",
-            "restart": false,
-            "default": 8200
-        },
         "trickplay.enabled": {
             "type": "boolean",
             "description": "Master switch for trickplay (scrubbing thumbnail) generation.",
@@ -423,23 +334,6 @@
             "tier": "standard",
             "restart": false,
             "default": true
-        },
-        "trickplay.interval_seconds": {
-            "type": "integer",
-            "description": "Interval in seconds between generated trickplay thumbnail frames.",
-            "group": "trickplay",
-            "minimum": 1,
-            "label": "Trickplay thumbnail interval",
-            "helpText": "Controls how frequently trickplay thumbnails are captured along the timeline. Lower values (e.g., 5 seconds) give more precise visual scrubbing but require more storage and generation time. Higher values (e.g., 30 seconds) are faster to generate and use less storage, but scrubbing preview is less detailed. The sweet spot for most libraries is 10–15 seconds. This only affects newly generated trickplay strips; existing ones are not regenerated.",
-            "helpLinks": [
-                {
-                    "text": "Keyframe",
-                    "url": "https://en.wikipedia.org/wiki/Video_compression_picture_types"
-                }
-            ],
-            "tier": "standard",
-            "restart": false,
-            "default": 10
         },
         "newsletter.enabled": {
             "type": "boolean",

@@ -139,17 +139,34 @@ final class ServerSettingsSchemaTest extends TestCase
             'metadata.genres_mode' => ['metadata.genres_mode', 'string'],
             // config/auth.php
             'auth.signup_mode' => ['auth.signup_mode', 'string'],
-            // config/marker_detection.php
-            'marker_detection.similarity_threshold' => ['marker_detection.similarity_threshold', 'number'],
-            'marker_detection.intro_max_duration' => ['marker_detection.intro_max_duration', 'integer'],
+            // NOTE: both `marker_detection.*` keys were DELETED in 0.28.0. They
+            // resolved to real config defaults but had NO consumer: the only reads
+            // of config/marker_detection.php are MediaServicesProvider.php:521,539,
+            // which take `job_queue_dir` and `min_episodes_for_detection` — and do
+            // so through a raw @include that bypasses EffectiveConfig entirely.
             // config/subtitles.php
-            'subtitles.enabled' => ['subtitles.enabled', 'boolean'],
             'subtitles.default_language' => ['subtitles.default_language', 'string'],
-            'subtitles.burn_in_by_default' => ['subtitles.burn_in_by_default', 'boolean'],
-            // config/discovery.php, config/trickplay.php, config/newsletter.php
-            'discovery.discovery_port' => ['discovery.discovery_port', 'integer'],
+            // NOTE: `subtitles.enabled` and `subtitles.burn_in_by_default` were
+            // DELETED in 0.28.0 — config/subtitles.php is composed only into
+            // config/ffmpeg.php (so it lives at $config['ffmpeg']['subtitles'],
+            // which these keys do not address) and NOTHING in phlix-server read
+            // either identifier. `default_language` survives because it was given
+            // a real consumer in the same release: the server-wide fallback for
+            // preferred_subtitle_language in GET /api/v1/user/settings
+            // (WebPortalRouter::defaultSubtitleLanguage()).
+            // config/trickplay.php, config/newsletter.php
+            // NOTE: `discovery.discovery_port` was DELETED in 0.28.0 —
+            // config/discovery.php has NO loader anywhere in phlix-server, and
+            // Application::startDiscoveryIfEnabled() reads no flag at all.
             'trickplay.enabled' => ['trickplay.enabled', 'boolean'],
-            'trickplay.interval_seconds' => ['trickplay.interval_seconds', 'integer'],
+            // NOTE: `trickplay.interval_seconds` was DELETED in 0.28.0. There are
+            // TWO trickplay implementations; config/trickplay.php describes the
+            // DEAD one (TrickplayGenerator + TrickplayConfig), reachable only via
+            // StreamManager::generateTrickplay(), which throws unless
+            // StreamManager::setTrickplay() ran — and that setter has no callers.
+            // The live implementation (MediaAssetGenerationJob) has no interval
+            // concept at all; it takes a fixed sprite COUNT. `trickplay.enabled`
+            // survives because it was wired to that live path in the same release.
             'newsletter.enabled' => ['newsletter.enabled', 'boolean'],
             'newsletter.send_hour' => ['newsletter.send_hour', 'integer'],
             // config/port-forward.php
@@ -224,13 +241,7 @@ final class ServerSettingsSchemaTest extends TestCase
     public static function constraintProvider(): array
     {
         return [
-            'marker_detection.similarity_threshold' => [
-                'marker_detection.similarity_threshold',
-                ['minimum' => 0, 'maximum' => 1],
-            ],
-            'marker_detection.intro_max_duration' => ['marker_detection.intro_max_duration', ['minimum' => 0]],
-            'discovery.discovery_port' => ['discovery.discovery_port', ['minimum' => 1, 'maximum' => 65535]],
-            'trickplay.interval_seconds' => ['trickplay.interval_seconds', ['minimum' => 1]],
+
             'newsletter.send_hour' => ['newsletter.send_hour', ['minimum' => 0, 'maximum' => 23]],
             'ffmpeg.max_concurrent_transcodes' => ['ffmpeg.max_concurrent_transcodes', ['minimum' => 1, 'maximum' => 64]],
             'ffmpeg.transcode_timeout' => ['ffmpeg.transcode_timeout', ['minimum' => 60, 'maximum' => 86400]],
@@ -268,7 +279,7 @@ final class ServerSettingsSchemaTest extends TestCase
         sort($expected);
 
         $this->assertSame($expected, $actual, 'server-settings schema must declare exactly the expected settings keys.');
-        $this->assertCount(41, $actual);
+        $this->assertCount(35, $actual);
     }
 
     /**
@@ -286,6 +297,46 @@ final class ServerSettingsSchemaTest extends TestCase
             'Deleted in 0.26.0. HwaccelRegistry is built via getInstance() with no config, '
             . 'and the real probe timeouts are the hardcoded ShellTimeout::FFMPEG_TIMEOUT (10) '
             . '/ ::GPU_TOOL_TIMEOUT (5) constants that no config value is threaded into.',
+        // --- Deleted in 0.28.0 by the full 41-key sweep -------------------
+        //
+        // Context: plan_settings.md §11 asserted the shipped keys were "verified
+        // consumed-and-reachable". A key-by-key audit disproved that for 14 of
+        // 41. Eight were repaired or wired; these six could not be made honest
+        // without building the feature behind them, so per §4 rule 10 they were
+        // deleted rather than shipped. TWO OF THEM HAD LIVE ADMIN OVERRIDES ON
+        // PRODUCTION — an operator had set a subtitle language and disabled
+        // trickplay, and both did nothing.
+        'marker_detection.similarity_threshold' =>
+            'Deleted in 0.28.0. No consumer. The only reads of '
+            . 'config/marker_detection.php are MediaServicesProvider.php:521,539 for '
+            . 'job_queue_dir and min_episodes_for_detection, via a raw @include that '
+            . 'bypasses EffectiveConfig. Neither schema key is read anywhere.',
+        'marker_detection.intro_max_duration' =>
+            'Deleted in 0.28.0. Same as marker_detection.similarity_threshold.',
+        'subtitles.enabled' =>
+            'Deleted in 0.28.0. config/subtitles.php is composed ONLY into '
+            . 'config/ffmpeg.php:52, so it lives at $config["ffmpeg"]["subtitles"] — '
+            . 'a path this key does not address — and no line of phlix-server reads '
+            . 'the identifier. SubtitleExtractor has no constructor and receives no '
+            . 'config at all.',
+        'subtitles.burn_in_by_default' =>
+            'Deleted in 0.28.0. Same as subtitles.enabled; zero occurrences of the '
+            . 'identifier in src/.',
+        'discovery.discovery_port' =>
+            'Deleted in 0.28.0. config/discovery.php has NO loader anywhere in '
+            . 'phlix-server, and Application::startDiscoveryIfEnabled() reads no flag '
+            . 'before starting the server — it is also inside Application::run(), '
+            . 'which has no caller. Its helpText was factually wrong too (it '
+            . 'described UDP broadcast; 8200 is the DLNA HTTP port).',
+        'trickplay.interval_seconds' =>
+            'Deleted in 0.28.0. Configures the DEAD trickplay implementation '
+            . '(TrickplayGenerator + TrickplayConfig), whose only entry point '
+            . 'StreamManager::generateTrickplay() throws unless setTrickplay() ran, '
+            . 'and setTrickplay() has no callers. The LIVE implementation '
+            . '(MediaAssetGenerationJob) has no interval concept — it takes a fixed '
+            . 'sprite count. Do not re-add without wiring an interval into the live '
+            . 'path; trickplay.enabled IS wired there and is genuine.',
+
         'transcoding.include_software_fallback' =>
             'Deleted in 0.27.0. HwAccelConfig::get() copied it into the merged hwaccel array, '
             . 'but FfmpegRunner reads only tone_mapping_mode/prefer_hdr_output/'
