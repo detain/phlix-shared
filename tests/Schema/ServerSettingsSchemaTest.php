@@ -178,6 +178,17 @@ final class ServerSettingsSchemaTest extends TestCase
             'matching.noise_suffixes' => ['matching.noise_suffixes', 'array'],
             'metadata.provider_priority' => ['metadata.provider_priority', 'object'],
             'metadata.genres_mode' => ['metadata.genres_mode', 'string'],
+            // config/metadata.php is NOT composed into config/server.php, so this
+            // key is read-path class (a) LIVE via SettingsRepository::getEffective().
+            // Consumed via Phlix\Media\Metadata\MetadataOverwritePolicy (mirroring
+            // ArtworkDownloadPolicy) at the single decision point
+            // LibraryMetadataMatcher::shouldSkipOverwrite() — wired through the
+            // THREE (re)resolve entry points (matchItem :1197 / matchSeries :1300 /
+            // applyMatchResolved :772), which between them gate EVERY
+            // array_merge($existing,$resolved) overwrite site in that class (movie,
+            // series, season, episode and all four interactive branches). Default
+            // true = today's unconditional overwrite (plan §4 rule 7).
+            'metadata.overwrite_existing' => ['metadata.overwrite_existing', 'boolean'],
             // config/auth.php
             'auth.signup_mode' => ['auth.signup_mode', 'string'],
             // Resolves to config/auth.php -> ['password']['min_length'].
@@ -489,7 +500,7 @@ final class ServerSettingsSchemaTest extends TestCase
         sort($expected);
 
         $this->assertSame($expected, $actual, 'server-settings schema must declare exactly the expected settings keys.');
-        $this->assertCount(68, $actual);
+        $this->assertCount(69, $actual);
     }
 
     /**

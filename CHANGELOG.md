@@ -4,6 +4,37 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.41.0] - 2026-07-21
+
+Adds `metadata.overwrite_existing` (68 -> 69 properties), the single shippable
+row of `plan_settings.md` Phase 3. It is a `boolean`, `group: metadata`,
+`tier: standard` (an operator-facing behaviour, not an internals knob), and
+read-path class **(a) LIVE** with `restart: false`.
+
+`config/metadata.php` is NOT composed into `config/server.php` (which composes
+only ffmpeg/hub/relay/livetv/theme_music/newsletter/artwork/metrics), so the
+consumer reads the effective value via `SettingsRepository::getEffective()` —
+exactly the `artwork.download_enabled` / `scanner.ignore_patterns` pattern.
+phlix-server consumes it through a new `MetadataOverwritePolicy` (a direct
+mirror of `ArtworkDownloadPolicy`) at ONE decision point,
+`LibraryMetadataMatcher::shouldSkipOverwrite()`, wired through the three
+(re)resolve entry points `matchItem()` / `matchSeries()` / `applyMatchResolved()`.
+Those three gate EVERY `array_merge($existing, $resolved)` metadata-overwrite
+site in the class (movie, series, season, episode, and all four interactive
+apply branches), so a subset cannot silently drift.
+
+`default: true` is load-bearing: at the default the matcher does
+`array_merge($existing, $resolved)` on every refresh exactly as before, so
+behaviour is byte-for-byte identical to today (plan §4 rule 7). The setting
+only does anything when an admin turns it OFF, at which point an item that has
+ALREADY been resolved (`metadata_refreshed_at` present) is skipped WHOLESALE on
+a forced rescan or interactive apply — there is no per-field provenance in the
+pipeline, so "don't overwrite" can only mean a whole-item skip, mirroring the
+existing manual-override short-circuit in `matchItem()`. Items never yet
+resolved are still enriched. The helpText states the consequence an operator
+must not get wrong: hand corrections survive, but genuinely-stale metadata will
+not refresh until the switch is turned back on or the item is cleared.
+
 ## [0.40.0] - 2026-07-21
 
 Adds `metrics.enabled`, `theme_music.enabled` and `theme_music.source`

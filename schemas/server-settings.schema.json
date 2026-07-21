@@ -935,6 +935,16 @@
                 "union": "Genres from all configured metadata sources are combined into one list, deduplicated. Useful when sources use different taxonomies and you want maximum genre coverage."
             }
         },
+        "metadata.overwrite_existing": {
+            "type": "boolean",
+            "description": "Whether a metadata (re)scan or interactive re-match may overwrite an item that already has resolved metadata. At the shipped default (true) every refresh merges freshly-resolved metadata over the item's existing metadata_json exactly as before this setting existed. When false, an item that has already been resolved (its metadata_refreshed_at stamp is set) is skipped WHOLESALE on a forced rescan and on interactive apply — it is not re-resolved and not re-merged — while items that have never been resolved are still enriched. There is no per-field provenance in the pipeline, so this is a whole-item skip, not a field-by-field merge. Consumed by LibraryMetadataMatcher via MetadataOverwritePolicy at its three (re)resolve entry points (matchItem/matchSeries/applyMatchResolved).",
+            "group": "metadata",
+            "label": "Overwrite existing metadata on rescan",
+            "helpText": "Controls what a metadata rescan does to items that already have metadata. Left ON (the default), a rescan refreshes metadata just as it always has — freshly matched details replace what is there. Turned OFF, any item that already has metadata is skipped in its entirety on a rescan (a whole-item skip, not a field-by-field merge): corrections you made by hand are preserved, but genuinely stale metadata will NOT refresh either, until you turn this back on or clear the item's metadata. Items that have never been matched are still filled in normally. This also applies to the interactive per-item apply on the Match screen.",
+            "tier": "standard",
+            "restart": false,
+            "default": true
+        },
         "relay.reconnect_delay": {
             "type": "integer",
             "group": "infrastructure",
