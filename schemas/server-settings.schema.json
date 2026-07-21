@@ -303,6 +303,24 @@
             ],
             "default": "approval"
         },
+        "auth.password.min_length": {
+            "type": "integer",
+            "description": "Minimum number of characters required in a user password. Enforced on self-service registration and on both administrator create-user and change-password paths. Cannot be set below 8: the control may only strengthen the shipped policy, never weaken it.",
+            "group": "auth",
+            "label": "Minimum password length",
+            "helpText": "How many characters a password must contain before Phlix will accept it. This applies everywhere a password is set — when someone registers themselves, when an administrator creates an account, and when an administrator changes an existing account's password. The minimum you can choose is 8, which is what Phlix has always enforced; raising it makes the policy stricter but does NOT invalidate passwords that already exist, so nobody is locked out by changing this. Existing users only meet the new requirement the next time their password is changed. Length is the single biggest factor in password strength, so raising this is usually more effective than requiring particular character types.",
+            "helpLinks": [
+                {
+                    "text": "Password strength",
+                    "url": "https://en.wikipedia.org/wiki/Password_strength"
+                }
+            ],
+            "tier": "standard",
+            "restart": false,
+            "minimum": 8,
+            "maximum": 128,
+            "default": 8
+        },
         "subtitles.default_language": {
             "type": "string",
             "description": "Preferred subtitle language (ISO 639 code) selected by default for new playback sessions.",

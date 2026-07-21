@@ -139,6 +139,15 @@ final class ServerSettingsSchemaTest extends TestCase
             'metadata.genres_mode' => ['metadata.genres_mode', 'string'],
             // config/auth.php
             'auth.signup_mode' => ['auth.signup_mode', 'string'],
+            // Resolves to config/auth.php -> ['password']['min_length'].
+            // Consumed LIVE (read-path class (a)) by Phlix\Auth\PasswordPolicy,
+            // which is the single enforcement point for all three sites that
+            // previously duplicated a bare `strlen($password) < 8`:
+            // AuthManager::register(), AdminUserController::store() and
+            // AdminUserController::update(). The schema `minimum` matches
+            // PasswordPolicy::ABSOLUTE_MIN_LENGTH so the control can only ever
+            // strengthen the shipped policy.
+            'auth.password.min_length' => ['auth.password.min_length', 'integer'],
             // NOTE: both `marker_detection.*` keys were DELETED in 0.28.0. They
             // resolved to real config defaults but had NO consumer: the only reads
             // of config/marker_detection.php are MediaServicesProvider.php:521,539,
@@ -279,7 +288,7 @@ final class ServerSettingsSchemaTest extends TestCase
         sort($expected);
 
         $this->assertSame($expected, $actual, 'server-settings schema must declare exactly the expected settings keys.');
-        $this->assertCount(35, $actual);
+        $this->assertCount(36, $actual);
     }
 
     /**

@@ -4,6 +4,27 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.29.0] - 2026-07-21
+
+Adds one settings key: `auth.password.min_length` (35 -> 36 properties).
+
+Resolves to `config/auth.php -> ['password']['min_length']` in `phlix-server`,
+where it is consumed LIVE (read-path class (a), `getEffective()`) by the new
+`Phlix\\Auth\\PasswordPolicy`. That class is the single enforcement point
+replacing three duplicated `strlen($password) < 8` literals — `AuthManager::register()`
+and both `AdminUserController` password paths. Per plan_settings.md, a setting
+wired to only some of its duplicate literals is half-effective, so the key ships
+together with the removal of all three.
+
+The schema `minimum` is 8, matching `PasswordPolicy::ABSOLUTE_MIN_LENGTH`, which
+the server also enforces in code. The control can therefore only ever STRENGTHEN
+the shipped policy, never weaken it below the baseline Phlix has always applied
+— including against a `server_settings` row written outside the admin API.
+
+Raising the value does not invalidate existing passwords and cannot lock anyone
+out; users meet the new requirement the next time their password changes. The
+helpText says so explicitly.
+
 ## [0.28.0] - 2026-07-20
 
 Deletes six settings keys that shipped without a consumer. `server-settings`
