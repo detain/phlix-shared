@@ -4,6 +4,36 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.37.0] - 2026-07-21
+
+Promotes the whole `server.rate_limit.*` block into the schema: `max` and
+`window` for each of the six limited surfaces — `register`, `refresh`,
+`webauthn_start`, `webauthn_finish`, `jwks`, `ws_connect` (48 -> 60
+properties). All `advanced`-tier and **`restart: true`**.
+
+`restart: true` is not conservatism, it is accurate. The limiters are `factory()`
+closures that capture `max`/`window` **by value** at container-build time
+(`AuthServicesProvider.php:309`, `:317`), so the value is frozen into the DI
+definition and cannot apply live no matter when the store is read.
+
+`config/server.php:177` builds `rate_limit` as a top-level key of the boot
+config, so the values genuinely reach `AuthServicesProvider::registerRateLimiters()`
+at `:293`. All six surfaces were checked to have live consumers before exposing
+them — none is a dead knob.
+
+**Clamped in code via new `RateLimitProfiles::clampMax()` / `clampWindow()`.**
+`MIN_MAX = 1` is a **lock-out fail-safe**, not a sanity bound: a configured
+`max` of 0 would reject every request to its surface, and `refresh` at 0 signs
+out the entire install as access tokens expire. `MIN_WINDOW = 1` matters for a
+subtler reason — a 0-second window puts every request in a fresh bucket, which
+silently disables the limiter while the admin UI still displays a limit.
+
+**Documented precedence gotcha:** the `RATE_LIMIT_<SURFACE>_MAX` /
+`_WINDOW` environment variables are read at config-include time and the
+database overlay is applied afterwards, so **a saved setting overrides the
+environment variable** — the reverse of the usual expectation. Each helpText
+says so explicitly rather than leaving an operator to discover it.
+
 ## [0.36.0] - 2026-07-21
 
 Adds two settings keys: `auth.max_profiles` and

@@ -172,6 +172,34 @@ final class ServerSettingsSchemaTest extends TestCase
             // profile_stream_limits row when a profile is made, so this is the
             // value nearly every profile actually runs on.
             'access.default_concurrent_streams' => ['access.default_concurrent_streams', 'integer'],
+            // config/server.php -> ['rate_limit'][<surface>]['max'|'window'].
+            // Class (b) RESTART, and correctly flagged restart:true — the
+            // limiters are factory() closures that capture max/window BY VALUE
+            // at container-build time (AuthServicesProvider:309,:317), so the
+            // value is frozen into DI and can never apply live.
+            //
+            // The overlay reaches these ONLY via EffectiveConfig's
+            // `server.`-stripped candidate: the full dotted path resolves to
+            // $config['server']['rate_limit'], which does not exist, so
+            // setExistingPath() no-ops there before the second candidate hits
+            // $config['rate_limit'][...] which does.
+            //
+            // Clamped by RateLimitProfiles::clampMax()/clampWindow(). MIN_MAX
+            // is a LOCK-OUT FAIL-SAFE, not a sanity bound: max=0 would reject
+            // every request to the surface, and `refresh` at 0 signs out the
+            // entire install as access tokens expire.
+            'server.rate_limit.register.max' => ['server.rate_limit.register.max', 'integer'],
+            'server.rate_limit.register.window' => ['server.rate_limit.register.window', 'integer'],
+            'server.rate_limit.refresh.max' => ['server.rate_limit.refresh.max', 'integer'],
+            'server.rate_limit.refresh.window' => ['server.rate_limit.refresh.window', 'integer'],
+            'server.rate_limit.webauthn_start.max' => ['server.rate_limit.webauthn_start.max', 'integer'],
+            'server.rate_limit.webauthn_start.window' => ['server.rate_limit.webauthn_start.window', 'integer'],
+            'server.rate_limit.webauthn_finish.max' => ['server.rate_limit.webauthn_finish.max', 'integer'],
+            'server.rate_limit.webauthn_finish.window' => ['server.rate_limit.webauthn_finish.window', 'integer'],
+            'server.rate_limit.jwks.max' => ['server.rate_limit.jwks.max', 'integer'],
+            'server.rate_limit.jwks.window' => ['server.rate_limit.jwks.window', 'integer'],
+            'server.rate_limit.ws_connect.max' => ['server.rate_limit.ws_connect.max', 'integer'],
+            'server.rate_limit.ws_connect.window' => ['server.rate_limit.ws_connect.window', 'integer'],
             // Resolves to config/webhooks.php -> ['enabled']. Consumed via
             // WebhookDispatcher::isEnabled(), which gates dispatch() before the
             // per-event DB lookup. Both halves of this shipped together: the key
@@ -393,7 +421,7 @@ final class ServerSettingsSchemaTest extends TestCase
         sort($expected);
 
         $this->assertSame($expected, $actual, 'server-settings schema must declare exactly the expected settings keys.');
-        $this->assertCount(48, $actual);
+        $this->assertCount(60, $actual);
     }
 
     /**
