@@ -4,6 +4,42 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.33.0] - 2026-07-21
+
+Adds three settings keys: `casting.chromecast.enabled`, `casting.roku.enabled`
+and `casting.airplay.enabled` (39 -> 42 properties).
+
+Ships with a NET-NEW `config/casting.php` in `phlix-server` (the file did not
+exist) and a net-new `CastingEnabledMiddleware`, appended to each protocol's
+existing route group so one object covers all six of that protocol's routes.
+
+These are read-path class **(a) LIVE**, unlike most of this program's toggles,
+and that is deliberate. Middleware runs per request, so flipping one takes
+effect on the very next call with no reload. The reason it matters: device
+discovery is BLOCKING. `MdnsSocket::query()` loops on `socket_recvfrom()` with
+a 5-second `SO_RCVTIMEO`, stalling the whole Workerman worker for the duration
+— and AirPlay issues two service queries, so roughly ten seconds. The endpoints
+are authenticated, but any signed-in user can call them repeatedly, so an
+operator needs to be able to shut one off immediately rather than after a
+restart. Each key's helpText states this cost plainly.
+
+Unlike `dlna.enabled`, these subsystems are genuinely reachable. Verified
+against production on 2026-07-21: `GET /api/v1/{cast,roku,airplay}/devices` all
+return 401 (route present, auth-gated) while a made-up sibling path returns 404,
+and all three managers resolve from the container.
+
+The switches are real. Two of the FEATURES behind them are incomplete, which is
+recorded rather than papered over — `MdnsDiscovery::SERVICE_ROKU` is
+`'_ roku-ecnp._tcp.local.'` (a literal space in the label, `ecnp` for `ecp`) and
+Roku does not advertise ECP over mDNS at all, so its device list cannot
+populate; and `AirPlaySession::startStream()` sends ANNOUNCE then RECORD with no
+RTSP SETUP and no RTP sender, so no audio is ever transmitted. Each helpText
+therefore describes what the SWITCH does — stop discovery and the endpoints —
+which is true regardless of how complete the protocol implementation is.
+Details in `phlix-server/config/casting.php`.
+
+Defaults to `true` for all three so existing installs are unaffected.
+
 ## [0.32.0] - 2026-07-21
 
 Adds one settings key: `dlna.enabled` (38 -> 39 properties).

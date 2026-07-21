@@ -184,6 +184,31 @@ final class ServerSettingsSchemaTest extends TestCase
             // public/dlna/description.xml. Do not widen this key's helpText to
             // promise browsing until that is wired -- see plan_settings.md.
             'dlna.enabled' => ['dlna.enabled', 'boolean'],
+            // Resolve to config/casting.php -> [<protocol>]['enabled'] (a NET-NEW
+            // config file; it did not exist before 1.3.0). Each gates one
+            // protocol's whole six-route HTTP surface through
+            // CastingEnabledMiddleware, appended to that protocol's existing
+            // route group in Application. Middleware runs PER REQUEST, so these
+            // are read-path class (a) LIVE -- deliberately, because the thing
+            // they gate (MdnsSocket::query()) blocks the entire Workerman worker
+            // for ~5s per call, twice that for AirPlay, and an operational
+            // kill-switch for that has to work without waiting for a reload.
+            //
+            // Unlike dlna.enabled, these subsystems are genuinely REACHABLE:
+            // verified on production 2026-07-21, GET /api/v1/{cast,roku,airplay}
+            // /devices all return 401 (route present, auth-gated) while a made-up
+            // sibling path returns 404, and all three managers resolve from the
+            // container.
+            //
+            // The switches are real; two of the FEATURES behind them are
+            // incomplete (Roku's mDNS service string is malformed and Roku does
+            // not use mDNS for ECP anyway; AirPlay never sends RTP audio). That
+            // is a product bug, recorded in config/casting.php and
+            // plan_settings.md. The helpText describes what the SWITCH does --
+            // stop discovery and the endpoints -- which stays true either way.
+            'casting.chromecast.enabled' => ['casting.chromecast.enabled', 'boolean'],
+            'casting.roku.enabled' => ['casting.roku.enabled', 'boolean'],
+            'casting.airplay.enabled' => ['casting.airplay.enabled', 'boolean'],
             // NOTE: both `marker_detection.*` keys were DELETED in 0.28.0. They
             // resolved to real config defaults but had NO consumer: the only reads
             // of config/marker_detection.php are MediaServicesProvider.php:521,539,
@@ -324,7 +349,7 @@ final class ServerSettingsSchemaTest extends TestCase
         sort($expected);
 
         $this->assertSame($expected, $actual, 'server-settings schema must declare exactly the expected settings keys.');
-        $this->assertCount(39, $actual);
+        $this->assertCount(42, $actual);
     }
 
     /**

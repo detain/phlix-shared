@@ -836,6 +836,66 @@
             "tier": "standard",
             "restart": true,
             "default": true
+        },
+        "casting.chromecast.enabled": {
+            "type": "boolean",
+            "description": "Allow clients to discover and control Google Cast / Chromecast devices through this server. When off, the six /api/v1/cast/devices endpoints answer 404 and no Chromecast discovery is performed.",
+            "group": "subsystem",
+            "label": "Enable Chromecast casting",
+            "helpText": "Lets signed-in users list the Chromecast devices on your network and send playback to them. Turning it off makes this server's Chromecast endpoints report as absent and, more importantly, stops it running Chromecast discovery at all. Discovery is worth understanding before you leave this on: it is a multicast DNS query that blocks the worker handling the request for up to five seconds, so on a busy or low-powered server a user repeatedly opening a cast menu has a measurable effect on everyone else. Switch this off if you have no Chromecast devices, or if the server is on a network where you would rather it did not probe for them. The change applies immediately — no restart needed.",
+            "helpLinks": [
+                {
+                    "text": "Chromecast",
+                    "url": "https://en.wikipedia.org/wiki/Chromecast"
+                },
+                {
+                    "text": "Multicast DNS",
+                    "url": "https://en.wikipedia.org/wiki/Multicast_DNS"
+                }
+            ],
+            "tier": "standard",
+            "restart": false,
+            "default": true
+        },
+        "casting.roku.enabled": {
+            "type": "boolean",
+            "description": "Allow clients to discover and control Roku devices through this server. When off, the six /api/v1/roku/devices endpoints answer 404 and no Roku discovery is performed.",
+            "group": "subsystem",
+            "label": "Enable Roku casting",
+            "helpText": "Lets signed-in users list the Roku devices on your network and send playback to them. Turning it off makes this server's Roku endpoints report as absent and stops it running Roku discovery. Discovery is a multicast DNS query that blocks the worker handling the request for up to five seconds, so leaving it enabled on a server with no Roku devices costs you that pause every time a client looks. The change applies immediately — no restart needed.",
+            "helpLinks": [
+                {
+                    "text": "Roku",
+                    "url": "https://en.wikipedia.org/wiki/Roku"
+                },
+                {
+                    "text": "Multicast DNS",
+                    "url": "https://en.wikipedia.org/wiki/Multicast_DNS"
+                }
+            ],
+            "tier": "standard",
+            "restart": false,
+            "default": true
+        },
+        "casting.airplay.enabled": {
+            "type": "boolean",
+            "description": "Allow clients to discover and control AirPlay devices through this server. When off, the six /api/v1/airplay/devices endpoints answer 404 and no AirPlay discovery is performed.",
+            "group": "subsystem",
+            "label": "Enable AirPlay casting",
+            "helpText": "Lets signed-in users list the AirPlay devices on your network and stream to them. Turning it off makes this server's AirPlay endpoints report as absent and stops it running AirPlay discovery. This is the most expensive of the three to leave on: AirPlay discovery issues TWO multicast DNS queries (one for AirPlay, one for AirPlay audio), each of which blocks the worker handling the request for up to five seconds — about ten seconds in total. Switch it off if you have no Apple devices. The change applies immediately — no restart needed.",
+            "helpLinks": [
+                {
+                    "text": "AirPlay",
+                    "url": "https://en.wikipedia.org/wiki/AirPlay"
+                },
+                {
+                    "text": "Multicast DNS",
+                    "url": "https://en.wikipedia.org/wiki/Multicast_DNS"
+                }
+            ],
+            "tier": "standard",
+            "restart": false,
+            "default": true
         }
     }
 }
