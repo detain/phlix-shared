@@ -4,6 +4,97 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.26.0] - 2026-07-20
+
+Makes the last two dishonest `restart: true` settings honest. `server-settings`
+goes from 43 to 42 properties.
+
+### Removed
+
+`schemas/server-settings.schema.json` — **`hwaccel.probe_timeout`** (was
+`integer`, `minimum: 0`, `default: 30`, `tier: advanced`, `restart: true`).
+
+The key resolved to a real config default, so it passed every resolvability
+test, but **nothing in `phlix-server` ever read the effective value.** Two
+independent causes, both verified:
+
+1. `HwaccelRegistry` is built through `getInstance()` with no config
+   (`src/Media/Transcoding/FfmpegRunner.php:1359`), so it fell back to its own
+   literal `'probe_timeout' => 30`
+   (`src/Media/Transcoding/Hwaccel/HwaccelRegistry.php:89`) — and even that
+   value is never passed on: `HwaccelRegistry::initialize()` constructs
+   `new HwaccelProbe($this->ffmpeg_path)`, and `HwaccelProbe::__construct()`
+   (`HwaccelProbe.php:51`) accepts only a binary path and a logger.
+2. `HwAccelConfig::get()` resolved
+   `$transcodingConfig['probe_timeout'] ?? $hwaccelBase['probe_timeout']`
+   (`src/Config/HwAccelConfig.php:103`) while `config/transcoding.php:33`
+   *always* declares `probe_timeout`, so the `hwaccel.*` side could never win
+   even if a consumer had appeared.
+
+It was deleted rather than wired (plan §4 rule 10) because wiring it is neither
+cheap nor safe:
+
+- The real timeouts are **two** hardcoded constants with different values —
+  `ShellTimeout::FFMPEG_TIMEOUT = 10` and `::GPU_TOOL_TIMEOUT = 5`
+  (`src/Media/Transcoding/Hwaccel/ShellTimeout.php:25,28`). One
+  `probe_timeout` maps onto neither without inventing a semantic.
+- `ShellTimeout::exec()` is **static**, called from 22 sites across seven
+  `VendorProbe` classes. Threading a configured value would change
+  `VendorProbeInterface::probe()` / `runAcceptanceTest()` across all seven
+  implementations plus `HwaccelProbe` and `HwaccelRegistry`'s
+  private-constructor singleton.
+- The schema declared `minimum: 0`, and coreutils' `timeout 0 CMD` means **no
+  timeout at all**. `ShellTimeout` exists specifically "to prevent coroutine
+  deadlock during shutdown" (`ShellTimeout.php:15`), so wiring the key would
+  have handed an admin a one-click way to hang a resident Workerman worker at
+  boot.
+- The shipped `helpText` was false regardless: it described a **per-file,
+  pre-transcode** probe of "the file's codec profile". No such probe exists.
+  `HwaccelRegistry::initialize()` runs a one-time, process-wide capability scan
+  (`ffmpeg -encoders`, `nvidia-smi`, `vainfo`) guarded by `$this->initialized`.
+
+`tests/Schema/ServerSettingsSchemaTest.php` gains
+`test_consumerless_probe_timeout_key_is_not_reintroduced()` so it cannot come
+back without a cited consumer.
+
+### Changed
+
+`schemas/server-settings.schema.json` — rewrote `helpText` for all five
+**`process.<worker>.enabled`** switches (`library-scan`, `plugin-auto-update`,
+`marker-detection`, `media-asset`, `similarity`).
+
+The old text said the worker "is not spawned". That is **wrong**: `start.php`
+spawns it regardless. The spawn loop runs in the master before
+`Worker::runAll()` and reads `config/process.php` from disk only, so it cannot
+consult the override store; the effective value is applied inside each managed
+worker's own `onWorkerStart`, which starts, logs
+`Managed worker disabled by settings override; idling`, and never arms its poll
+timer.
+
+The consequence is an asymmetry the admin could not previously see, since the
+UI renders only `helpText`:
+
+- turning a worker **OFF** takes effect after a restart;
+- turning one back **ON** also takes effect after a restart — *unless* it is
+  disabled in the on-disk `config/process.php`, in which case no Worker group
+  was ever forked and the in-app Restart button (SIGUSR2, a graceful reload of
+  the already-executed master) cannot help; the service itself must be
+  restarted;
+- a worker switched off here **still occupies an idle process**.
+
+All three facts are now stated in each `helpText` and locked in by
+`test_managed_worker_switches_disclose_the_restart_asymmetry()`, which also
+asserts the old "is not spawned" claim cannot return.
+
+### Notes
+
+The remaining 14 `restart: true` keys were re-audited against
+`Phlix\Config\EffectiveConfig` and all remain correctly flagged: overrides are
+snapshotted once per process by `EffectiveConfig::bootstrap()`, and every
+consumer resolves at worker boot (DI provider factories, or
+`EffectiveConfig::file()` behind a generation-keyed cache). None became
+live-at-runtime, so no `restart` flag needed flipping to `false`.
+
 ## [0.25.0] - 2026-07-20
 
 Restores the three Trakt credential settings that 0.24.0 removed. `server-settings`

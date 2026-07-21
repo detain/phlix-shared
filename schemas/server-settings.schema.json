@@ -42,23 +42,6 @@
             "restart": true,
             "default": true
         },
-        "hwaccel.probe_timeout": {
-            "type": "integer",
-            "description": "Maximum time in seconds to probe a media file for hardware-acceleration capability before falling back.",
-            "group": "transcoding",
-            "minimum": 0,
-            "label": "Hardware probe timeout",
-            "helpText": "Before transcoding a file the server runs a short probe to determine whether your GPU can handle the file's codec profile. This sets the maximum wait time for that probe. If the timeout is reached, the file falls back to software encoding. Increase this if you see frequent 'probe timeout' warnings in logs for large or unusual files, or decrease it to avoid unnecessary waiting on files that are clearly unsupported.",
-            "helpLinks": [
-                {
-                    "text": "Transcoding",
-                    "url": "https://en.wikipedia.org/wiki/Transcoding"
-                }
-            ],
-            "tier": "advanced",
-            "restart": true,
-            "default": 30
-        },
         "transcoding.preferred_accelerator": {
             "type": "string",
             "group": "transcoding",
@@ -835,7 +818,7 @@
             "group": "subsystem",
             "description": "Master kill switch for the media library scanner worker process.",
             "label": "Enable library scanner",
-            "helpText": "When disabled, the library scanner worker is not spawned, so new media files added to watched folders will not be picked up. Use this for temporary maintenance windows. Worker processes are forked when the server boots, so a change only takes effect after a restart.",
+            "helpText": "When disabled, the library scanner stops running, so new media files added to watched folders will not be picked up. Use this for temporary maintenance windows. Turning it OFF takes effect after a restart. Turning it back ON also takes effect after a restart — unless it was switched off in the server's process configuration file on disk, in which case restarting from this page is not enough and the service itself has to be restarted. A worker switched off here still occupies an idle process; it simply does no work.",
             "helpLinks": [
                 {
                     "text": "Worker process",
@@ -851,7 +834,7 @@
             "group": "subsystem",
             "description": "Master kill switch for the plugin auto-update worker process.",
             "label": "Enable plugin auto-update worker",
-            "helpText": "When disabled, the plugin update-checker worker is not spawned and no plugin version checks run. Installed plugins continue to work normally. This is the process-level switch; whether the worker actually performs updates is additionally governed by the auto-update toggle in the admin Plugins section. Worker processes are forked when the server boots, so a change only takes effect after a restart.",
+            "helpText": "When disabled, the plugin update-checker stops running and no plugin version checks happen. Installed plugins continue to work normally. This is the process-level switch; whether the worker actually performs updates is additionally governed by the auto-update toggle in the admin Plugins section. Turning it OFF takes effect after a restart. Turning it back ON also takes effect after a restart — unless it was switched off in the server's process configuration file on disk, in which case restarting from this page is not enough and the service itself has to be restarted. A worker switched off here still occupies an idle process; it simply does no work.",
             "helpLinks": [
                 {
                     "text": "Plug-in (computing)",
@@ -867,7 +850,7 @@
             "group": "subsystem",
             "description": "Master kill switch for the intro/outro marker detection worker process.",
             "label": "Enable marker detection worker",
-            "helpText": "When disabled, the marker detection worker is not spawned and queued episodes are never analysed for intro/outro markers. Existing markers are preserved. Disable when marker detection CPU usage impacts playback performance. Worker processes are forked when the server boots, so a change only takes effect after a restart.",
+            "helpText": "When disabled, the marker detection worker stops running and queued episodes are never analysed for intro/outro markers. Existing markers are preserved. Disable when marker detection CPU usage impacts playback performance. Turning it OFF takes effect after a restart. Turning it back ON also takes effect after a restart — unless it was switched off in the server's process configuration file on disk, in which case restarting from this page is not enough and the service itself has to be restarted. A worker switched off here still occupies an idle process; it simply does no work.",
             "helpLinks": [
                 {
                     "text": "Audio fingerprinting",
@@ -883,7 +866,7 @@
             "group": "subsystem",
             "description": "Master kill switch for the chapter-thumbnail and trickplay image generation worker process.",
             "label": "Enable media asset worker",
-            "helpText": "When disabled, the media-asset worker is not spawned, so chapter thumbnails and trickplay sprite sheets are not generated and newly added content will be missing them. Note that the scanner keeps enqueueing jobs while this worker is off, so the on-disk job queue grows until it is re-enabled. Worker processes are forked when the server boots, so a change only takes effect after a restart.",
+            "helpText": "When disabled, the media-asset worker stops running, so chapter thumbnails and trickplay sprite sheets are not generated and newly added content will be missing them. Note that the scanner keeps enqueueing jobs while this worker is off, so the on-disk job queue grows until it is re-enabled. Turning it OFF takes effect after a restart. Turning it back ON also takes effect after a restart — unless it was switched off in the server's process configuration file on disk, in which case restarting from this page is not enough and the service itself has to be restarted. A worker switched off here still occupies an idle process; it simply does no work.",
             "helpLinks": [
                 {
                     "text": "Thumbnail",
@@ -899,7 +882,7 @@
             "group": "subsystem",
             "description": "Master kill switch for the item-similarity computation worker process.",
             "label": "Enable similarity worker",
-            "helpText": "When disabled, the similarity worker is not spawned and no similarity scores are computed between media items, so 'more like this' recommendations go stale. Existing similarity data is preserved. Note that the scanner keeps enqueueing jobs while this worker is off, so the on-disk job queue grows until it is re-enabled. Worker processes are forked when the server boots, so a change only takes effect after a restart.",
+            "helpText": "When disabled, the similarity worker stops running and no similarity scores are computed between media items, so 'more like this' recommendations go stale. Existing similarity data is preserved. Note that the scanner keeps enqueueing jobs while this worker is off, so the on-disk job queue grows until it is re-enabled. Turning it OFF takes effect after a restart. Turning it back ON also takes effect after a restart — unless it was switched off in the server's process configuration file on disk, in which case restarting from this page is not enough and the service itself has to be restarted. A worker switched off here still occupies an idle process; it simply does no work.",
             "helpLinks": [
                 {
                     "text": "Recommender system",

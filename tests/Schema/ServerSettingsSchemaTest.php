@@ -98,7 +98,13 @@ final class ServerSettingsSchemaTest extends TestCase
             // config/hwaccel.php (delegates to config/hwaccel_base.php)
             'hwaccel.enabled' => ['hwaccel.enabled', 'boolean'],
             'hwaccel.prefer_hardware' => ['hwaccel.prefer_hardware', 'boolean'],
-            'hwaccel.probe_timeout' => ['hwaccel.probe_timeout', 'integer'],
+            // NOTE: `hwaccel.probe_timeout` was DELETED in 0.26.0. It resolved to a
+            // config default but had no consumer: the real hwaccel probe timeouts are
+            // the hardcoded ShellTimeout::FFMPEG_TIMEOUT (10) / ::GPU_TOOL_TIMEOUT (5)
+            // constants in phlix-server, reached through static calls from seven
+            // VendorProbe classes that no config value is threaded into. See
+            // phlix-server/docs/dev/settings-restart-gap.md. Do not re-add it without
+            // first citing the file:line that reads the effective value.
             // config/transcoding.php
             'transcoding.preferred_accelerator' => ['transcoding.preferred_accelerator', 'string'],
             'transcoding.include_software_fallback' => ['transcoding.include_software_fallback', 'boolean'],
@@ -205,7 +211,6 @@ final class ServerSettingsSchemaTest extends TestCase
     public static function constraintProvider(): array
     {
         return [
-            'hwaccel.probe_timeout' => ['hwaccel.probe_timeout', ['minimum' => 0]],
             'marker_detection.similarity_threshold' => [
                 'marker_detection.similarity_threshold',
                 ['minimum' => 0, 'maximum' => 1],
@@ -250,7 +255,7 @@ final class ServerSettingsSchemaTest extends TestCase
         sort($expected);
 
         $this->assertSame($expected, $actual, 'server-settings schema must declare exactly the expected settings keys.');
-        $this->assertCount(43, $actual);
+        $this->assertCount(42, $actual);
     }
 
     /**
@@ -580,6 +585,98 @@ final class ServerSettingsSchemaTest extends TestCase
                 $properties[$key][$constraintKey],
                 0.0,
                 sprintf('Property "%s" "%s" must equal the documented bound.', $key, $constraintKey)
+            );
+        }
+    }
+
+    /**
+     * A key with no consumer must not be re-added.
+     *
+     * `hwaccel.probe_timeout` resolved to a config default and was rendered by
+     * the admin SPA with a "requires a server restart to take effect" note, but
+     * nothing in phlix-server ever read the effective value: the real probe
+     * timeouts are the hardcoded `ShellTimeout::FFMPEG_TIMEOUT` (10s) and
+     * `::GPU_TOOL_TIMEOUT` (5s) constants, reached via static calls from seven
+     * `VendorProbe` classes that take no timeout argument. Shipping it was the
+     * false advertising this schema exists to prevent (plan §4 rule 10).
+     */
+    public function test_consumerless_probe_timeout_key_is_not_reintroduced(): void
+    {
+        $this->assertArrayNotHasKey(
+            'hwaccel.probe_timeout',
+            self::properties(),
+            'hwaccel.probe_timeout has no consumer in phlix-server and must stay deleted. '
+            . 'Re-adding it requires first citing the file:line that reads the effective value.'
+        );
+    }
+
+    /**
+     * The five managed-worker switches are only HALF live, and must say so.
+     *
+     * Verified against phlix-server `start.php`: the spawn loop runs in the
+     * MASTER before `Worker::runAll()` and reads `config/process.php` from disk
+     * only, so it cannot see an admin override. The effective value is applied
+     * in each worker's own `onWorkerStart`, which a graceful reload DOES re-run
+     * — hence disabling works, and re-enabling works too, but ONLY while the
+     * on-disk config still says `enabled => true` (no Worker group was ever
+     * forked otherwise, and the in-app Restart button is SIGUSR2, a reload of
+     * the already-executed master, not a fresh exec).
+     *
+     * The admin sees only `helpText`, so the asymmetry has to be disclosed
+     * there — a dev-doc footnote does not reach the person flipping the switch.
+     */
+    public function test_managed_worker_switches_disclose_the_restart_asymmetry(): void
+    {
+        $properties = self::properties();
+
+        $workerKeys = array_values(array_filter(
+            array_keys($properties),
+            static fn (string $key): bool => str_starts_with($key, 'process.')
+                && str_ends_with($key, '.enabled')
+        ));
+
+        $this->assertCount(5, $workerKeys, 'Expected exactly the five managed-worker switches.');
+
+        foreach ($workerKeys as $key) {
+            $helpText = $properties[$key]['helpText'] ?? null;
+            $this->assertIsString($helpText);
+
+            // Turning a worker OFF is honoured on the next restart/reload.
+            $this->assertMatchesRegularExpression(
+                '/Turning it OFF takes effect after a restart/i',
+                $helpText,
+                sprintf('Property "%s" must tell the admin that disabling applies after a restart.', $key)
+            );
+
+            // Turning one back ON can require a FULL service restart, because the
+            // master never forked a Worker group for a file-disabled entry.
+            $this->assertMatchesRegularExpression(
+                '/restarting from this page is not enough and the service itself has to be restarted/i',
+                $helpText,
+                sprintf(
+                    'Property "%s" must warn that re-enabling a worker disabled in the on-disk config '
+                    . 'needs a full service restart, not the in-app restart button.',
+                    $key
+                )
+            );
+
+            // The cost of the "idle process" design must not be hidden either.
+            $this->assertMatchesRegularExpression(
+                '/still occupies an idle process/i',
+                $helpText,
+                sprintf('Property "%s" must disclose that a disabled worker still holds a process.', $key)
+            );
+
+            // The pre-fix text claimed the worker "is not spawned". It IS spawned;
+            // it starts, logs, and idles without arming its poll timer.
+            $this->assertStringNotContainsString(
+                'is not spawned',
+                $helpText,
+                sprintf(
+                    'Property "%s" must not claim the worker "is not spawned" — start.php spawns it '
+                    . 'regardless and the gate lives in onWorkerStart.',
+                    $key
+                )
             );
         }
     }
