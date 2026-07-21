@@ -525,6 +525,83 @@
             "maximum": 86400,
             "default": 60
         },
+        "transcoding.preset": {
+            "type": "string",
+            "description": "x264/x265 encoder preset \u2014 the trade between encoding speed and compression efficiency. Applies to the next transcode; playback already in progress is unaffected.",
+            "group": "transcoding",
+            "label": "Encoder preset",
+            "helpText": "This is the speed-versus-efficiency dial for software transcoding. A slower preset spends more CPU to reach the same quality in a smaller file; a faster one uses less CPU and produces a larger file at the same quality. It does NOT directly set quality \u2014 that is the CRF setting. The shipped value, veryfast, is chosen so that a segment encodes comfortably faster than it plays back, which is what keeps on-demand streaming ahead of the viewer. Moving more than a step or two slower on a modest CPU risks the encoder falling behind and the video stalling. Changing this makes previously transcoded items re-encode the next time they are played, so expect some extra CPU load for a while afterwards. On servers with hardware acceleration this is honoured only once you change it from the default, because each GPU vendor has its own preset scale that Phlix maps onto.",
+            "helpLinks": [
+                {
+                    "text": "x264 presets",
+                    "url": "https://trac.ffmpeg.org/wiki/Encode/H.264"
+                }
+            ],
+            "tier": "advanced",
+            "restart": false,
+            "enum": [
+                "ultrafast",
+                "superfast",
+                "veryfast",
+                "faster",
+                "fast",
+                "medium",
+                "slow",
+                "slower",
+                "veryslow"
+            ],
+            "enumLabels": {
+                "ultrafast": "Ultrafast (lowest CPU, largest files)",
+                "superfast": "Superfast",
+                "veryfast": "Veryfast (recommended)",
+                "faster": "Faster",
+                "fast": "Fast",
+                "medium": "Medium",
+                "slow": "Slow",
+                "slower": "Slower",
+                "veryslow": "Veryslow (highest CPU, smallest files)"
+            },
+            "optionHelp": {
+                "ultrafast": "Minimal CPU per stream, but files are far larger at the same quality. Useful only on a very weak server, or where many people watch at once.",
+                "superfast": "Still very cheap on CPU, with slightly better compression than ultrafast.",
+                "veryfast": "The shipped default. Encodes comfortably faster than playback on modest hardware, which is what keeps on-demand streaming ahead of the viewer.",
+                "faster": "A little more CPU than veryfast for a modest reduction in file size.",
+                "fast": "Noticeably more CPU per stream; sensible on a capable server with few simultaneous viewers.",
+                "medium": "FFmpeg's own default. Good compression, but may not keep ahead of playback on a modest CPU.",
+                "slow": "Meaningfully better compression at a large CPU cost. Only for a strong server with few concurrent streams.",
+                "slower": "Diminishing returns for most content. Risks stalling playback if the encode falls behind.",
+                "veryslow": "Best compression, very high CPU. Rarely worthwhile for live transcoding \u2014 it is aimed at offline encoding."
+            },
+            "default": "veryfast"
+        },
+        "transcoding.crf_h264": {
+            "type": "integer",
+            "description": "Constant Rate Factor for H.264 transcodes: lower means better quality and larger files. Clamped to 16..40 in code. Applies to the next transcode.",
+            "group": "transcoding",
+            "label": "H.264 quality (CRF)",
+            "helpText": "CRF is the quality dial for transcoded video, and it runs backwards: LOWER numbers mean better quality and bigger files. The shipped value of 23 is a widely used balance point. Around 18 is generally considered visually indistinguishable from the source and roughly doubles the bitrate; around 28 is noticeably softer but much lighter on bandwidth. A change of plus or minus 6 roughly halves or doubles the file size. The range here stops at 16 and 40 because the codec's true extremes are not useful: 0 is lossless and would fill the segment cache very quickly, and the upper end is unwatchable. Lowering this costs bandwidth and disk, not CPU. Changing it makes previously transcoded items re-encode the next time they are played.",
+            "helpLinks": [
+                {
+                    "text": "FFmpeg CRF guide",
+                    "url": "https://trac.ffmpeg.org/wiki/Encode/H.264"
+                }
+            ],
+            "tier": "advanced",
+            "restart": false,
+            "minimum": 16,
+            "maximum": 40,
+            "default": 23
+        },
+        "transcoding.audio_bitrate": {
+            "type": "string",
+            "description": "AAC audio bitrate for transcoded output, e.g. 128k. Accepts a bare number. Clamped to 32..512 kbps. Applies to the next transcode.",
+            "group": "transcoding",
+            "label": "Audio bitrate",
+            "helpText": "The bitrate used when audio has to be re-encoded to AAC, which happens whenever the original track is in a format the client cannot play. Audio that is already AAC is usually passed through untouched, so this does not affect every stream. The shipped 128k is transparent enough for stereo on most equipment; 192k or 256k is worth considering if people listen on good headphones or a hi-fi, and lower values save bandwidth on constrained connections. Enter either 128k or plain 128 \u2014 both are understood. Note this is per stream, so it adds to the total bandwidth of every simultaneous viewer. Changing it makes previously transcoded items re-encode the next time they are played.",
+            "tier": "advanced",
+            "restart": false,
+            "default": "128k"
+        },
         "subtitles.default_language": {
             "type": "string",
             "description": "Preferred subtitle language (ISO 639 code) selected by default for new playback sessions.",

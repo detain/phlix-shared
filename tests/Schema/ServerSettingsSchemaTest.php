@@ -123,6 +123,25 @@ final class ServerSettingsSchemaTest extends TestCase
             // `hwaccel.fallback_to_software`, which is genuinely consumed.
             'transcoding.tone_mapping_mode' => ['transcoding.tone_mapping_mode', 'string'],
             'transcoding.prefer_hdr_output' => ['transcoding.prefer_hdr_output', 'boolean'],
+            // Software-encode tunables, all resolving to config/transcoding.php.
+            // Consumed via Phlix\Media\Transcoding\EncodeSettings, the single
+            // source for TEN literals across TranscodeManager (preset x3,
+            // crf x3, audio_bitrate x4) — the ABR rendition builder, the
+            // copy-to-encode upgrade branch and the legacy single-variant path
+            // each build their own $params array from scratch.
+            //
+            // EncodeSettings::fingerprint() is folded into TranscodeManager's
+            // job key, because a job PERSISTS its params and findReusableJob()
+            // returns it for later requests — without that, changing one of
+            // these would keep serving the old encode for anything already
+            // watched. The fingerprint is '' at the shipped defaults so the key
+            // is unchanged on an install that has never touched a knob.
+            //
+            // NB deliberately NO crf_h265: nothing in phlix-server ever sets
+            // video_codec to libx265, so it would have no live consumer.
+            'transcoding.preset' => ['transcoding.preset', 'string'],
+            'transcoding.crf_h264' => ['transcoding.crf_h264', 'integer'],
+            'transcoding.audio_bitrate' => ['transcoding.audio_bitrate', 'string'],
             // config/ffmpeg.php
             'ffmpeg.max_concurrent_transcodes' => ['ffmpeg.max_concurrent_transcodes', 'integer'],
             'ffmpeg.transcode_timeout' => ['ffmpeg.transcode_timeout', 'integer'],
@@ -421,7 +440,7 @@ final class ServerSettingsSchemaTest extends TestCase
         sort($expected);
 
         $this->assertSame($expected, $actual, 'server-settings schema must declare exactly the expected settings keys.');
-        $this->assertCount(60, $actual);
+        $this->assertCount(63, $actual);
     }
 
     /**

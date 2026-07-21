@@ -4,6 +4,45 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.38.0] - 2026-07-21
+
+Adds three software-encode keys: `transcoding.preset`, `transcoding.crf_h264`
+and `transcoding.audio_bitrate` (60 -> 63 properties). All `advanced`-tier,
+`restart: false`, read-path class (a) LIVE.
+
+In `phlix-server` these were TEN hardcoded literals, not three: the ABR
+rendition builder, the copy-to-encode upgrade branch and the legacy
+single-variant path each assemble their own encode `$params` array from
+scratch, giving preset x3, crf x3 and audio_bitrate x4. Server 1.3.0 routes all
+ten through `Phlix\Media\Transcoding\EncodeSettings`.
+
+Two consequences shaped the design:
+
+**The transcode job key.** A job persists the parameters it was built with and
+`findReusableJob()` returns that job for any later request with the same key —
+a key that contained none of these values. Without intervention, changing the
+preset would keep serving the OLD encode for anything already watched, which is
+exactly the content an administrator would test the change against. An encode
+fingerprint is now folded into the key, and it is EMPTY while every value is at
+its shipped default, so deploying this does not invalidate any existing
+transcode cache.
+
+**The hardware path.** `buildHwaccelSegmentCommand()` hardcoded per-vendor
+presets and never read the preset parameter, so a control wired only through
+the software builder would silently do nothing on any server with a GPU. It is
+now honoured, but only once the value differs from the default: NVENC uses a
+p1..p7 namespace rather than the x264 names, and vaapi/qsv were tuned
+independently of the software path, so forwarding the default would have
+retuned every GPU encode the moment this shipped.
+
+Values are validated rather than merely clamped, because encode parameters are
+concatenated into a shell command: an unrecognised preset or an unparseable
+bitrate falls back to the shipped default instead of reaching ffmpeg, where it
+would abort the transcode and present as "all playback is broken".
+
+**No `crf_h265` companion, deliberately.** Nothing in `phlix-server` ever sets
+`video_codec` to `libx265`, so the key would have no live consumer.
+
 ## [0.37.0] - 2026-07-21
 
 Promotes the whole `server.rate_limit.*` block into the schema: `max` and
