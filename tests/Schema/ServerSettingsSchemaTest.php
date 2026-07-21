@@ -148,6 +148,18 @@ final class ServerSettingsSchemaTest extends TestCase
             // PasswordPolicy::ABSOLUTE_MIN_LENGTH so the control can only ever
             // strengthen the shipped policy.
             'auth.password.min_length' => ['auth.password.min_length', 'integer'],
+            // Both resolve to config/auth.php -> ['access_ttl'] / ['refresh_ttl'].
+            // Consumed via Phlix\Auth\TokenTtlPolicy, reached from JwtHandler,
+            // which is the SINGLE source for all four sites that previously
+            // carried their own literal: the two `exp` claims
+            // (JwtHandler::createAccessToken/createRefreshToken), `expires_in`
+            // (AuthManager::buildAuthResponse) and both cookie Max-Ages
+            // (AuthController::attachAuthCookies). Wiring a subset would have
+            // been half-effective in the dangerous direction — the client would
+            // be told a lifetime the token does not actually have.
+            // Read-path class (a) LIVE: resolved per mint, no restart.
+            'auth.access_ttl' => ['auth.access_ttl', 'integer'],
+            'auth.refresh_ttl' => ['auth.refresh_ttl', 'integer'],
             // Resolves to config/webhooks.php -> ['enabled']. Consumed via
             // WebhookDispatcher::isEnabled(), which gates dispatch() before the
             // per-event DB lookup. Both halves of this shipped together: the key
@@ -369,7 +381,7 @@ final class ServerSettingsSchemaTest extends TestCase
         sort($expected);
 
         $this->assertSame($expected, $actual, 'server-settings schema must declare exactly the expected settings keys.');
-        $this->assertCount(44, $actual);
+        $this->assertCount(46, $actual);
     }
 
     /**

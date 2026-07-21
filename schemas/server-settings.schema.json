@@ -321,6 +321,42 @@
             "maximum": 128,
             "default": 8
         },
+        "auth.access_ttl": {
+            "type": "integer",
+            "description": "How long an issued access token stays valid, in seconds. Applies to the next token minted; tokens already issued keep the lifetime they were minted with. Clamped to 60..86400 in code.",
+            "group": "auth",
+            "label": "Access token lifetime (seconds)",
+            "helpText": "An access token is the short-lived credential a signed-in client sends with every request. This is how long one stays valid before the client has to renew it using its refresh token \u2014 a renewal that happens automatically in the background, so this number is not how often anyone has to sign in again. Shorter is safer: an access token cannot be revoked once it has been issued, so this value is the window during which a stolen or leaked token still works. The trade is that very short lifetimes mean more renewal traffic and are less forgiving of a device whose clock is wrong. The shipped value of 3600 (one hour) suits most installs; consider lowering it if clients connect over networks you do not control. Changing this takes effect on the next sign-in or renewal, and never signs anyone out.",
+            "helpLinks": [
+                {
+                    "text": "JSON Web Token",
+                    "url": "https://en.wikipedia.org/wiki/JSON_Web_Token"
+                }
+            ],
+            "tier": "advanced",
+            "restart": false,
+            "minimum": 60,
+            "maximum": 86400,
+            "default": 3600
+        },
+        "auth.refresh_ttl": {
+            "type": "integer",
+            "description": "How long an issued refresh token stays valid, in seconds \u2014 effectively how long a client can stay signed in without re-entering credentials. Clamped to 3600..7776000 in code, and never allowed below the access token lifetime.",
+            "group": "auth",
+            "label": "Refresh token lifetime (seconds)",
+            "helpText": "A refresh token is the long-lived credential a client uses to obtain fresh access tokens without asking anyone to sign in again. This value is therefore how long a device stays signed in while it goes unused: once the refresh token expires, the next launch asks for credentials. The shipped value of 604800 (seven days) is a reasonable balance. Raise it for devices that are signed in once and then used only occasionally, such as a TV or a games console, and lower it if you want a lost or abandoned device to stop working sooner. This cannot be set below the access token lifetime, because a refresh token that expired first could never renew anything. Changing it applies to the next token issued; devices already signed in keep the lifetime they were given until they next renew.",
+            "helpLinks": [
+                {
+                    "text": "JSON Web Token",
+                    "url": "https://en.wikipedia.org/wiki/JSON_Web_Token"
+                }
+            ],
+            "tier": "advanced",
+            "restart": false,
+            "minimum": 3600,
+            "maximum": 7776000,
+            "default": 604800
+        },
         "subtitles.default_language": {
             "type": "string",
             "description": "Preferred subtitle language (ISO 639 code) selected by default for new playback sessions.",

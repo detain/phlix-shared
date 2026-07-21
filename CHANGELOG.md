@@ -4,6 +4,45 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.35.0] - 2026-07-21
+
+Adds two settings keys: `auth.access_ttl` and `auth.refresh_ttl`
+(44 -> 46 properties). Both are `advanced`-tier, `restart: false`.
+
+These expose the JWT access- and refresh-token lifetimes, which in
+`phlix-server` were **four independent literals that nothing kept in
+agreement**:
+
+- `JwtHandler`'s constructor defaults (3600 / 604800) built the `exp` claims.
+- `AuthServicesProvider` read `$appConfig['jwt']` — a key `config/server.php`
+  has never composed, so that branch was dead and its 3600/604800 fallbacks
+  were always what shipped.
+- `AuthManager::buildAuthResponse()` hardcoded `'expires_in' => 3600`
+  independent of the handler that minted the token, so the lifetime the client
+  was TOLD and the `exp` it could read out of the JWT were two unrelated
+  constants that happened to match.
+- `AuthController::attachAuthCookies()` hardcoded `7 * 24 * 3600` for the
+  refresh cookie's `Max-Age`, plus a second `3600` fallback.
+
+Wiring a setting to a subset of those would have been worse than shipping no
+setting at all. Shortening the access TTL would expire the token while the
+client still believed it had an hour; raising the refresh TTL would leave the
+browser dropping a cookie that still carried a valid refresh token. Both
+present as "random logouts". Server 1.3.0 routes all four sites through a
+single `JwtHandler` instance backed by `Phlix\Auth\TokenTtlPolicy`.
+
+**The clamps are two-sided**, unlike `auth.password.min_length`'s one-sided
+floor: a password minimum can only be made stronger, but a token lifetime is
+unsafe in both directions. Access is bounded to 60..86400 and refresh to
+3600..7776000 — in code as well as by the schema, so a `server_settings` row
+written by direct SQL or restored from a backup is bounded too. The policy
+additionally enforces `refresh >= access`: a refresh token expiring before the
+access token it renews would end the session while the client still held a
+valid access token and had no way to continue.
+
+Changing either value never signs anyone out — validation only checks the `exp`
+baked in at mint time, so a change applies to the next token issued.
+
 ## [0.34.0] - 2026-07-21
 
 Adds two settings keys: `dlna.cds_enabled` and `dlna.friendly_name`
