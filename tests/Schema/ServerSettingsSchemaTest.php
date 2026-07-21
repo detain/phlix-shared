@@ -255,6 +255,33 @@ final class ServerSettingsSchemaTest extends TestCase
             // each caller must remember. Local statistics only; nothing is
             // transmitted off the server.
             'stats.enabled' => ['stats.enabled', 'boolean'],
+            // Resolves to config/metrics.php -> ['enabled'], which config/server.php
+            // COMPOSES at :91. Read-path class (b) RESTART: MetricsServicesProvider
+            // reads $appConfig['metrics'] at :159 and captures the flag BY VALUE
+            // into the MetricsCollector factory closure at :100-107, so it is
+            // frozen into the container at build time and cannot apply live.
+            // Consequence is real, not cosmetic: MetricsCollector guards all four
+            // record* methods on $this->enabled (:74, :100, :117, :132).
+            'metrics.enabled' => ['metrics.enabled', 'boolean'],
+            // Resolves to config/theme_music.php, COMPOSED at config/server.php:67.
+            // Read-path class (b): MediaServicesProvider:133 reads
+            // $appConfig['theme_music'] and captures the array by value into the
+            // ThemeMusicConfig factory at :375. Consumed by
+            // ThemeMusicResolver::resolveForItem() via isActive() (:84) and
+            // allowsPlexFallback() (:102), reached from
+            // LibraryMetadataMatcher:1698 — which has exactly ONE construction
+            // path and receives the resolver through an EXPLICITLY NAMED
+            // constructorParameter (MediaServicesProvider:417), not an optional
+            // param PHP-DI would silently skip.
+            //
+            // NB plan_settings.md called these class (d) because of the raw
+            // `@include` at Application.php:3628. That include IS real but its
+            // only caller is Application.php:3604, inside `if ($this->container
+            // === null)` at :3593 — and Application::__construct() (:87) takes a
+            // NON-NULLABLE ContainerInterface, so that branch is dead code. The
+            // live read path is the provider, and it is class (b).
+            'theme_music.enabled' => ['theme_music.enabled', 'boolean'],
+            'theme_music.source' => ['theme_music.source', 'string'],
             // Resolves to config/dlna.php -> ['enabled'] (a NET-NEW config file;
             // it did not exist before 1.3.0). Gates the SSDP advertiser, which is
             // the DLNA surface that genuinely runs: SsdpAdvertiser::onWorkerStart
@@ -462,7 +489,7 @@ final class ServerSettingsSchemaTest extends TestCase
         sort($expected);
 
         $this->assertSame($expected, $actual, 'server-settings schema must declare exactly the expected settings keys.');
-        $this->assertCount(65, $actual);
+        $this->assertCount(68, $actual);
     }
 
     /**

@@ -1127,6 +1127,57 @@
             "restart": false,
             "default": true
         },
+        "metrics.enabled": {
+            "type": "boolean",
+            "description": "Record per-worker request counters and latency histograms for the admin Metrics page. Covers all HTTP traffic, including media streaming. Stored only in this server's own database. Takes effect on the next restart.",
+            "group": "subsystem",
+            "label": "Record performance metrics",
+            "helpText": "Phlix accumulates request counts, error counts and response-time histograms in memory, then flushes them to its own database on a timer. This is what the admin Metrics page reads; nothing is transmitted off the server. Note that it measures ALL HTTP traffic, media streaming included, so on a busy server the counters are dominated by playback segment requests rather than by page views. This is a different switch from \"Record usage statistics\", which covers playback history and library changes — turning one off does not affect the other. Switching this off makes every recording call a no-op, which removes a small amount of per-request work and stops the periodic database writes; the Metrics page then shows no new data. Metrics already recorded are kept. The value is read once when the server builds its services, so a change here needs a restart before it applies.",
+            "helpLinks": [
+                {
+                    "text": "Latency percentiles",
+                    "url": "https://en.wikipedia.org/wiki/Percentile"
+                }
+            ],
+            "tier": "advanced",
+            "restart": true,
+            "default": true
+        },
+        "theme_music.enabled": {
+            "type": "boolean",
+            "description": "Look up theme music for series, seasons, episodes and movies while matching metadata. Only affects items matched from now on; themes already found are kept. Takes effect on the next restart.",
+            "group": "subsystem",
+            "label": "Find theme music",
+            "helpText": "When Phlix matches metadata for an item it can also look for a theme tune, either a theme.mp3 (or .mp4/.ogg) file sitting next to the media in the Emby/Kodi convention, or — for series with a known TheTVDB id — the public Plex theme archive, cached locally after the first fetch. The result is stored on the item and is what clients play when you browse to it. The important thing to know is that this runs at METADATA-MATCH time, not at playback time: switching it off stops new lookups but does NOT remove theme music already found, and switching it on does not retroactively add themes to your existing library — those items have to be matched again before they pick one up. Every lookup fails soft, so an unreachable archive or a missing file never breaks a scan. Use \"Theme music source\" if you want local files only and no outbound requests.",
+            "tier": "advanced",
+            "restart": true,
+            "default": true
+        },
+        "theme_music.source": {
+            "type": "string",
+            "enum": [
+                "local_then_plex",
+                "local_only",
+                "off"
+            ],
+            "enumLabels": {
+                "local_then_plex": "Local theme file, then Plex archive",
+                "local_only": "Local theme file only (no outbound requests)",
+                "off": "Off (never look up theme music)"
+            },
+            "optionHelp": {
+                "local_then_plex": "Look for a theme file stored next to the media first. If there is none, and the item is a series with a known TheTVDB id, fetch one from the public Plex theme archive and cache it locally. Movies never use the archive, so for a movie-only library this behaves exactly like \"Local theme file only\".",
+                "local_only": "Use only theme files already stored next to your media, in the Emby/Kodi theme.mp3 convention. Phlix makes no outbound request during a scan under this setting. Choose this if the server should not reach the internet while scanning, or if you curate theme files yourself.",
+                "off": "Never look up theme music at all. Equivalent to turning \"Find theme music\" off; both exist because that switch is the master gate and this one selects the strategy. Themes already found on existing items are kept either way."
+            },
+            "description": "Where theme music may come from: a local theme file then the Plex archive, a local theme file only, or nowhere. Takes effect on the next restart.",
+            "group": "subsystem",
+            "label": "Theme music source",
+            "helpText": "\"Local, then Plex archive\" is the default: Phlix first looks for a theme file stored next to the media, and only if there is none — and only for series that have a TheTVDB id — does it request one from the public Plex theme archive and cache it. \"Local files only\" uses the same local lookup but never makes an outbound request, which is the right choice if this server should not reach the internet during scans. \"Off\" produces no theme music at all and is equivalent to turning \"Find theme music\" off; both switches exist because one is a master gate and this one selects the strategy. Movies never use the Plex archive under any setting — the archive is indexed by series id — so for a movie library \"Local, then Plex archive\" and \"Local files only\" behave identically. Like the master gate, this applies to items matched from now on and needs a restart to take effect.",
+            "tier": "advanced",
+            "restart": true,
+            "default": "local_then_plex"
+        },
         "dlna.enabled": {
             "type": "boolean",
             "description": "Announce this server to DLNA/UPnP devices on the local network. Only has an effect when the DLNA media server itself is enabled; announcing a server that is not serving would list a device that cannot be opened. When off, the SSDP advertiser stops broadcasting and sends a byebye notice. Takes effect on the next restart.",

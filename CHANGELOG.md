@@ -4,6 +4,49 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.40.0] - 2026-07-21
+
+Adds `metrics.enabled`, `theme_music.enabled` and `theme_music.source`
+(65 -> 68 properties). All three are read-path class **(b) RESTART** and ship
+`restart: true`; all three are `advanced` tier. These are the three shippable
+rows of `plan_settings.md` Phase 2 — the other five candidates were adjudicated
+and REJECTED, with evidence recorded in the plan.
+
+`metrics.enabled` resolves to `config/metrics.php`, which `config/server.php`
+composes at `:91`. `MetricsServicesProvider` reads `$appConfig['metrics']` at
+`:159` and captures the flag BY VALUE into the `MetricsCollector` factory
+closure, so it is frozen into the container at build time and genuinely cannot
+apply live — hence `restart: true` rather than a flag that lies. The
+consequence is real: `MetricsCollector` guards all four `record*()` methods on
+`$this->enabled`. The help text states the two things an operator will get
+wrong otherwise — that this counts ALL HTTP traffic including media streaming
+(so the numbers are dominated by playback segment requests), and that it is a
+DIFFERENT switch from `stats.enabled`.
+
+`theme_music.enabled` / `theme_music.source` resolve to
+`config/theme_music.php`, composed at `config/server.php:67`.
+`MediaServicesProvider:133` reads `$appConfig['theme_music']` and captures the
+array into the `ThemeMusicConfig` factory at `:375`; the values are consumed by
+`ThemeMusicResolver::resolveForItem()` through `isActive()` and
+`allowsPlexFallback()`, reached from `LibraryMetadataMatcher:1698`. That
+matcher has exactly ONE construction path and receives the resolver through an
+EXPLICITLY NAMED `constructorParameter` — not an optional parameter PHP-DI
+would silently skip.
+
+**Correction to `plan_settings.md`:** the plan classified both `theme_music`
+keys as class (d) NOT REACHABLE because of the raw `@include` at
+`Application.php:3628`. That include is real, but its only caller is
+`Application.php:3604`, inside `if ($this->container === null)` at `:3593` —
+and `Application::__construct()` (`:87`) takes a NON-NULLABLE
+`ContainerInterface`. The branch is dead code, the provider is the live read
+path, and the class is (b). No include needed fixing.
+
+The help text for both states the non-obvious operator-facing fact: theme
+lookup happens at METADATA-MATCH time, so turning it off does not remove themes
+already found (`LibraryMetadataMatcher:1712` only assigns when the resolver
+returns non-null), and turning it on does not retroactively add themes to an
+existing library.
+
 ## [0.39.0] - 2026-07-21
 
 Adds `artwork.download_enabled` and `scanner.ignore_patterns` (63 -> 65
