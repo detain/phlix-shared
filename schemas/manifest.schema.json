@@ -96,6 +96,11 @@
                     "link_text": {
                         "type": "string",
                         "description": "Optional anchor text for `link`; the settings UI falls back to a generic label when absent."
+                    },
+                    "tier": {
+                        "type": "string",
+                        "enum": ["standard", "advanced"],
+                        "description": "Optional Standard/Advanced classification consumed by the settings UI (SettingsMasker/PluginFieldHelp). When omitted the host derives a default from `required` (required → standard, else advanced)."
                     }
                 }
             }

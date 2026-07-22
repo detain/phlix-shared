@@ -4,6 +4,16 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.43.0] - 2026-07-22
+
+Adds the optional `tier` property (`"standard"` | `"advanced"`) to plugin
+settings fields in `schemas/manifest.schema.json`. The host already consumes a
+per-field `tier` (SettingsMasker / PluginFieldHelp) to drive the Standard/Advanced
+settings-UI toggle, but the manifest schema's `additionalProperties: false` on
+each settings field rejected it — so a plugin.json that declared `tier` failed
+install-time manifest validation. This closes that gap; `tier` remains optional
+(the host derives a default from `required` when omitted).
+
 ## [0.42.0] - 2026-07-21
 
 Adds the **subtitle-source contract** (Wave 3 / F3), the subtitle analogue of
