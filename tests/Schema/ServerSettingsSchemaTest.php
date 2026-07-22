@@ -367,6 +367,7 @@ final class ServerSettingsSchemaTest extends TestCase
             // so through a raw @include that bypasses EffectiveConfig entirely.
             // config/subtitles.php
             'subtitles.default_language' => ['subtitles.default_language', 'string'],
+            'subtitles.provider_priority' => ['subtitles.provider_priority', 'array'],
             // NOTE: `subtitles.enabled` and `subtitles.burn_in_by_default` were
             // DELETED in 0.28.0 — config/subtitles.php is composed only into
             // config/ffmpeg.php (so it lives at $config['ffmpeg']['subtitles'],
@@ -500,7 +501,7 @@ final class ServerSettingsSchemaTest extends TestCase
         sort($expected);
 
         $this->assertSame($expected, $actual, 'server-settings schema must declare exactly the expected settings keys.');
-        $this->assertCount(69, $actual);
+        $this->assertCount(70, $actual);
     }
 
     /**

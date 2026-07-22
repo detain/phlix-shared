@@ -647,6 +647,27 @@
             "restart": false,
             "default": "eng"
         },
+        "subtitles.provider_priority": {
+            "type": "array",
+            "description": "Ordered list of subtitle SOURCE names (plugin SubtitleSourceInterface::getName() values) the fetch pipeline consults FIRST, in this order, before falling back to each source's own getPriority() weight. Mirrors metadata.provider_priority in intent but is a single flat list (subtitle search is not per-media-type). A source not named here still participates, ordered after the listed ones by its intrinsic priority. Read live via SettingsRepository::getEffective('subtitles.provider_priority') and consumed by SubtitleSourceRegistry::byPriority()/SubtitleFetchService.",
+            "group": "subtitles",
+            "label": "Subtitle provider priority",
+            "items": {
+                "type": "string"
+            },
+            "helpText": "Controls which subtitle providers are tried first, and in what order, when searching for subtitles. The fetch pipeline walks this list top to bottom and queries each named source before any provider not on the list. Reorder to prefer one provider over another (for example, put a plugin you trust for a given language ahead of OpenSubtitles). A provider you install but do not list here still works — it is simply consulted after the listed ones, using its own built-in priority.",
+            "helpLinks": [
+                {
+                    "text": "OpenSubtitles",
+                    "url": "https://www.opensubtitles.com"
+                }
+            ],
+            "tier": "standard",
+            "restart": false,
+            "default": [
+                "opensubtitles"
+            ]
+        },
         "trickplay.enabled": {
             "type": "boolean",
             "description": "Master switch for trickplay (scrubbing thumbnail) generation.",

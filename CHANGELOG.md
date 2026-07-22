@@ -4,6 +4,16 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.44.0] - 2026-07-22
+
+Adds the `subtitles.provider_priority` key to `schemas/server-settings.schema.json`
+so the admin settings UI can render and edit it. The key was already consumed
+server-side (`SubtitleFetchService`/`SubtitleSourceRegistry::byPriority()` read it
+live via `SettingsRepository::getEffective()` against the `config/subtitles.php`
+default), but the absence of a schema entry meant the settings UI never surfaced
+it. Unlike `metadata.provider_priority` (a per-media-type object), this is a single
+flat ordered `array` of subtitle-source names; default `["opensubtitles"]`.
+
 ## [0.43.0] - 2026-07-22
 
 Adds the optional `tier` property (`"standard"` | `"advanced"`) to plugin
