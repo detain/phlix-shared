@@ -4,6 +4,38 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.42.0] - 2026-07-21
+
+Adds the **subtitle-source contract** (Wave 3 / F3), the subtitle analogue of
+the existing `Phlix\Shared\Metadata\MetadataSourceInterface`, so a subtitle
+plugin (e.g. `phlix-plugin-opensubtitles`) and the host server can compile
+against ONE shared type instead of the brittle `method_exists()` / FQCN-sniffing
+convention.
+
+New namespace `Phlix\Shared\Subtitle`:
+
+- `SubtitleSourceInterface` — `getName()`, `getPriority()`, and a three-way
+  search fan-out (`searchByPath()` PRIMARY / `searchByHash()` / `searchByImdbId()`)
+  that returns `list<SubtitleCandidate>` and does NOT consume download quota,
+  plus `download(SubtitleCandidate): SubtitleFile`, the on-demand,
+  quota-consuming fetch that MAY throw `QuotaExceeded`.
+- `SubtitleCandidate` — immutable (`final readonly`) value object describing a
+  found-but-not-yet-downloaded subtitle: provider, ISO language, opaque
+  `downloadId`, release name, format, plus ranking signals (`matchedBy`,
+  `rating`, `downloadCount`, `hearingImpaired`, `fps`).
+- `SubtitleFile` — immutable value object for a downloaded subtitle: language,
+  format, decoded `content`, provider, `suggestedFilename`, `encoding`, and
+  optional release name / hearing-impaired flag, ready to persist to
+  `/var/subtitles` and attach as a track.
+- `Subtitle\Exception\QuotaExceeded` — a `RuntimeException` carrying optional
+  `downloadsRemaining` and `resetTimeUtc` (a `DateTimeImmutable` is normalised
+  to an ISO-8601 string) so callers can persist/display quota state.
+
+Zero I/O and no new dependencies (charter-clean). The
+`subtitles.provider_priority` SETTING is intentionally NOT added here — it lands
+later in the server settings schema, mirroring how `metadata.provider_priority`
+is consumed. No settings JSON schema was touched.
+
 ## [0.41.0] - 2026-07-21
 
 Adds `metadata.overwrite_existing` (68 -> 69 properties), the single shippable
