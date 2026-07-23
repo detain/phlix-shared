@@ -1309,6 +1309,45 @@
             "restart": true,
             "default": false
         },
+        "dlna.allowed_cidrs": {
+            "type": "array",
+            "description": "IP allowlist, in CIDR notation, of the addresses permitted to reach the DLNA browse and stream endpoints. DLNA has no authentication of any kind, so once the DLNA media server is enabled this list is the only thing standing between a caller and your whole library. An EMPTY list does NOT mean allow-everyone: when it is empty (or a caller matches none of its entries) access is decided by \"Restrict DLNA to the local network\" below.",
+            "group": "subsystem",
+            "label": "DLNA allowed IP ranges (CIDR)",
+            "items": {
+                "type": "string"
+            },
+            "helpText": "Only clients whose address falls inside one of these ranges may browse or stream over DLNA. Each entry is a CIDR block: a whole subnet such as 192.168.1.0/24, a single host as a /32 (192.168.1.50/32), or an IPv6 range such as fd00::/8. Because DLNA carries no sign-in, this list is the access control for the entire library once the DLNA media server is switched on. Leaving it empty is safe: an empty list is never treated as \"allow everyone\". With the list empty, the \"Restrict DLNA to the local network\" switch below decides who gets in, and by default that means only devices on your own local network. Add entries here only when you need to permit a specific address or subnet that the local-network default would not already cover — for example a VPN range, or a second subnet. A matching entry always wins, so an address listed here is admitted even with the local-network restriction on. Changes take effect immediately, without a restart.",
+            "helpLinks": [
+                {
+                    "text": "CIDR notation",
+                    "url": "https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing"
+                },
+                {
+                    "text": "DLNA",
+                    "url": "https://en.wikipedia.org/wiki/Digital_Living_Network_Alliance"
+                }
+            ],
+            "tier": "advanced",
+            "restart": false,
+            "default": []
+        },
+        "dlna.restrict_to_lan": {
+            "type": "boolean",
+            "description": "When on (the default), and no explicit CIDR in \"DLNA allowed IP ranges\" matches, DLNA is reachable only from the local network — loopback and the private/local ranges (RFC1918, IPv4/IPv6 link-local, IPv6 unique-local). When off, the CIDR allowlist becomes the ONLY gate: a caller must match an explicit entry, so an empty allowlist with this off denies everyone. An empty allowlist is never treated as allow-all.",
+            "group": "subsystem",
+            "label": "Restrict DLNA to the local network",
+            "helpText": "This is the safety net for DLNA access. With it on — the shipped default — a caller is allowed if it matches an entry in \"DLNA allowed IP ranges\" OR if it is on your local network (loopback, and the standard private ranges such as 10.x, 172.16-31.x, 192.168.x, plus IPv6 link-local and unique-local). That is the right default for DLNA, which is a local-network protocol. Turn it off only if you want the CIDR allowlist to be the sole gate: with it off, a caller must match an explicit range you listed, and nothing is admitted just for being on the LAN. Turning it off while the allowlist is empty locks DLNA down completely — nothing can reach it — which is a deliberate, valid state, not a way to open it up. Nothing you can set here ever results in \"anyone can reach DLNA\". Changes take effect immediately, without a restart.",
+            "helpLinks": [
+                {
+                    "text": "Private network ranges (RFC 1918)",
+                    "url": "https://en.wikipedia.org/wiki/Private_network"
+                }
+            ],
+            "tier": "advanced",
+            "restart": false,
+            "default": true
+        },
         "dlna.friendly_name": {
             "type": "string",
             "description": "Name shown for this server in a TV's or games console's source list. Only visible when the DLNA media server is enabled. Takes effect on the next restart.",
