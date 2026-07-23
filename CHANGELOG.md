@@ -4,6 +4,19 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.45.0] - 2026-07-23
+
+Adds the `dlna.allowed_cidrs` (`array`, default `[]`) and `dlna.restrict_to_lan`
+(`boolean`, default `true`) keys to `schemas/server-settings.schema.json` so the
+admin settings UI can render and edit the DLNA IP allowlist (S50 / updates.md
+\#35). Both keys are already consumed server-side by `DlnaAllowlistMiddleware`,
+which reads them live via `SettingsRepository::getEffective()` against the
+`config/dlna.php` defaults to gate the (unauthenticated) DLNA browse/stream
+endpoints — default-deny, LAN-only, with an empty allowlist NEVER meaning
+allow-all. Absent a schema entry the settings UI never surfaced them. Both are
+`tier: advanced`, `group: subsystem`, and take effect immediately
+(`restart: false`).
+
 ## [0.44.0] - 2026-07-22
 
 Adds the `subtitles.provider_priority` key to `schemas/server-settings.schema.json`

@@ -360,6 +360,17 @@ final class ServerSettingsSchemaTest extends TestCase
             // so before 1.3.0 there was no instance for it to configure.
             'dlna.cds_enabled' => ['dlna.cds_enabled', 'boolean'],
             'dlna.friendly_name' => ['dlna.friendly_name', 'string'],
+            // Resolve to config/dlna.php (S50 / updates.md #35). The DLNA browse +
+            // stream endpoints carry NO authentication, so once cds_enabled is on
+            // these two keys are the access control for the whole library. The
+            // DlnaAllowlistMiddleware reads both live via
+            // SettingsRepository::getEffective(): `allowed_cidrs` is an explicit
+            // CIDR allowlist (default [] — NEVER treated as allow-all) and
+            // `restrict_to_lan` (default true) confines callers with no explicit
+            // match to loopback + the private/link-local/ULA ranges. Both are
+            // tier "advanced" and take effect immediately (restart: false).
+            'dlna.allowed_cidrs' => ['dlna.allowed_cidrs', 'array'],
+            'dlna.restrict_to_lan' => ['dlna.restrict_to_lan', 'boolean'],
             // NOTE: both `marker_detection.*` keys were DELETED in 0.28.0. They
             // resolved to real config defaults but had NO consumer: the only reads
             // of config/marker_detection.php are MediaServicesProvider.php:521,539,
@@ -501,7 +512,7 @@ final class ServerSettingsSchemaTest extends TestCase
         sort($expected);
 
         $this->assertSame($expected, $actual, 'server-settings schema must declare exactly the expected settings keys.');
-        $this->assertCount(70, $actual);
+        $this->assertCount(72, $actual);
     }
 
     /**
