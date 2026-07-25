@@ -15,7 +15,7 @@ Composer-installable, PHP 8.3+, zero I/O — pure interfaces and value objects o
 
 ## Status
 
-**v0.10.0 — adds the HTTP-over-relay protocol types (`HTTP_REQUEST`/`HTTP_RESPONSE` frames + request/response envelopes + chunk codec) so the hub can proxy a browser's HTTP request to a paired media server over the reverse tunnel.** Cumulative surface:
+**v0.45.0 — adds `dlna.allowed_cidrs` + `dlna.restrict_to_lan` to `schemas/server-settings.schema.json` so the admin settings UI can render and edit the DLNA IP allowlist.** Cumulative surface:
 
 - `Phlix\Shared\Plugin\{LifecycleInterface, Manifest, ManifestType, ManifestValidationError, EventNameMap}`
 - `Phlix\Shared\Events\{AbstractEvent, Playback\*, Library\*, Auth\*}` — 12 event DTOs.
@@ -24,6 +24,10 @@ Composer-installable, PHP 8.3+, zero I/O — pure interfaces and value objects o
   implements (`sourceName()`, `supportedMediaTypes()`, `search()`, `getDetails()`, `getImages()`) so
   the server's `SourceRegistry` can register/deregister it on plugin enable/disable without the old
   `method_exists`/FQCN-sniffing convention (0.15.0+).
+- `Phlix\Shared\Subtitle\{SubtitleSourceInterface, SubtitleCandidate, SubtitleFile, Exception\QuotaExceeded}` —
+  the subtitle analogue of `MetadataSourceInterface`: `getName()`, `getPriority()`, the
+  `searchByPath()`/`searchByHash()`/`searchByImdbId()` fan-out returning `SubtitleCandidate` values, and the
+  quota-consuming `download()` that may throw `QuotaExceeded` (0.42.0+).
 - `Phlix\Shared\Hub\{ClaimRequest, ClaimResponse, ServerInfoDto, HeartbeatDto}`
 - `Phlix\Shared\Relay\{RelayFrameType, RelayWireCodecInterface, RelayFrame}` — channel-mux protocol (0.5+);
   plus `{RelayHttpRequest, RelayHttpResponseHead, RelayHttpResponseChunk, RelayHttpResponseCodec}` —
@@ -40,7 +44,9 @@ admin SPA under `schemas/` (resolve their absolute paths via
 - `schemas/manifest.schema.json` — JSON Schema (draft 2020-12) for plugin manifests,
   loaded at runtime by `phlix-server`'s `Phlix\Plugins\Manifest\ManifestSchema` validator (0.6.0+).
   Per-setting `label` and `description` are permitted, and `integer`/`boolean` are accepted as
-  aliases of `int`/`bool` in the setting `type` enum (0.9.1+).
+  aliases of `int`/`bool` in the setting `type` enum (0.9.1+). An optional per-setting `tier`
+  (`standard`|`advanced`) is accepted on plugin settings fields so a `plugin.json` declaring it
+  passes install-time manifest validation (0.43.0+).
 - `schemas/hub-settings.schema.json` — JSON Schema (draft 2020-12) for the editable hub
   settings (`/api/v1/me/hub-settings`), resolved via `SchemaPaths::hubSettings()` (0.22.0+).
   Its property keys must stay in lockstep with `phlix-hub`'s
@@ -72,6 +78,12 @@ admin SPA under `schemas/` (resolve their absolute paths via
   defaults `movie`/`series` = `["tmdb","imdb"]`, `anime` = `["anidb","myanimelist","tvdb","fanart","local"]`)
   + `metadata.genres_mode` (enum `first`|`union`, default `first`) for the per-media-type metadata
   source-priority editor (0.14.0+).
+  Adds `metadata.overwrite_existing` (`boolean`, `group: metadata`, `tier: standard`, 0.41.0+),
+  `subtitles.provider_priority` (a single flat ordered array of subtitle-source names, default
+  `["opensubtitles"]`, read by `SubtitleFetchService`/`SubtitleSourceRegistry::byPriority()` — 0.44.0+),
+  and `dlna.allowed_cidrs` (array, default `[]`) + `dlna.restrict_to_lan` (boolean, default `true`),
+  both `tier: advanced` / `group: subsystem`, read live by `DlnaAllowlistMiddleware` to gate the
+  unauthenticated DLNA browse/stream endpoints (0.45.0+).
 - `schemas/webhook-events.json` — data catalog of the supported webhook event types for the
   admin SPA webhook picker. Distinct from the plugin PSR-14 events in `EventNameMap` (0.7.0+).
 - `schemas/library-query.schema.json` — JSON Schema (draft 2020-12) for the query parameters of
