@@ -260,7 +260,7 @@
             "description": "TMDb API key used to fetch movie and TV metadata.",
             "group": "metadata",
             "label": "TMDb API key",
-            "helpText": "The Movie Database (TMDb) API key is required for fetching movie posters, trailers, cast information, ratings, and other metadata displayed in the Phlix library. You can obtain a free API key by registering an application at TMDb. Without a valid key, the server falls back to whatever metadata is embedded in the media files themselves, and poster/trailer data will not be available.",
+            "helpText": "The Movie Database (TMDb) API key is required for fetching movie posters, trailers, cast information, ratings, and other metadata displayed in the Phlix library. You can obtain a free API key by registering an application at TMDb. Without a valid key, the server falls back to whatever metadata is embedded in the media files themselves, and poster/trailer data will not be available. A saved key takes effect after a restart: the TMDb client is built once per worker and holds the key for that worker's lifetime.",
             "helpLinks": [
                 {
                     "text": "TMDb API",
@@ -269,7 +269,7 @@
             ],
             "tier": "standard",
             "secret": true,
-            "restart": false,
+            "restart": true,
             "default": ""
         },
         "auth.signup_mode": {
