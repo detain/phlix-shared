@@ -4,6 +4,42 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.47.0] - 2026-07-28
+
+Corrects seven more `restart: false` keys in `schemas/server-settings.schema.json`
+to `restart: true`, and discloses the requirement in each key's `helpText`. These
+are the remaining **"Class (b) RESTART"** keys found by auditing every
+`restart: false` entry after `tmdb.api_key` was corrected in 0.46.0 — a value
+captured into a DI singleton's constructor, or read once at container/route build
+time, cannot apply live no matter how many uncached `SELECT`s
+`SettingsRepository::getEffective()` performs.
+
+- `lastfm.api_key`, `lastfm.shared_secret`, `lastfm.enabled` — overlaid at
+  **route-build time** (once per worker) by `Application::applyLastfmOverrides()`,
+  then frozen into `LastfmApi`'s constructor-promoted readonly properties. The
+  consuming docblock *already asserted* these keys carried `"restart": true`; the
+  schema simply disagreed with it.
+- `matching.noise_suffixes` — a `factory()` injected as a `constructorParameter`
+  into `MediaScanner` (two wiring sites). Its own comment: *"the value is computed
+  once at construction."*
+- `metadata.provider_priority`, `metadata.genres_mode` — captured into the
+  `PriorityConfig` factory, injected as `constructorParameter('globalPriority')`.
+  Its own comment: *"resolved ONCE when first built (per worker cycle, not per
+  request)."*
+- `port-forward.port_forwarding.upnp_enabled` — read at container-build time in
+  `NetworkServicesProvider::register()`. ⚠ **This key was additionally INERT**:
+  the provider computed the value into a local that was never passed to any
+  definition, and `PortForwardService` had no UPnP switch at all, so an override
+  changed nothing even across a restart. The companion phlix-server change wires
+  it (`PortForwardService::$upnpEnabled` now gates UPnP discovery, falling through
+  to NAT-PMP); `restart: true` is accurate only in combination with that change.
+  Flipping the flag alone would have replaced one false promise with another —
+  compare `hwaccel.probe_timeout`, which was deleted in 0.26.0 rather than
+  relabelled.
+
+No key was added or removed; the property count is unchanged at 72
+(`restart: true` 34 → 41).
+
 ## [0.46.0] - 2026-07-28
 
 Corrects `tmdb.api_key` in `schemas/server-settings.schema.json` from
