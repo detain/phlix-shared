@@ -723,7 +723,7 @@
             "description": "Attempt to open the public port automatically via UPnP IGD port forwarding.",
             "group": "port-forward",
             "label": "Enable UPnP port forwarding",
-            "helpText": "When enabled, Phlix will attempt to automatically configure your router to forward the external port to the server using the UPnP Internet Gateway Device protocol. This eliminates the need to manually configure port forwarding rules in your router. This only works if your router supports UPnP and has it enabled. Disable this if you prefer to manage port forwarding manually, if UPnP is disabled on your router for security reasons, or if you are using a different method of inbound connectivity (e.g., a reverse proxy).",
+            "helpText": "When enabled, Phlix will attempt to automatically configure your router to forward the external port to the server using the UPnP Internet Gateway Device protocol. This eliminates the need to manually configure port forwarding rules in your router. This only works if your router supports UPnP and has it enabled. Disable this if you prefer to manage port forwarding manually, if UPnP is disabled on your router for security reasons, or if you are using a different method of inbound connectivity (e.g., a reverse proxy). Changes take effect after a server restart: the value is read when the worker builds its network services.",
             "helpLinks": [
                 {
                     "text": "UPnP",
@@ -735,7 +735,7 @@
                 }
             ],
             "tier": "standard",
-            "restart": false,
+            "restart": true,
             "default": true
         },
         "lastfm.api_key": {
@@ -743,7 +743,7 @@
             "description": "Last.fm API key used to identify this application when scrobbling listening activity.",
             "group": "scrobblers",
             "label": "Last.fm API key",
-            "helpText": "The Last.fm API key identifies your Phlix server when submitting scrobble data. Users who enable Last.fm scrobbling in their personal settings will have their music listening activity sent to their Last.fm profile. You can obtain a free API key from Last.fm's API account page. Without a valid API key, scrobbling to Last.fm will not function.",
+            "helpText": "The Last.fm API key identifies your Phlix server when submitting scrobble data. Users who enable Last.fm scrobbling in their personal settings will have their music listening activity sent to their Last.fm profile. You can obtain a free API key from Last.fm's API account page. Without a valid API key, scrobbling to Last.fm will not function. Changes take effect after a server restart: the Last.fm client is constructed once per worker when routes are registered.",
             "helpLinks": [
                 {
                     "text": "Last.fm API",
@@ -752,7 +752,7 @@
             ],
             "tier": "standard",
             "secret": true,
-            "restart": false,
+            "restart": true,
             "default": ""
         },
         "lastfm.shared_secret": {
@@ -760,7 +760,7 @@
             "description": "Last.fm API shared secret used to sign API requests.",
             "group": "scrobblers",
             "label": "Last.fm shared secret",
-            "helpText": "The shared secret is used to cryptographically sign Last.fm API requests alongside the API key. It is required for the proper authentication of scrobble submissions. Like the client secret, treat this as a sensitive credential. You can find it in your Last.fm API account settings alongside your API key.",
+            "helpText": "The shared secret is used to cryptographically sign Last.fm API requests alongside the API key. It is required for the proper authentication of scrobble submissions. Like the client secret, treat this as a sensitive credential. You can find it in your Last.fm API account settings alongside your API key. Changes take effect after a server restart: the Last.fm client is constructed once per worker when routes are registered.",
             "helpLinks": [
                 {
                     "text": "Last.fm API authentication",
@@ -769,7 +769,7 @@
             ],
             "tier": "standard",
             "secret": true,
-            "restart": false,
+            "restart": true,
             "default": ""
         },
         "lastfm.enabled": {
@@ -777,7 +777,7 @@
             "description": "Master switch for Last.fm scrobbling. When disabled the Connect button is hidden from the UI regardless of whether credentials are configured.",
             "group": "scrobblers",
             "label": "Enable Last.fm scrobbling",
-            "helpText": "Controls whether the Last.fm integration is available to users. When disabled, the 'Connect to Last.fm' button is completely hidden from the user settings UI, and no scrobbling data is sent — even if API credentials are configured. When enabled, individual users can still choose to enable or disable scrobbling from their own account settings.",
+            "helpText": "Controls whether the Last.fm integration is available to users. When disabled, the 'Connect to Last.fm' button is completely hidden from the user settings UI, and no scrobbling data is sent — even if API credentials are configured. When enabled, individual users can still choose to enable or disable scrobbling from their own account settings. Changes take effect after a server restart: the Last.fm client is constructed once per worker when routes are registered.",
             "helpLinks": [
                 {
                     "text": "Scrobbling",
@@ -785,7 +785,7 @@
                 }
             ],
             "tier": "standard",
-            "restart": false,
+            "restart": true,
             "default": false
         },
         "trakt.client_id": {
@@ -858,7 +858,7 @@
             "items": {
                 "type": "string"
             },
-            "helpText": "When Phlix looks up metadata for a media file, it first strips known noise suffixes from the title to improve match accuracy. For example, 'Movie Name (2023) Directors Cut' becomes 'Movie Name' before querying TMDb. The built-in list covers common terms like 'director's cut', 'extended', 'remastered', and 'uncut'. You can add custom phrases here — for example, studio-specific release tags that appear in your library but not in metadata databases. The longest phrase is matched first to prevent shorter suffixes from partially stripping longer ones.",
+            "helpText": "When Phlix looks up metadata for a media file, it first strips known noise suffixes from the title to improve match accuracy. For example, 'Movie Name (2023) Directors Cut' becomes 'Movie Name' before querying TMDb. The built-in list covers common terms like 'director's cut', 'extended', 'remastered', and 'uncut'. You can add custom phrases here — for example, studio-specific release tags that appear in your library but not in metadata databases. The longest phrase is matched first to prevent shorter suffixes from partially stripping longer ones. Changes take effect after a server restart: the effective suffix list is injected into the scanner when the worker builds its services.",
             "helpLinks": [
                 {
                     "text": "TMDb",
@@ -870,7 +870,7 @@
                 }
             ],
             "tier": "advanced",
-            "restart": false,
+            "restart": true,
             "default": [
                 "unrated directors cut",
                 "uncut & unrated",
@@ -897,7 +897,7 @@
                     "type": "string"
                 }
             },
-            "helpText": "For each media type (movie, series, anime), this list controls which metadata sources are consulted and in which order. The resolver walks through the list for each field (title, overview, poster, etc.) and uses the first non-empty value it finds. Rearranging the order lets you prefer, say, AniDB's information over TMDb for anime, or use IMDB ratings as a fallback. A media type not listed here falls back to the server's built-in defaults. Removing a source entirely excludes it from all queries for that media type.",
+            "helpText": "For each media type (movie, series, anime), this list controls which metadata sources are consulted and in which order. The resolver walks through the list for each field (title, overview, poster, etc.) and uses the first non-empty value it finds. Rearranging the order lets you prefer, say, AniDB's information over TMDb for anime, or use IMDB ratings as a fallback. A media type not listed here falls back to the server's built-in defaults. Removing a source entirely excludes it from all queries for that media type. Changes take effect after a server restart: the priority map is resolved once per worker when it is first built.",
             "helpLinks": [
                 {
                     "text": "TMDb",
@@ -909,7 +909,7 @@
                 }
             ],
             "tier": "standard",
-            "restart": false,
+            "restart": true,
             "default": {
                 "movie": [
                     "tmdb",
@@ -933,7 +933,7 @@
             "description": "How the genres field is combined across metadata sources. 'first' takes the genres from the first source in the priority order that supplies any (first-non-empty); 'union' merges the distinct genres from every source. Consumed by PriorityFieldResolver's genresMode.",
             "group": "metadata",
             "label": "Metadata genres merge mode",
-            "helpText": "Controls how genres are collected when multiple metadata sources are available for a single item. In 'first' mode, only genres from the highest-priority source that provides any genres are used. In 'union' mode, genres from all sources are merged together, giving the most complete genre list but potentially mixing terms from different taxonomies (e.g., TMDb's 'Science Fiction' vs AniDB's 'Mecha'). Use 'first' for a cleaner, more consistent taxonomy; use 'union' for maximum genre coverage.",
+            "helpText": "Controls how genres are collected when multiple metadata sources are available for a single item. In 'first' mode, only genres from the highest-priority source that provides any genres are used. In 'union' mode, genres from all sources are merged together, giving the most complete genre list but potentially mixing terms from different taxonomies (e.g., TMDb's 'Science Fiction' vs AniDB's 'Mecha'). Use 'first' for a cleaner, more consistent taxonomy; use 'union' for maximum genre coverage. Changes take effect after a server restart: the priority map is resolved once per worker when it is first built.",
             "helpLinks": [
                 {
                     "text": "Film genre",
@@ -941,7 +941,7 @@
                 }
             ],
             "tier": "standard",
-            "restart": false,
+            "restart": true,
             "enum": [
                 "first",
                 "union"
