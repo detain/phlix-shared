@@ -4,6 +4,30 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.46.0] - 2026-07-28
+
+Corrects `tmdb.api_key` in `schemas/server-settings.schema.json` from
+`restart: false` to `restart: true`, and discloses the requirement in its
+`helpText`.
+
+`restart: false` was factually wrong. `TmdbProvider` is registered as a PHP-DI
+`factory()`, and PHP-DI caches every resolved entry — factories included — in
+`Container::$resolvedEntries`, so the provider is a per-container singleton
+that captures the key by value at construction. One container is built per
+worker in `onWorkerStart`, and the `phlix-library-scan` worker resolves the
+provider eagerly at fork time (`LibraryScanWorker` → `LibraryMetadataMatcher`
+→ `TmdbProvider`). There is no TTL, no invalidation hook and no cross-worker
+propagation, so a newly saved key stays inert until the workers are recycled —
+the admin UI nonetheless promised it applied immediately.
+
+This is the same "Class (b) RESTART" shape already documented for the
+`server.rate_limit.*` keys in `tests/Schema/ServerSettingsSchemaTest.php`:
+a value frozen into DI at container-build time can never apply live,
+independently of the fact that `SettingsRepository::getEffective()` itself
+performs an uncached SELECT on every call.
+
+No key was added or removed; the property count is unchanged.
+
 ## [0.45.0] - 2026-07-23
 
 Adds the `dlna.allowed_cidrs` (`array`, default `[]`) and `dlna.restrict_to_lan`
