@@ -4,6 +4,46 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.48.0] - 2026-07-28
+
+Corrects the last eight `restart: false` keys to `restart: true`, closing the audit
+begun in 0.46.0. Every one of the 72 keys in
+`schemas/server-settings.schema.json` has now been traced to its consumer:
+**49 `restart: true`, 23 `restart: false`**, and none unverified.
+
+These eight were the ones 0.47.0 deliberately left alone because a literal-key
+search found no `SettingsRepository::getEffective()` consumer. Tracing them
+showed the reason: they are not read through `SettingsRepository` at all, but
+through the boot config array, `EffectiveConfig::file()`, or a DI factory —
+every one of which is a **per-worker snapshot**.
+
+- `webhooks.enabled`, `stats.enabled` — read via `EffectiveConfig::file()`.
+  That looks live because the call happens at use time, but
+  `EffectiveConfig::$overrides` is a **static array populated once by
+  `bootstrap()`**, which runs in `onWorkerStart`; `file()` is then memoised per
+  bootstrap generation. The override an admin saves is not visible to a running
+  worker no matter when `file()` is called.
+- `transcoding.tone_mapping_mode`, `transcoding.prefer_hdr_output` — merged by
+  `HwAccelConfig::get()` and handed to `FfmpegRunner::setConfig()`. This is the
+  **identical path** as `transcoding.preferred_accelerator` and the `hwaccel.*`
+  keys, which already carried `restart: true` — sibling keys in the same config
+  file with the same consumer had contradictory flags.
+- `newsletter.enabled`, `newsletter.send_hour` — read from the boot `$config`
+  array when the newsletter timer is registered, once per worker start.
+- `relay.reconnect_delay`, `relay.ping_interval` — captured into the
+  `RelayConfig` DI factory, whose result PHP-DI caches per container.
+
+Note `restart: true` in this schema means the admin **Restart server** control,
+which sends a graceful reload (SIGUSR2): workers cycle, re-run `onWorkerStart`,
+re-bootstrap the overlay and rebuild their DI containers. A key that needs that
+cycle is `restart: true` even when a full `systemctl restart` is not required.
+
+The 23 keys remaining at `restart: false` all resolve through
+`SettingsRepository::getEffective()` (or `getOverride()`) at **use** time, which
+performs an uncached `SELECT` per call and is therefore genuinely live.
+
+No key was added or removed; the property count is unchanged at 72.
+
 ## [0.47.0] - 2026-07-28
 
 Corrects seven more `restart: false` keys in `schemas/server-settings.schema.json`
