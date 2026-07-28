@@ -107,7 +107,7 @@
             "group": "transcoding",
             "description": "HDR tone mapping mode when converting HDR content for SDR displays.",
             "label": "HDR tone mapping mode",
-            "helpText": "Controls how HDR10 and other HDR video is tone-mapped for display on SDR screens. 'None' passes the video through without tone mapping (HDR content may look washed out on SDR screens); 'zscale' uses the zimg/zscale filter for high-quality CPU tone mapping; 'libplacebo' uses the libplacebo filter for GPU-accelerated tone mapping.",
+            "helpText": "Controls how HDR10 and other HDR video is tone-mapped for display on SDR screens. 'None' passes the video through without tone mapping (HDR content may look washed out on SDR screens); 'zscale' uses the zimg/zscale filter for high-quality CPU tone mapping; 'libplacebo' uses the libplacebo filter for GPU-accelerated tone mapping. Changes take effect after a server restart: the merged transcoding config is built once per worker and handed to the ffmpeg runner.",
             "helpLinks": [
                 {
                     "text": "HDR tone mapping",
@@ -120,7 +120,7 @@
             ],
             "tier": "standard",
             "default": "none",
-            "restart": false,
+            "restart": true,
             "enum": [
                 "none",
                 "zscale",
@@ -142,7 +142,7 @@
             "group": "transcoding",
             "description": "Prefer preserving HDR metadata in output when the playback device supports it.",
             "label": "Prefer HDR output",
-            "helpText": "When enabled, the transcoder will attempt to preserve HDR10 or Dolby Vision metadata in the output stream rather than tone-mapping to SDR. Only enable if your playback devices (TV, receiver) support HDMI 2.0b or later and HDR.",
+            "helpText": "When enabled, the transcoder will attempt to preserve HDR10 or Dolby Vision metadata in the output stream rather than tone-mapping to SDR. Only enable if your playback devices (TV, receiver) support HDMI 2.0b or later and HDR. Changes take effect after a server restart: the merged transcoding config is built once per worker and handed to the ffmpeg runner.",
             "helpLinks": [
                 {
                     "text": "HDR10",
@@ -155,7 +155,7 @@
             ],
             "tier": "standard",
             "default": false,
-            "restart": false
+            "restart": true
         },
         "ffmpeg.max_concurrent_transcodes": {
             "type": "integer",
@@ -689,7 +689,7 @@
             "description": "Master switch for the weekly newsletter digest.",
             "group": "newsletter",
             "label": "Enable newsletter digest",
-            "helpText": "When enabled, Phlix will compile and send a weekly digest email to all users summarizing recently added or updated content in the library. The digest is sent on the configured day at the hour specified by the 'send hour' setting. Users can opt out individually from their account settings. Disable this to hide the newsletter feature entirely and prevent any digest emails from being sent.",
+            "helpText": "When enabled, Phlix will compile and send a weekly digest email to all users summarizing recently added or updated content in the library. The digest is sent on the configured day at the hour specified by the 'send hour' setting. Users can opt out individually from their account settings. Disable this to hide the newsletter feature entirely and prevent any digest emails from being sent. Changes take effect after a server restart: the newsletter timer is registered once when the worker starts.",
             "helpLinks": [
                 {
                     "text": "Email newsletter",
@@ -697,7 +697,7 @@
                 }
             ],
             "tier": "standard",
-            "restart": false,
+            "restart": true,
             "default": false
         },
         "newsletter.send_hour": {
@@ -707,7 +707,7 @@
             "minimum": 0,
             "maximum": 23,
             "label": "Newsletter send hour",
-            "helpText": "Specifies the hour of day (in 24-hour format, server local time) at which the weekly newsletter digest is dispatched to users. For example, a value of 9 sends the digest at 9:00 AM server time. Choose a time when server load is low and users are likely to read email (morning or evening). Only effective when the newsletter feature is enabled.",
+            "helpText": "Specifies the hour of day (in 24-hour format, server local time) at which the weekly newsletter digest is dispatched to users. For example, a value of 9 sends the digest at 9:00 AM server time. Choose a time when server load is low and users are likely to read email (morning or evening). Only effective when the newsletter feature is enabled. Changes take effect after a server restart: the newsletter timer is registered once when the worker starts.",
             "helpLinks": [
                 {
                     "text": "24-hour clock",
@@ -715,7 +715,7 @@
                 }
             ],
             "tier": "standard",
-            "restart": false,
+            "restart": true,
             "default": 9
         },
         "port-forward.port_forwarding.upnp_enabled": {
@@ -971,7 +971,7 @@
             "group": "infrastructure",
             "description": "Seconds to wait before reconnection attempts after a relay connection is lost.",
             "label": "Relay reconnect delay",
-            "helpText": "When the relay tunnel connection to the hub drops, the server waits this many seconds before attempting to reconnect. Shorter delays restore connectivity faster but increase load from repeated connection attempts.",
+            "helpText": "When the relay tunnel connection to the hub drops, the server waits this many seconds before attempting to reconnect. Shorter delays restore connectivity faster but increase load from repeated connection attempts. Changes take effect after a server restart: the relay configuration is built once per worker.",
             "helpLinks": [
                 {
                     "text": "WebSocket",
@@ -986,14 +986,14 @@
             "minimum": 1,
             "maximum": 60,
             "default": 5,
-            "restart": false
+            "restart": true
         },
         "relay.ping_interval": {
             "type": "integer",
             "group": "infrastructure",
             "description": "Seconds between relay keepalive pings.",
             "label": "Relay ping interval",
-            "helpText": "The relay client sends a WebSocket ping to the hub every N seconds to keep the connection alive and detect dead connections. Increase if your hub runs behind a connection timeout-sensitive proxy.",
+            "helpText": "The relay client sends a WebSocket ping to the hub every N seconds to keep the connection alive and detect dead connections. Increase if your hub runs behind a connection timeout-sensitive proxy. Changes take effect after a server restart: the relay configuration is built once per worker.",
             "helpLinks": [
                 {
                     "text": "WebSocket",
@@ -1008,7 +1008,7 @@
             "minimum": 5,
             "maximum": 300,
             "default": 30,
-            "restart": false
+            "restart": true
         },
         "server.hls.segment_seconds": {
             "type": "integer",
@@ -1131,7 +1131,7 @@
             "description": "Master on/off switch for outbound webhook delivery. When off, no webhook is sent for any event and no per-event database lookup is performed; individual webhook registrations are left untouched and resume delivering when this is switched back on.",
             "group": "integrations",
             "label": "Enable outbound webhooks",
-            "helpText": "Webhooks let Phlix notify other services when something happens — a library scan finishes, playback starts, an item is added. Turning this off is a single kill-switch for ALL outbound delivery: your configured webhook endpoints are kept exactly as they are, they simply stop being called until you turn it back on. That makes it the right control when a downstream endpoint is misbehaving, noisy, or being maintained, since you do not have to delete and re-create your webhooks. Individual webhooks can still be disabled separately if you only want to silence one of them.",
+            "helpText": "Webhooks let Phlix notify other services when something happens — a library scan finishes, playback starts, an item is added. Turning this off is a single kill-switch for ALL outbound delivery: your configured webhook endpoints are kept exactly as they are, they simply stop being called until you turn it back on. That makes it the right control when a downstream endpoint is misbehaving, noisy, or being maintained, since you do not have to delete and re-create your webhooks. Individual webhooks can still be disabled separately if you only want to silence one of them. Changes take effect after a server restart: setting overrides are snapshotted when the worker starts.",
             "helpLinks": [
                 {
                     "text": "Webhook",
@@ -1139,7 +1139,7 @@
                 }
             ],
             "tier": "standard",
-            "restart": false,
+            "restart": true,
             "default": true
         },
         "stats.enabled": {
@@ -1147,7 +1147,7 @@
             "description": "Record local playback, library-change, user-activity and storage statistics. These are stored only in this server's own database and are never transmitted anywhere. Turning this off stops the writes and leaves the admin dashboard's activity and storage cards empty; existing rows are kept.",
             "group": "general",
             "label": "Record usage statistics",
-            "helpText": "Phlix keeps a local record of what was played, what changed in your libraries, when users signed in, and how much storage each media type uses. This is NOT phone-home telemetry — nothing leaves your server, and there is no reporting endpoint. It exists purely to populate the admin dashboard. Switching it off is a performance and retention choice rather than a privacy one: it removes several small database writes per playback and per scan, which is worth doing on very low-powered hardware or a heavily loaded database. The cost is that the dashboard's activity feed and Storage card will have no new data to show, since these tables are their only source. Statistics already recorded are not deleted, and switching it back on resumes recording immediately.",
+            "helpText": "Phlix keeps a local record of what was played, what changed in your libraries, when users signed in, and how much storage each media type uses. This is NOT phone-home telemetry — nothing leaves your server, and there is no reporting endpoint. It exists purely to populate the admin dashboard. Switching it off is a performance and retention choice rather than a privacy one: it removes several small database writes per playback and per scan, which is worth doing on very low-powered hardware or a heavily loaded database. The cost is that the dashboard's activity feed and Storage card will have no new data to show, since these tables are their only source. Statistics already recorded are not deleted, and switching it back on resumes recording immediately. Changes take effect after a server restart: setting overrides are snapshotted when the worker starts.",
             "helpLinks": [
                 {
                     "text": "Telemetry",
@@ -1155,7 +1155,7 @@
                 }
             ],
             "tier": "standard",
-            "restart": false,
+            "restart": true,
             "default": true
         },
         "metrics.enabled": {
