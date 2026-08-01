@@ -55,6 +55,22 @@ trait PayloadAssertTraitStub
     {
         return self::optionalString($payload, $key, self::CONTEXT, $default);
     }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    protected static function optionalIntStub(array $payload, string $key, int $default = 0): int
+    {
+        return self::optionalInt($payload, $key, self::CONTEXT, $default);
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    protected static function optionalBoolStub(array $payload, string $key, bool $default = false): bool
+    {
+        return self::optionalBool($payload, $key, self::CONTEXT, $default);
+    }
 }
 
 /**
@@ -165,5 +181,73 @@ final class PayloadAssertTest extends TestCase
         $this->expectExceptionMessage('StubClass "key" must be a string.');
 
         $this->optionalStringStub(['key' => 123], 'key');
+    }
+
+    public function test_optional_int_returns_value_when_present(): void
+    {
+        $payload = ['key' => 42];
+        $result = $this->optionalIntStub($payload, 'key');
+
+        $this->assertSame(42, $result);
+    }
+
+    public function test_optional_int_returns_default_when_missing(): void
+    {
+        $result = $this->optionalIntStub([], 'missing');
+
+        $this->assertSame(0, $result);
+    }
+
+    public function test_optional_int_returns_custom_default_when_missing(): void
+    {
+        $result = $this->optionalIntStub([], 'missing', 99);
+
+        $this->assertSame(99, $result);
+    }
+
+    public function test_optional_int_throws_on_non_int_value(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('StubClass "key" must be an integer.');
+
+        $this->optionalIntStub(['key' => 'not-an-int'], 'key');
+    }
+
+    public function test_optional_bool_returns_true_when_present(): void
+    {
+        $payload = ['key' => true];
+        $result = $this->optionalBoolStub($payload, 'key');
+
+        $this->assertTrue($result);
+    }
+
+    public function test_optional_bool_returns_false_when_present(): void
+    {
+        $payload = ['key' => false];
+        $result = $this->optionalBoolStub($payload, 'key');
+
+        $this->assertFalse($result);
+    }
+
+    public function test_optional_bool_returns_default_when_missing(): void
+    {
+        $result = $this->optionalBoolStub([], 'missing');
+
+        $this->assertFalse($result);
+    }
+
+    public function test_optional_bool_returns_custom_default_when_missing(): void
+    {
+        $result = $this->optionalBoolStub([], 'missing', true);
+
+        $this->assertTrue($result);
+    }
+
+    public function test_optional_bool_throws_on_non_bool_value(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('StubClass "key" must be a boolean.');
+
+        $this->optionalBoolStub(['key' => 'not-a-bool'], 'key');
     }
 }
