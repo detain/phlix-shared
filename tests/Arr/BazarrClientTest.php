@@ -13,6 +13,7 @@ namespace Phlix\Shared\Tests\Arr;
 
 use PHPUnit\Framework\TestCase;
 use Phlix\Shared\Arr\BazarrClient;
+use Psr\Log\LoggerInterface;
 
 /**
  * Unit tests for BazarrClient.
@@ -148,6 +149,15 @@ class BazarrClientTest extends TestCase
 
         $this->assertEquals('http://bazarr.local:6767', $baseUrlProperty->getValue($client));
         $this->assertEquals('my-secret-key', $apiKeyProperty->getValue($client));
+    }
+
+    public function testVendorNameIsCalledWithHttpAndLogger(): void
+    {
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())->method('warning');
+
+        // Creating with HTTP URL and a logger triggers vendorName() to be called
+        new BazarrClient('http://bazarr.local:6767', 'my-secret-key', $logger);
     }
 }
 

@@ -13,6 +13,7 @@ namespace Phlix\Shared\Tests\Arr;
 
 use PHPUnit\Framework\TestCase;
 use Phlix\Shared\Arr\ProwlarrClient;
+use Psr\Log\LoggerInterface;
 
 /**
  * Unit tests for ProwlarrClient.
@@ -133,6 +134,15 @@ class ProwlarrClientTest extends TestCase
 
         $this->assertEquals('http://prowlarr.local:9696', $baseUrlProperty->getValue($client));
         $this->assertEquals('my-secret-key', $apiKeyProperty->getValue($client));
+    }
+
+    public function testVendorNameIsCalledWithHttpAndLogger(): void
+    {
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())->method('warning');
+
+        // Creating with HTTP URL and a logger triggers vendorName() to be called
+        new ProwlarrClient('http://prowlarr.local:9696', 'my-secret-key', $logger);
     }
 }
 
