@@ -181,6 +181,15 @@ class RadarrClientTest extends TestCase
         $this->assertFalse($result);
     }
 
+    public function testTriggerDownloadReturnsFalseOnFailure(): void
+    {
+        $this->mockableClient->setMockResponse(new \RuntimeException('Download failed'));
+
+        $result = $this->mockableClient->triggerDownload(100);
+
+        $this->assertFalse($result);
+    }
+
     public function testConstructorSetsBaseUrlAndApiKey(): void
     {
         $client = new RadarrClient('http://radarr.local:7878', 'my-secret-key');

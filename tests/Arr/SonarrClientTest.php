@@ -212,6 +212,15 @@ class SonarrClientTest extends TestCase
         $this->assertFalse($result);
     }
 
+    public function testTriggerDownloadReturnsFalseOnFailure(): void
+    {
+        $this->mockableClient->setMockResponse(new \RuntimeException('Download failed'));
+
+        $result = $this->mockableClient->triggerDownload(100);
+
+        $this->assertFalse($result);
+    }
+
     public function testConstructorSetsBaseUrlAndApiKey(): void
     {
         $client = new SonarrClient('http://sonarr.local:8989', 'my-secret-key');

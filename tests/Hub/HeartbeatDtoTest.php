@@ -171,4 +171,34 @@ final class HeartbeatDtoTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         HeartbeatDto::fromPayload($payload);
     }
+
+    public function test_hostnameCandidates_not_array_throws(): void
+    {
+        $payload = self::full();
+        $payload['hostnameCandidates'] = 'not-an-array';
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('HeartbeatDto "hostnameCandidates" must be a list of strings.');
+        HeartbeatDto::fromPayload($payload);
+    }
+
+    public function test_hostnameCandidates_entry_not_string_throws(): void
+    {
+        $payload = self::full();
+        $payload['hostnameCandidates'] = ['valid', 42, 'also-valid'];
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('HeartbeatDto "hostnameCandidates" must contain only strings.');
+        HeartbeatDto::fromPayload($payload);
+    }
+
+    public function test_libraries_not_array_throws(): void
+    {
+        $payload = self::full();
+        $payload['libraries'] = 'not-an-array';
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('HeartbeatDto "libraries" must be a list of objects.');
+        HeartbeatDto::fromPayload($payload, strictLibraries: false);
+    }
 }

@@ -195,4 +195,14 @@ final class ServerInfoDtoTest extends TestCase
         $this->assertSame('claiming', ServerInfoDto::STATUS_CLAIMING);
         $this->assertSame('disabled', ServerInfoDto::STATUS_DISABLED);
     }
+
+    public function test_hostnameCandidates_not_array_throws(): void
+    {
+        $payload = self::full();
+        $payload['hostnameCandidates'] = 42;
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('ServerInfoDto "hostnameCandidates" must be a list of strings.');
+        ServerInfoDto::fromPayload($payload);
+    }
 }

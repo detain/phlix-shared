@@ -78,4 +78,14 @@ final class ClaimRequestTest extends TestCase
         $dto = ClaimRequest::fromPayload($payload);
         $this->assertSame([], $dto->hostnameCandidates);
     }
+
+    public function test_hostnameCandidates_not_array_throws(): void
+    {
+        $payload = self::full();
+        $payload['hostnameCandidates'] = 'not-an-array';
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('ClaimRequest "hostnameCandidates" must be a list of strings.');
+        ClaimRequest::fromPayload($payload);
+    }
 }
