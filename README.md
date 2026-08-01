@@ -15,7 +15,7 @@ Composer-installable, PHP 8.3+, zero I/O — pure interfaces and value objects o
 
 ## Status
 
-**v0.45.0 — adds `dlna.allowed_cidrs` + `dlna.restrict_to_lan` to `schemas/server-settings.schema.json` so the admin settings UI can render and edit the DLNA IP allowlist.** Cumulative surface:
+**v0.48.0 — completes the `restart`-flag audit of `schemas/server-settings.schema.json`: all 72 keys are traced to their consumer (49 `restart: true`, 23 `restart: false`), with no key added or removed.** Cumulative surface:
 
 - `Phlix\Shared\Plugin\{LifecycleInterface, Manifest, ManifestType, ManifestValidationError, EventNameMap}`
 - `Phlix\Shared\Events\{AbstractEvent, Playback\*, Library\*, Auth\*}` — 12 event DTOs.
@@ -84,6 +84,14 @@ admin SPA under `schemas/` (resolve their absolute paths via
   and `dlna.allowed_cidrs` (array, default `[]`) + `dlna.restrict_to_lan` (boolean, default `true`),
   both `tier: advanced` / `group: subsystem`, read live by `DlnaAllowlistMiddleware` to gate the
   unauthenticated DLNA browse/stream endpoints (0.45.0+).
+
+  **`restart` flags (0.46.0–0.48.0).** Every one of the 72 keys has been traced to its
+  consumer: 49 carry `restart: true` and 23 carry `restart: false`. `restart: true` means the
+  admin **Restart server** control (a graceful SIGUSR2 reload that cycles workers, re-runs
+  `onWorkerStart`, and rebuilds DI containers) — required for any value captured at worker
+  start, container build, or route build. The 23 `restart: false` keys resolve through
+  `SettingsRepository::getEffective()` at use time and are genuinely live. No key was added
+  or removed by this audit.
 - `schemas/webhook-events.json` — data catalog of the supported webhook event types for the
   admin SPA webhook picker. Distinct from the plugin PSR-14 events in `EventNameMap` (0.7.0+).
 - `schemas/library-query.schema.json` — JSON Schema (draft 2020-12) for the query parameters of
@@ -150,6 +158,9 @@ composer install
 composer validate --strict
 composer audit --no-dev
 ```
+
+The `phpunit` job in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) uploads
+`./coverage.xml` to both Codecov and Codacy.
 
 ## License
 
