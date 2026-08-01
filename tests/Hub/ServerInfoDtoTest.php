@@ -128,4 +128,71 @@ final class ServerInfoDtoTest extends TestCase
         $this->expectExceptionMessage('subdomain');
         ServerInfoDto::fromPayload($payload);
     }
+
+    /**
+     * @dataProvider provideMissingRequiredFields
+     */
+    public function test_missing_required_field_throws(string $field): void
+    {
+        $payload = self::full();
+        unset($payload[$field]);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage($field);
+        ServerInfoDto::fromPayload($payload);
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function provideMissingRequiredFields(): array
+    {
+        return [
+            'serverId' => ['serverId'],
+            'userId' => ['userId'],
+            'serverName' => ['serverName'],
+            'version' => ['version'],
+            'status' => ['status'],
+        ];
+    }
+
+    /**
+     * @dataProvider provideInvalidRequiredFieldTypes
+     */
+    public function test_invalid_required_field_type_throws(string $field, mixed $invalidValue): void
+    {
+        $payload = self::full();
+        $payload[$field] = $invalidValue;
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage($field);
+        ServerInfoDto::fromPayload($payload);
+    }
+
+    /**
+     * @return array<string, array{string, mixed}>
+     */
+    public static function provideInvalidRequiredFieldTypes(): array
+    {
+        return [
+            'serverId as int' => ['serverId', 123],
+            'serverId as array' => ['serverId', ['array']],
+            'userId as int' => ['userId', 123],
+            'userId as array' => ['userId', ['array']],
+            'serverName as int' => ['serverName', 123],
+            'serverName as array' => ['serverName', ['array']],
+            'version as int' => ['version', 123],
+            'version as array' => ['version', ['array']],
+            'status as int' => ['status', 200],
+            'status as array' => ['status', ['array']],
+        ];
+    }
+
+    public function test_status_constants_are_defined(): void
+    {
+        $this->assertSame('online', ServerInfoDto::STATUS_ONLINE);
+        $this->assertSame('offline', ServerInfoDto::STATUS_OFFLINE);
+        $this->assertSame('claiming', ServerInfoDto::STATUS_CLAIMING);
+        $this->assertSame('disabled', ServerInfoDto::STATUS_DISABLED);
+    }
 }

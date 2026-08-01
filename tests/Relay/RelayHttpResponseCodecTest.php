@@ -136,4 +136,45 @@ final class RelayHttpResponseCodecTest extends TestCase
         $this->assertSame('hello', $body);
         $this->assertTrue($ended);
     }
+
+    public function test_chunk_body_iterator_yields_same_result_as_chunk_body(): void
+    {
+        $body = str_repeat('a', RelayHttpResponseCodec::MAX_BODY_CHUNK)
+            . str_repeat('b', 10);
+
+        $chunksArray = RelayHttpResponseCodec::chunkBody($body);
+        $chunksIterator = iterator_to_array(RelayHttpResponseCodec::chunkBodyIterator($body));
+
+        $this->assertSame($chunksArray, $chunksIterator);
+    }
+
+    public function test_chunk_body_iterator_empty_body_yields_nothing(): void
+    {
+        $chunks = iterator_to_array(RelayHttpResponseCodec::chunkBodyIterator(''));
+        $this->assertSame([], $chunks);
+    }
+
+    public function test_chunk_body_iterator_exactly_max_yields_single_chunk(): void
+    {
+        $body = str_repeat('z', RelayHttpResponseCodec::MAX_BODY_CHUNK);
+        $chunks = iterator_to_array(RelayHttpResponseCodec::chunkBodyIterator($body));
+        $this->assertCount(1, $chunks);
+    }
+
+    public function test_chunk_body_iterator_stream_large_body(): void
+    {
+        // Use a body larger than 2 chunks to verify streaming works
+        $body = str_repeat('x', RelayHttpResponseCodec::MAX_BODY_CHUNK * 2 + 100);
+        $chunks = iterator_to_array(RelayHttpResponseCodec::chunkBodyIterator($body));
+
+        $this->assertCount(3, $chunks);
+
+        // Reassemble and verify
+        $reassembled = '';
+        foreach ($chunks as $payload) {
+            $decoded = RelayHttpResponseCodec::decode($payload);
+            $reassembled .= $decoded->body;
+        }
+        $this->assertSame($body, $reassembled);
+    }
 }
