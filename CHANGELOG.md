@@ -4,6 +4,164 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.48.1] - 2026-08-07
+
+**Nothing in the published library changed.** Every change in this release is
+repository infrastructure: a security-audit gate that can actually fail, a large
+batch of tests, and CI hardening.
+
+`git diff --stat v0.48.0..HEAD -- src schemas composer.json` is *empty* — not
+small, empty. No class, interface, DTO, constant or schema property was added,
+removed or altered, and the `require` block is untouched. The psr-4 root
+`Phlix\Shared\` maps to `src/` alone, so nothing else in this repository is even
+autoloadable by a consumer. Upgrading 0.48.0 → 0.48.1 is therefore a behavioural
+no-op: identical API surface, identical runtime, identical wire format. That is
+why this is a patch and not a minor. The one `src/` file the release commit does
+touch is `Version.php`, solely to move the `VERSION` constant to `0.48.1`, which
+`tests/VersionTest.php` requires to match a heading in this file.
+
+### The php_codesniffer advisory is a development-only concern
+
+`composer.lock` moves `squizlabs/php_codesniffer` 3.13.5 → 3.13.6 for
+CVE-2026-67434 (HIGH, OS command injection, GHSA-hmqg-cxww-wqhq, affecting
+`<3.13.6` and `>=4.0.0,<4.0.2`). **This is not a security fix for anyone who
+installs this package.** `squizlabs/php_codesniffer` is declared in
+`require-dev`, and the bump lands in the lock's `packages-dev` section; Composer
+never installs a dependency's dev requirements, so no consumer of
+`detain/phlix-shared` was ever exposed through this package. The actual runtime
+requirements — `php: ^8.3` plus `psr/clock`, `psr/container`,
+`psr/event-dispatcher` and `psr/log` — did not move. What is being closed is
+exposure of *this repository's own* CI runners and developer workstations, which
+run the linter over pull-request-authored content and are the machines that hold
+credentials. Do not read this line as a reason to upgrade for security; there
+isn't one.
+
+### A security-audit gate that states what it examined
+
+The advisory above had to be caught by hand, because the gate meant to catch it
+was blind — the bump landed first and the gate was repaired after. The CI
+"Security Audit" job was `composer install --no-dev` followed
+by a bare `composer audit --no-dev`. `--no-dev` removes every `require-dev`
+package from the audited set, so the job **could not fail on a development
+dependency under any circumstances** — and on 2026-08-06 it reported SUCCESS
+against the lock pinning the vulnerable 3.13.5. The advisory was not suppressed
+or excused; it was never looked at, and in a green check "never looked at" is
+indistinguishable from "clean". A gate that silently covers half its subject is
+worse than no gate, because it gets read as evidence.
+
+`scripts/security-audit-check.php` replaces it. It audits the whole lock, and —
+the part that matters most — it **states the corpus it examined**. `composer
+audit` never reports how many packages it inspected, so the script counts them
+out of `composer.lock` itself and prints the total alongside the `require` /
+`require-dev` split, then refuses to pass if either falls below a floor
+(`MIN_AUDITED_PACKAGES = 50` and `MIN_AUDITED_DEV_PACKAGES = 45`, against a
+measured 59 = 4 runtime + 55 development). The dev floor is the specific
+anti-regression: if `--no-dev` is ever restored, or `packages-dev` is emptied,
+the corpus line says so out loud and the gate fails, instead of reporting a clean
+audit of a fraction of the lock.
+
+It invokes `composer audit --locked --format=json`, which needs no `vendor/` —
+the lock is the artifact a pull request actually changes, and auditing after an
+install would let a vulnerable lock die in the solver with an opaque resolution
+error before the audit ran. The verdict is computed from the JSON rather than
+inherited from the exit code, because that code conflates findings that deserve
+different treatment: a security advisory in any scope blocks; an abandoned
+package warns loudly but passes, since abandonment is not a vulnerability and is
+usually unfixable from this repository, and a gate that goes red for a reason
+nobody here can act on is a gate that gets switched off; an advisory acknowledged
+in `composer.json` under `config.audit.ignore` is reported as a loud notice
+rather than hidden. Failure to measure at all — an unreachable advisory
+repository, an unparseable payload, a missing composer, a corpus under its floor
+— is treated as a failure, never as a skip. Every advisory printed is labelled
+`[require]` or `[require-dev]`, so a reader can tell in one glance whether
+production is exposed or only the toolchain is. There is deliberately no baseline
+file and no ignore list inside the script: the only way to pass an advisory is to
+fix it or to record it in `composer.json`, where it is committed, diffed and
+reviewed.
+
+`AGENTS.md` and `README.md` are corrected alongside it, because both were
+actively *instructing* the next reader to run the blind form. Step 7 of the
+`AGENTS.md` pre-commit checklist read `composer audit --no-dev`; it now names the
+gate script and carries a note on why the exclusion must never come back. The
+last line of the `README.md` **Development** block said the same thing and was
+missed when `AGENTS.md` was fixed, so the two files contradicted each other —
+it now runs the script and states the reason inline. Comparing the seven commands
+in that block against the seven steps of the `AGENTS.md` checklist one for one,
+this was the only divergence: the other six match, all four `vendor/bin`
+binaries they name are present, and `composer validate --strict` exits 0 as
+documented. No automated check enforces this — `SecurityAuditCheckTest` parses
+`.github/workflows/ci.yml`, which is the file that decides what actually runs;
+a regex over README prose would be deleted at the first rewording.
+
+**Where this script came from, and its relatives.** It is a near-verbatim port of
+phlix-hub's `scripts/security-audit-check.php`, the S246 artifact merged there as
+PR #217 — both files are 810 lines with an identical function set, and the same
+port went to nine plugin repositories in the same pass. The deliberate deltas
+here are the floors, which are measured from *this* repository's lock rather than
+copied (the hub's are 80/40 against a much larger lock; a floor copied across
+repositories is either vacuous or permanently red), and the test constants drive
+the synthetic fixtures so the suite stays correct at any corpus size.
+
+phlix-server also carries a `scripts/security-audit-check.php` and runs it from
+its own tree via `.github/workflows/coding-standards.yml`. It is **not** the
+source of this file and not a dependency of it: it is an earlier, smaller member
+of the same family — 505 lines, sharing `MIN_COMPOSER_VERSION` and the
+`--locked --format=json`, verdict-from-JSON design, but with none of the corpus
+counting, the floors, or the `[require]`/`[require-dev]` labelling. Every copy is
+per-repository and self-contained; none invokes or imports another. Nothing in
+this package exposes the script to an installer either — `scripts/` is outside
+the psr-4 root, there is no `bin` entry, and only this repository's own CI runs
+it. Duplicating the gate rather than depending on it is the deliberate choice: a
+repository that does not own its gate cannot be relied on to run it. (For the
+record phlix-server's copy also omits `--no-dev`, which is consistent with the
+S246 finding that phlix-server was the one repository in the estate whose audit
+went red on this advisory while everywhere else it stayed invisible.)
+
+### Tests
+
+7 new test files and 127 new test methods, 2,293 added lines under `tests/`. The
+suite now stands at **1171 tests / 83380 assertions**, green.
+
+The largest single addition, `tests/Support/SecurityAuditCheckTest.php` (782
+lines), is a guard on the gate rather than a unit test of a class. It drives the
+script offline against captured `composer audit` payloads to prove each verdict
+row actually fires — an advisory against a *development* dependency blocks, an
+advisory against a runtime dependency blocks and is labelled as such, abandoned
+packages warn without blocking, an advisory still blocks when abandoned packages
+are also present, a config-ignored advisory is reported rather than hidden, and a
+missing composer binary fails instead of skipping. It also parses
+`.github/workflows/ci.yml` to assert the job cannot be quietly neutered by
+re-adding `--no-dev`, by `continue-on-error`, or by an `if:` condition, and it
+checks that a corpus below either floor fails — the case that catches a
+silently-emptied audit.
+
+The remainder close genuine gaps rather than pad a number: first tests for
+`Security\Hmac`, `Auth\AuthResult`, `Auth\UserInfo` and
+`Relay\RelayWireCodecInterface`, the Radarr CRUD surface and
+`Arr\Transport\CurlArrTransport`'s validation paths, plus `vendorName` coverage
+across the remaining *arr clients and field coverage on the Hub DTOs. One commit
+in the range carries the subject 提升测试覆盖率 ("improve test coverage") and is
+exactly that — 328 lines across six test files, no production change.
+
+Measured on this tree with pcov: **90.94% of lines (924/1016), 92.15% of methods
+(176/191), 84.00% of classes (42/50)**. That figure covers `src/` only, because
+`phpunit.xml` scopes `<source>` to that directory — so the audit script and its
+782 lines of tests contribute nothing to it, and the number understates the work
+in this release rather than crediting it.
+
+### CI actions pinned to commit SHAs
+
+The three third-party actions in `.github/workflows/ci.yml` —
+`shivammathur/setup-php`, `codecov/codecov-action` and
+`codacy/codacy-coverage-reporter-action` — now reference full 40-character commit
+SHAs instead of the mutable tags `@v2`, `@v4` and `@v1`. A tag is a pointer its
+owner can repoint at any moment, so a compromised or merely careless upstream
+release can change what executes in this repository's CI without anything in this
+repository changing. A SHA cannot be repointed. This is the same threat surface
+as the php_codesniffer advisory above — the runner, not the shipped artifact.
+`actions/checkout@v6` is deliberately left on its tag as GitHub's own
+first-party action.
+
 ## [0.48.0] - 2026-07-28
 
 Corrects the last eight `restart: false` keys to `restart: true`, closing the audit

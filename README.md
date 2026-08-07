@@ -156,8 +156,17 @@ composer install
 ./vendor/bin/phpcs --standard=PSR12 src/
 ./vendor/bin/psalm --no-progress
 composer validate --strict
-composer audit --no-dev
+php scripts/security-audit-check.php
 ```
+
+⚠ The last step replaces `composer audit --no-dev`. **Never audit with a
+development-dependency exclusion:** `--no-dev` drops every `require-dev` package
+from the audited set, and it hid CVE-2026-67434 (HIGH, OS command injection) in
+`squizlabs/php_codesniffer` — a `require-dev` package — so CI reported SUCCESS
+against a vulnerable lock. `scripts/security-audit-check.php` audits the whole
+lock, labels each finding `[require]` / `[require-dev]`, and prints the number of
+packages it examined so a truncated audit cannot pass as a clean one. See
+[`AGENTS.md`](AGENTS.md) for the full policy.
 
 The `phpunit` job in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) uploads
 `./coverage.xml` to both Codecov and Codacy.
