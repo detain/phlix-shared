@@ -87,9 +87,19 @@ step against `detain/phlix` if needed.
 4. `./vendor/bin/phpcs --standard=PSR12 src/` clean.
 5. `./vendor/bin/psalm --no-progress` clean.
 6. `composer validate --strict` clean.
-7. `composer audit --no-dev` no advisories.
+7. `php scripts/security-audit-check.php` no advisories.
 
 If any tool emits warnings, fix the code — do not add to a baseline.
+
+⚠ **Never audit with a development-dependency exclusion.** Step 7 used to read
+`composer audit --no-dev`, and that flag hid CVE-2026-67434 (HIGH, OS command
+injection) in `squizlabs/php_codesniffer` from CI for as long as the advisory
+existed: `php_codesniffer` is a `require-dev` package, so the gate reported
+SUCCESS against a vulnerable lock. `scripts/security-audit-check.php` (S246)
+audits the whole lock, labels each finding `[require]`/`[require-dev]`, and
+prints the number of packages it examined. An advisory that genuinely cannot be
+actioned goes under `config.audit.ignore` in `composer.json` with a written
+reason, where the gate reports it as IGNORED — there is no baseline file.
 
 ## Versioning
 
