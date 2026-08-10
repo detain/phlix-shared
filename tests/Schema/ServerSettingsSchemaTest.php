@@ -142,6 +142,31 @@ final class ServerSettingsSchemaTest extends TestCase
             'transcoding.preset' => ['transcoding.preset', 'string'],
             'transcoding.crf_h264' => ['transcoding.crf_h264', 'integer'],
             'transcoding.audio_bitrate' => ['transcoding.audio_bitrate', 'string'],
+            // Added in 0.49.0 (S313). Consumed at
+            // phlix-server/src/Media/Transcoding/EncodeSettings.php:280
+            // (`segmentFormat()`), which is read by
+            // TranscodeManager::startSegmentEncode() and folded into
+            // EncodeSettings::fingerprint() — so it satisfies plan §4 rule 1
+            // (cite the file:line that reads the effective value).
+            //
+            // The key existed in `config/transcoding.php` since S56 but was
+            // DELIBERATELY absent here, which is exactly what made
+            // AdminSettingsController refuse it on PUT: the only way to change
+            // it was hand-editing the config file inside a running container.
+            // S313 exposes it so S60's flag flip has a rollback path over the
+            // admin API BEFORE the flip lands. S313 changes NO default: this
+            // ships `mpegts`, the same value config/transcoding.php has always
+            // had, so an install that never calls the admin API is unaffected.
+            //
+            // The `enum` is the phlix-server constant
+            // EncodeSettings::SEGMENT_FORMATS, generated from it rather than
+            // retyped. This repository cannot see that constant, so the
+            // correspondence is pinned on the other side by
+            // phlix-server/tests/Unit/Media/Transcoding/SegmentFormatSchemaEnumDriftTest.php,
+            // which reds if the enum or the constant moves alone. Adding or
+            // removing a member here without the matching constant change
+            // fails that test.
+            'transcoding.segment_format' => ['transcoding.segment_format', 'string'],
             // config/artwork.php -> ['download_enabled']. Consumed via
             // Phlix\Media\Storage\ArtworkDownloadPolicy, which gates BOTH
             // download choke points in LibraryMetadataMatcher — the
@@ -512,7 +537,8 @@ final class ServerSettingsSchemaTest extends TestCase
         sort($expected);
 
         $this->assertSame($expected, $actual, 'server-settings schema must declare exactly the expected settings keys.');
-        $this->assertCount(72, $actual);
+        // 72 -> 73 in 0.49.0: `transcoding.segment_format` (S313).
+        $this->assertCount(73, $actual);
     }
 
     /**
