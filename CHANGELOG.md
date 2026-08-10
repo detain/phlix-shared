@@ -4,6 +4,67 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.49.0] - 2026-08-10
+
+Exposes one new server setting: `transcoding.segment_format`. Nothing else in
+the package changed — `git diff v0.48.1..HEAD -- src` touches only
+`Version.php`, and the `require` block is untouched.
+
+### `transcoding.segment_format` becomes settable over the admin API
+
+`config/transcoding.php` in phlix-server has carried a `segment_format` key
+since S56, choosing between MPEG-TS (`.ts`) and CMAF fragmented-MP4 (`.m4s`)
+on-demand segments. It was **deliberately absent from this schema**, and that
+absence is the entire mechanism by which `AdminSettingsController` refused it:
+the controller derives its writable allow-list from
+`schemas/server-settings.schema.json`, so an undeclared key is an unknown key
+and a `PUT` carrying it is a 400. The consequence was that the only way to
+change the container was to hand-edit a PHP config file **inside a running
+container**.
+
+phlix-server's S60 flips that flag's default to `fmp4`. A flag that can only be
+flipped by editing a file inside the running container does not have a rollback
+path, so this release ships the rollback **before** the thing that might need
+rolling back. **This is not the flip.** The `default` declared here is
+`mpegts`, identical to the value `config/transcoding.php` has always had, so an
+installation that never calls the admin settings API sees no change of any kind
+— same default, same effective value, same transcode job keys.
+
+The property declares `"enum": ["mpegts", "fmp4"]`, and since 1.3.0
+`AdminSettingsController` validates a `PUT` against each property's own
+sub-schema, so the enum is enforced on write rather than being display-only
+metadata: `fmp4` and `mpegts` are accepted, anything else (`cmaf`, a typo, an
+empty string) is rejected with a per-key error and nothing is persisted.
+
+**The enum members are the phlix-server constant
+`Phlix\Media\Transcoding\EncodeSettings::SEGMENT_FORMATS`, generated from it
+rather than retyped.** That constant is what `segmentFormat()` actually honours
+— an unrecognised value there silently degrades to the default — so an enum
+that admitted a member the constant does not would be a control that appears to
+work and does nothing. This repository cannot see phlix-server's source, so the
+correspondence cannot be asserted here; it is pinned on the other side by
+`phlix-server/tests/Unit/Media/Transcoding/SegmentFormatSchemaEnumDriftTest.php`,
+which reads both and fails if **either** moves alone. Do not add or remove a
+member here without the matching constant change.
+
+`helpText` states the cost of changing the setting plainly, because it is not
+obvious and it is not free: the value is folded into
+`EncodeSettings::fingerprint()` and therefore into the transcode job reuse key,
+so a change produces a **new job id**, a **new job directory**, and a
+**re-encode of anything played afterwards**. The old directories are left in
+place rather than deleted, which is what makes switching back a genuine
+rollback and what guarantees `.ts` and `.m4s` segments can never co-mingle in
+one directory.
+
+`restart: false`, matching its three neighbours (`transcoding.preset`,
+`transcoding.crf_h264`, `transcoding.audio_bitrate`): `EncodeSettings` reads the
+effective value through `SettingsRepository::getEffective()` at encode time, not
+at boot, so the next transcode picks it up. `tier: advanced`, `group:
+transcoding` — the admin SPA renders the settings form from this schema, so
+declaring the property is what makes the control appear.
+
+The schema grows from 72 declared properties to 73.
+
 ## [0.48.1] - 2026-08-07
 
 **Nothing in the published library changed.** Every change in this release is
