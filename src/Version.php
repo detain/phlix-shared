@@ -31,7 +31,7 @@ final class Version
      *
      * @var non-empty-string
      */
-    public const VERSION = '0.48.1';
+    public const VERSION = '0.49.0';
 
     /**
      * Prevent instantiation — static marker only.

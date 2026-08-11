@@ -602,6 +602,38 @@
             "restart": false,
             "default": "128k"
         },
+        "transcoding.segment_format": {
+            "type": "string",
+            "description": "Container used for on-demand streaming segments: `mpegts` (the shipped behaviour \u2014 `.ts` segments) or `fmp4` (CMAF fragmented MP4 \u2014 an init segment plus `.m4s` segments). Consumed by phlix-server's Phlix\\Media\\Transcoding\\EncodeSettings::segmentFormat(); the enum below is the EncodeSettings::SEGMENT_FORMATS constant and must stay equal to it \u2014 phlix-server's SegmentFormatSchemaEnumDriftTest fails if either side moves alone. The value is folded into EncodeSettings::fingerprint() and therefore into the transcode job reuse key, so changing it yields a fresh job id and a fresh job directory rather than mixing containers in one directory. Applies to the next transcode; playback already in progress is unaffected.",
+            "group": "transcoding",
+            "label": "Segment container",
+            "helpText": "Which container Phlix wraps each streamed chunk in when it has to transcode. The shipped value, MPEG-TS, is the widely compatible one and is what every Phlix client has been tested against. fMP4 (CMAF) is the newer format: it is what modern players and DASH expect, and it lets the same segments serve both HLS and DASH.\n\nCHANGING THIS IS NOT FREE, and the cost is worth reading before you touch it. The setting is part of the fingerprint that identifies a transcoding job, so switching it gives every item a NEW job id and a NEW job directory. Nothing already encoded is reused: anything played after the change is re-encoded from scratch, which means a burst of CPU load and a second copy on disk for a while. The old directories are left alone rather than deleted, so switching back returns you to the segments you already had \u2014 that is the rollback, and it is why the two containers can never end up mixed together in one directory.\n\nLeave this on MPEG-TS unless you are deliberately testing the fMP4 path. Playback already in progress keeps using the container it started with; only the next transcode picks up the change, and no restart is needed.",
+            "helpLinks": [
+                {
+                    "text": "CMAF",
+                    "url": "https://en.wikipedia.org/wiki/Common_Media_Application_Format"
+                },
+                {
+                    "text": "MPEG transport stream",
+                    "url": "https://en.wikipedia.org/wiki/MPEG_transport_stream"
+                }
+            ],
+            "tier": "advanced",
+            "restart": false,
+            "enum": [
+                "mpegts",
+                "fmp4"
+            ],
+            "enumLabels": {
+                "mpegts": "MPEG-TS (recommended)",
+                "fmp4": "fMP4 / CMAF"
+            },
+            "optionHelp": {
+                "mpegts": "The shipped default. `.ts` segments, the most broadly compatible option and the one every Phlix client is tested against.",
+                "fmp4": "CMAF fragmented MP4 \u2014 an init segment plus `.m4s` segments, shared by HLS and DASH. Switching to it re-encodes anything played afterwards into a fresh job directory; the client matrix for it is not yet verified."
+            },
+            "default": "mpegts"
+        },
         "artwork.download_enabled": {
             "type": "boolean",
             "description": "Download and cache poster, backdrop and logo images from metadata providers. Turning this off stops NEW downloads only; artwork already cached on disk is unaffected and keeps being served.",
