@@ -4,6 +4,103 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.49.1] - 2026-08-12
+
+Corrects the `transcoding.segment_format` copy, which described the world as it
+was before phlix-server's S60 and told operators to roll back the default that
+step shipped. Schema prose and one `default` only: the key set is unchanged, the
+`enum` is unchanged, and `git diff v0.49.0..HEAD -- src` touches only
+`Version.php`.
+
+### The default this schema advertises is now `fmp4`
+
+phlix-server's S60 (merged as `2bb81c0b`) flipped
+`EncodeSettings::DEFAULT_SEGMENT_FORMAT` and `config/transcoding.php`'s
+`segment_format` to `fmp4`, and bumped `TranscodeManager::JOB_KEY_VERSION` from
+`v9` to `v10` in the same commit. 0.49.0 shipped this property with
+`"default": "mpegts"` deliberately — it landed *before* the flip, so that the
+rollback route existed before the thing that might need rolling back. That
+choice is now spent, and what was left behind was an annotation that contradicts
+the shipped behaviour.
+
+Nothing in this package READS a schema `default`: `AdminSettingsController`
+surfaces it in its `meta` block only, the effective value comes from
+`SettingsRepository::getDefault()` reading `config/transcoding.php`, and the
+admin route table is `GET` + `PUT` with no reset-to-default writer. The field is
+therefore documentation-grade — but it is documentation rendered beside the
+control an operator acts on under pressure, next to an effective value of
+`fmp4`, and it said `mpegts`.
+
+Six statements were false and all six are replaced:
+
+- `default` — `mpegts` → `fmp4`.
+- `enumLabels.mpegts` — "MPEG-TS (recommended)" → "MPEG-TS (compatibility
+  fallback)"; `enumLabels.fmp4` gains "(recommended)".
+- `optionHelp.mpegts` — no longer calls itself "the shipped default" or claims
+  it is "the one every Phlix client is tested against".
+- `optionHelp.fmp4` — no longer says "the client matrix for it is not yet
+  verified". fMP4 was verified end to end through the live streaming route by a
+  real browser running hls.js (phlix-server S315, re-run under the flip in S60)
+  and by a real DASH client against the manifest published beside the segments
+  (S58). The replacement states exactly that, and states just as plainly that
+  Phlix's native TV and mobile clients read the same HLS endpoint but were not
+  each re-tested — which is why MPEG-TS is kept as the fallback rather than
+  described as unnecessary.
+- `helpText` — dropped "Leave this on MPEG-TS unless you are deliberately
+  testing the fMP4 path" and the claim that MPEG-TS "is what every Phlix client
+  has been tested against".
+- `description` — `mpegts` is no longer "the shipped behaviour".
+
+### The rollback paragraph was substantively wrong, not merely stale
+
+0.49.0's `helpText` said: *"The old directories are left alone rather than
+deleted, so switching back returns you to the segments you already had — that is
+the rollback."* On an installation that upgrades **through** S60 that is not
+true, and the difference is a fleet-wide re-encode.
+
+The transcode job reuse key is `sha1(mediaItemId | profileName |
+JOB_KEY_VERSION . fingerprint())`, and `EncodeSettings::fingerprint()` returns
+`''` whenever every setting sits at its shipped default — *whatever that default
+is*. So:
+
+- **Within the post-S60 world the round trip does hold.** At the default the
+  fingerprint is `''`; selecting `mpegts` makes the container a non-empty `|mpegts`
+  suffix and moves the key; selecting `fmp4` again returns the key to the first
+  one, and the earlier directory is picked back up **if the segment cache has not
+  reclaimed it in the meantime**.
+- **The FIRST rollback after upgrading is not that case.** S60 moved
+  `JOB_KEY_VERSION` from `v9` to `v10`, so every directory an installation held
+  before the upgrade is unreachable under any setting, permanently. Selecting
+  `mpegts` after upgrading buys a fresh `.ts` encode of everything, item by item,
+  as it is played. The old sentence implied that was free.
+
+The replacement says which of the two an operator is in and what each costs.
+The neighbouring claims were checked against phlix-server rather than reworded
+on trust, and all three hold: both generations of directory do sit on disk at
+once (`TranscodeManager::sweepSegmentCache()` globs `{segmentDir}/*` and is
+version-agnostic, so a `v9` directory is reclaimed exactly as a `v10` one is —
+after `server.hls.cache_max_age` idle, 3 h by default, or sooner under the
+`server.hls.cache_max_bytes` LRU budget, on a reaper tick every 45 s); playback
+in progress does keep its own container (a job's container is committed at
+creation and read back from its persisted `segment_params`, never from the live
+setting); and `restart: false` is still honest, because `EncodeSettings` resolves
+the value at encode time.
+
+`helpText` still names the cost in the three terms phlix-server's
+`SegmentFormatSchemaEnumDriftTest` requires of it — a new **job id**, a new **job
+directory**, and a **re-encode** of anything played afterwards.
+
+### Pinning
+
+`phlix-server/tests/Unit/Media/Transcoding/SegmentFormatSchemaEnumDriftTest.php`
+holds this property's `default` against
+`EncodeSettings::DEFAULT_SEGMENT_FORMAT`. Since S60 it carried a deliberate
+tripwire asserting the two DISAGREED, precisely so this release would red it.
+Consuming 0.49.1 means re-pinning `composer.lock` and restoring that case to the
+plain equality it was before S60 — the divergence is closed, not tolerated. The
+`enum` remains an exact, ordered bijection with `EncodeSettings::SEGMENT_FORMATS`
+and is untouched here.
+
 ## [0.49.0] - 2026-08-10
 
 Exposes one new server setting: `transcoding.segment_format`. Nothing else in
