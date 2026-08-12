@@ -154,9 +154,22 @@ final class ServerSettingsSchemaTest extends TestCase
             // AdminSettingsController refuse it on PUT: the only way to change
             // it was hand-editing the config file inside a running container.
             // S313 exposes it so S60's flag flip has a rollback path over the
-            // admin API BEFORE the flip lands. S313 changes NO default: this
-            // ships `mpegts`, the same value config/transcoding.php has always
-            // had, so an install that never calls the admin API is unaffected.
+            // admin API BEFORE the flip lands. S313 changed NO default: it
+            // shipped `mpegts`, the value config/transcoding.php had always had.
+            //
+            // ⚠ 0.49.1 (S318) moves the `default` to `fmp4` and rewrites the
+            // prose around it. S60 has SHIPPED in phlix-server (it flipped
+            // EncodeSettings::DEFAULT_SEGMENT_FORMAT and config/transcoding.php
+            // to `fmp4` and bumped TranscodeManager::JOB_KEY_VERSION v9 -> v10),
+            // so the `mpegts` default here had become an annotation telling
+            // operators to roll back a change nobody told them about. The field
+            // is documentation-grade — nothing WRITES a schema default; the
+            // effective value comes from SettingsRepository::getDefault() reading
+            // config/transcoding.php, and there is no reset-to-default endpoint —
+            // but it is rendered next to the control an operator acts on.
+            // phlix-server's SegmentFormatSchemaEnumDriftTest pins this field
+            // against EncodeSettings::DEFAULT_SEGMENT_FORMAT, so moving it here
+            // alone reds that test until the composer.lock re-pin lands.
             //
             // The `enum` is the phlix-server constant
             // EncodeSettings::SEGMENT_FORMATS, generated from it rather than
