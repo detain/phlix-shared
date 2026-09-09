@@ -15,7 +15,7 @@ Composer-installable, PHP 8.3+, zero I/O — pure interfaces and value objects o
 
 ## Status
 
-**v0.48.0 — completes the `restart`-flag audit of `schemas/server-settings.schema.json`: all 72 keys are traced to their consumer (49 `restart: true`, 23 `restart: false`), with no key added or removed.** Cumulative surface:
+**v0.49.1 — exposes `transcoding.segment_format` in `schemas/server-settings.schema.json` (72 → 73 keys: 49 `restart: true`, 24 `restart: false`) and corrects its `default` and option copy for the shipped `fmp4` container.** Cumulative surface:
 
 - `Phlix\Shared\Plugin\{LifecycleInterface, Manifest, ManifestType, ManifestValidationError, EventNameMap}`
 - `Phlix\Shared\Events\{AbstractEvent, Playback\*, Library\*, Auth\*}` — 12 event DTOs.
@@ -84,12 +84,18 @@ admin SPA under `schemas/` (resolve their absolute paths via
   and `dlna.allowed_cidrs` (array, default `[]`) + `dlna.restrict_to_lan` (boolean, default `true`),
   both `tier: advanced` / `group: subsystem`, read live by `DlnaAllowlistMiddleware` to gate the
   unauthenticated DLNA browse/stream endpoints (0.45.0+).
+  Adds `transcoding.segment_format` (enum `mpegts`|`fmp4`, `group: transcoding`, `tier: advanced`,
+  `restart: false`), which is what makes the segment container settable over the admin API — the
+  `enum` mirrors phlix-server's `EncodeSettings::SEGMENT_FORMATS` and is read by
+  `EncodeSettings::segmentFormat()` at encode time (0.49.0+); its `default`, `enumLabels`,
+  `optionHelp`, `helpText`, and `description` now describe `fmp4` as the shipped container and
+  `mpegts` as the supported rollback (0.49.1+).
 
-  **`restart` flags (0.46.0–0.48.0).** Every one of the 72 keys has been traced to its
-  consumer: 49 carry `restart: true` and 23 carry `restart: false`. `restart: true` means the
+  **`restart` flags (0.46.0–0.48.0).** Every one of the 73 keys has been traced to its
+  consumer: 49 carry `restart: true` and 24 carry `restart: false`. `restart: true` means the
   admin **Restart server** control (a graceful SIGUSR2 reload that cycles workers, re-runs
   `onWorkerStart`, and rebuilds DI containers) — required for any value captured at worker
-  start, container build, or route build. The 23 `restart: false` keys resolve through
+  start, container build, or route build. The 24 `restart: false` keys resolve through
   `SettingsRepository::getEffective()` at use time and are genuinely live. No key was added
   or removed by this audit.
 - `schemas/webhook-events.json` — data catalog of the supported webhook event types for the
