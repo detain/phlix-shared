@@ -201,9 +201,16 @@ enum RelayFrameType: int
     /**
      * Returns the human-readable name of this frame type.
      *
+     * `@psalm-suppress DeprecatedConstant` — the RETIRED 0x09–0x0F cases stay
+     * in the enum for decode-compat, and a `match ($this)` must be exhaustive
+     * over its own cases, so this map necessarily names them. Self-reference
+     * from inside the declaring type is intentional, not consumer misuse.
+     *
      * @return non-empty-string
      *
      * @since 0.5.0
+     *
+     * @psalm-suppress DeprecatedConstant
      */
     public function label(): string
     {

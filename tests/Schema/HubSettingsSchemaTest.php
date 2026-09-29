@@ -12,7 +12,9 @@ declare(strict_types=1);
 namespace Phlix\Shared\Tests\Schema;
 
 use Phlix\Shared\Schema\SchemaPaths;
+use PHPUnit\Framework\AssertionFailedError;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 final class HubSettingsSchemaTest extends TestCase
 {
@@ -343,6 +345,439 @@ final class HubSettingsSchemaTest extends TestCase
                 sprintf('Property "%s" "%s" must equal the documented bound.', $key, $constraintKey)
             );
         }
+    }
+
+    /**
+     * Cross-repo drift guard: the schema's `properties` must equal the hub's
+     * live `ALLOWED_KEYS` — key names in both directions, and JSON-Schema
+     * types once the hub's PHP vocabulary (`int`, `bool`) is mapped.
+     *
+     * The hub owns the allow-list; this schema only supplies the render
+     * metadata for those keys. A schema key with no allow-list entry is never
+     * rendered; an allow-list key with no schema entry renders with no label
+     * or help at all. Either drift is invisible to the hub test suite, so it
+     * is caught here — against the real constant, not a restatement.
+     *
+     * Hub checkout resolution lives in
+     * {@see self::hubSettingsRepositoryPath()}: an explicit `PHLIX_HUB_REPO`
+     * pointer must be valid (a broken pointer fails, it never silently
+     * skips), else a `phlix-hub` sibling of this checkout is probed. With no
+     * hub checkout on disk the test skips; the frozen
+     * {@see self::propertyProvider()} list is the best-effort mirror there.
+     *
+     * The guard is falsifiable, and pinned so: the parser provably reads only
+     * the source handed to it
+     * ({@see self::test_hub_allow_list_parser_reads_only_the_supplied_source()}),
+     * broken const shapes throw loudly
+     * ({@see self::test_hub_allow_list_parser_fails_loud_on_broken_shapes()}),
+     * and the comparator trips on every drift shape an injected wrong list
+     * can express
+     * ({@see self::test_hub_allow_list_comparator_trips_on_injected_drift()}).
+     */
+    public function test_properties_match_hub_allow_list_when_hub_checkout_available(): void
+    {
+        $path = $this->hubSettingsRepositoryPath();
+        if ($path === null) {
+            $this->markTestSkipped(
+                'No phlix-hub checkout on disk: place phlix-hub beside phlix-shared, or set '
+                . 'PHLIX_HUB_REPO to a phlix-hub checkout, to run the ALLOWED_KEYS drift guard.'
+            );
+        }
+
+        $source = file_get_contents($path);
+        if (!is_string($source)) {
+            $this->markTestSkipped(sprintf('Hub checkout "%s" became unreadable mid-test.', $path));
+        }
+
+        self::assertSchemaPropertiesMatchHubAllowList(self::properties(), self::parseHubAllowedKeys($source));
+    }
+
+    /**
+     * Falsifiability pin #1: the parser returns what the SOURCE says, not
+     * what the schema says. The fixture shares no key with the live schema;
+     * if the parser were ever rewired to read the schema — or to hand back
+     * the expected list, making the guard vacuous — this test goes red. It
+     * also pins that interleaved comments are tolerated, that double-quoted
+     * literals parse, and that the walk stops at the `ALLOWED_KEYS` const's
+     * own closing bracket instead of bleeding into `DENIED_KEYS`.
+     */
+    public function test_hub_allow_list_parser_reads_only_the_supplied_source(): void
+    {
+        $source = <<<'PHP'
+            <?php
+
+            declare(strict_types=1);
+
+            final class HubSettingsRepository
+            {
+                public const array ALLOWED_KEYS = [
+                    // config/server.php
+                    'server.enrollment_ttl' => 'int',
+                    'auth.access_ttl' => 'int',
+                    'auth.signups_disabled' => 'bool', // trailing comment
+                    "auth.dquoted" => "bool",
+                ];
+
+                public const array DENIED_KEYS = [
+                    'auth.secret',
+                ];
+            }
+            PHP;
+
+        self::assertSame(
+            [
+                'server.enrollment_ttl' => 'int',
+                'auth.access_ttl' => 'int',
+                'auth.signups_disabled' => 'bool',
+                'auth.dquoted' => 'bool',
+            ],
+            self::parseHubAllowedKeys($source)
+        );
+    }
+
+    /**
+     * Falsifiability pin #2 (Fail Fast law): malformed hub sources must throw
+     * a descriptive RuntimeException rather than mis-parse into a plausible
+     * but wrong list — a silent mis-parse is how a drift guard rots.
+     */
+    public function test_hub_allow_list_parser_fails_loud_on_broken_shapes(): void
+    {
+        $broken = [
+            'const absent' => "<?php class R { public const array DENIED_KEYS = ['a' => 'int']; }",
+            'dangling key without a type' => "<?php class R { public const array ALLOWED_KEYS = ['a']; }",
+            'type is not a string literal' => "<?php class R { public const array ALLOWED_KEYS = ['a' => self::T]; }",
+            'value before any key' => "<?php class R { public const array ALLOWED_KEYS = [=>'int']; }",
+            'unclosed literal' => "<?php class R { public const array ALLOWED_KEYS = ['a' => 'int'",
+        ];
+
+        foreach ($broken as $case => $source) {
+            $threw = false;
+            try {
+                self::parseHubAllowedKeys($source);
+            } catch (RuntimeException) {
+                $threw = true;
+            }
+            self::assertTrue($threw, sprintf('Broken source "%s" must throw, not mis-parse.', $case));
+        }
+    }
+
+    /**
+     * Falsifiability pin #3: the type mapping is total over the hub's current
+     * vocabulary (`int`, `bool`) and refuses to guess at vocabulary it has
+     * not been taught, so a hub-side `date`/`array`/whatever addition fails
+     * loudly here instead of being silently coerced.
+     */
+    public function test_hub_type_vocabulary_maps_onto_json_schema_types(): void
+    {
+        self::assertSame('integer', self::jsonSchemaTypeForHubType('int'));
+        self::assertSame('boolean', self::jsonSchemaTypeForHubType('bool'));
+        self::assertSame('string', self::jsonSchemaTypeForHubType('string'));
+        self::assertSame('number', self::jsonSchemaTypeForHubType('float'));
+        self::assertSame('number', self::jsonSchemaTypeForHubType('number'));
+
+        $this->expectException(RuntimeException::class);
+        self::jsonSchemaTypeForHubType('date');
+    }
+
+    /**
+     * Falsifiability pin #4: the comparison itself. The control list proves
+     * the comparator passes real agreement; every injected drift case —
+     * allow-list growth, allow-list shrinkage, a type flip, and the vacuity
+     * tripwire of an empty parsed list — must fail it. Without this, a
+     * comparator quietly weakened to `assertTrue(true)` would keep CI green
+     * forever.
+     */
+    public function test_hub_allow_list_comparator_trips_on_injected_drift(): void
+    {
+        $properties = [
+            'a.one' => ['type' => 'integer'],
+            'b.two' => ['type' => 'boolean'],
+        ];
+
+        // Control first: if this stops passing, the "trips" below prove nothing.
+        self::assertSchemaPropertiesMatchHubAllowList($properties, ['a.one' => 'int', 'b.two' => 'bool']);
+
+        $driftCases = [
+            'allow-list grew a key the schema lacks' => ['a.one' => 'int', 'b.two' => 'bool', 'c.three' => 'string'],
+            'allow-list dropped a key the schema still renders' => ['a.one' => 'int'],
+            'type flipped under the schema (int -> string)' => ['a.one' => 'string', 'b.two' => 'bool'],
+            'parsed list is empty (vacuity tripwire)' => [],
+        ];
+
+        foreach ($driftCases as $case => $allowList) {
+            $tripped = false;
+            try {
+                self::assertSchemaPropertiesMatchHubAllowList($properties, $allowList);
+            } catch (AssertionFailedError) {
+                $tripped = true;
+            }
+            self::assertTrue($tripped, sprintf('Drift case "%s" must fail the guard.', $case));
+        }
+    }
+
+    /**
+     * Absolute path to the hub's `HubSettingsRepository.php`, or null when no
+     * hub checkout is on disk.
+     *
+     * `PHLIX_HUB_REPO` is an explicit pointer: when set it is the ONLY source
+     * consulted, and an unreadable target fails the test outright — silently
+     * skipping a guard someone deliberately wired up would recreate the exact
+     * blind spot this test exists to close. Without the env var, the estate
+     * layout (`<parent>/phlix-shared` beside `<parent>/phlix-hub`) is probed
+     * and a missing checkout yields null (skip), keeping this package
+     * testable standalone.
+     */
+    private function hubSettingsRepositoryPath(): ?string
+    {
+        $env = getenv('PHLIX_HUB_REPO');
+        if (is_string($env) && $env !== '') {
+            $path = rtrim($env, '/') . '/src/Hub/HubSettingsRepository.php';
+            if (!is_readable($path)) {
+                $this->fail(sprintf(
+                    'PHLIX_HUB_REPO points at "%s" but "%s" is not readable — fix the pointer or unset it.',
+                    $env,
+                    $path
+                ));
+            }
+
+            return $path;
+        }
+
+        $sibling = dirname(__DIR__, 3) . '/phlix-hub/src/Hub/HubSettingsRepository.php';
+
+        return is_readable($sibling) ? $sibling : null;
+    }
+
+    /**
+     * Assert schema `properties` == parsed hub allow-list, both directions,
+     * names AND mapped types, in one sorted-map comparison.
+     *
+     * @param array<string, array<string, mixed>> $properties Decoded schema `properties`.
+     * @param array<string, string> $allowList Raw `ALLOWED_KEYS` as parsed from hub source.
+     */
+    private static function assertSchemaPropertiesMatchHubAllowList(array $properties, array $allowList): void
+    {
+        self::assertNotEmpty(
+            $allowList,
+            'Parsed ALLOWED_KEYS is empty — either the hub genuinely allows nothing (then the '
+            . 'schema must declare nothing) or the parser regressed. Refusing to pass vacuously.'
+        );
+
+        $expected = [];
+        foreach ($allowList as $key => $hubType) {
+            $expected[$key] = self::jsonSchemaTypeForHubType($hubType);
+        }
+
+        $actual = [];
+        foreach ($properties as $key => $definition) {
+            $type = $definition['type'] ?? null;
+            $actual[$key] = is_string($type) ? $type : '(no type declared)';
+        }
+
+        ksort($expected);
+        ksort($actual);
+
+        self::assertSame(
+            $expected,
+            $actual,
+            'hub-settings schema properties drifted from phlix-hub '
+            . 'HubSettingsRepository::ALLOWED_KEYS. Keys only in the schema render nothing; keys '
+            . 'only in the allow-list render without label/help. Fix schemas/'
+            . 'hub-settings.schema.json or the hub const — whichever side is wrong — never this guard.'
+        );
+    }
+
+    /**
+     * Map the hub's PHP-side type vocabulary onto JSON-Schema type names.
+     *
+     * @throws RuntimeException For vocabulary this mapping has not been taught.
+     */
+    private static function jsonSchemaTypeForHubType(string $hubType): string
+    {
+        return match ($hubType) {
+            'int' => 'integer',
+            'bool' => 'boolean',
+            'string' => 'string',
+            'float', 'number' => 'number',
+            default => throw new RuntimeException(sprintf(
+                'Hub ALLOWED_KEYS carries type vocabulary "%s" that this mapping has never seen; '
+                . 'extend jsonSchemaTypeForHubType() deliberately, not by silent coercion.',
+                $hubType
+            )),
+        };
+    }
+
+    /**
+     * Parse the `ALLOWED_KEYS` `'key' => 'type'` literal out of hub source.
+     *
+     * Tokenized, not regex-matched: the live const interleaves multi-line
+     * admission-rule comments between every entry, and comments are single
+     * tokens, so the walk cannot be fooled by prose. The scan stops at the
+     * const's own closing bracket, so nothing below it (e.g. `DENIED_KEYS`)
+     * leaks in, and any shape other than plain quoted-string pairs throws.
+     *
+     * @param string $source Full PHP source of the hub's HubSettingsRepository.
+     *
+     * @return array<string, string> Raw hub-side entries, declaration order.
+     *
+     * @throws RuntimeException When the const is absent, unclosed, or carries
+     *                          a shape this parser refuses to guess about.
+     */
+    private static function parseHubAllowedKeys(string $source): array
+    {
+        $tokens = token_get_all($source);
+
+        $nameIndex = self::findTokenByName($tokens, 'ALLOWED_KEYS');
+        if ($nameIndex === null) {
+            throw new RuntimeException(
+                'Hub source contains no ALLOWED_KEYS identifier — the const was renamed or removed.'
+            );
+        }
+
+        $openIndex = self::findArrayOpenAfter($tokens, $nameIndex);
+        $count = count($tokens);
+
+        $entries = [];
+        $pendingKey = null;
+        $awaitingType = false;
+        $depth = 1;
+        $closed = false;
+
+        for ($i = $openIndex + 1; $i < $count; $i++) {
+            $token = $tokens[$i];
+
+            if (is_string($token)) {
+                if ($token === '[') {
+                    $depth++;
+                } elseif ($token === ']') {
+                    $depth--;
+                    if ($depth === 0) {
+                        $closed = true;
+                        break;
+                    }
+                }
+                continue;
+            }
+
+            if ($depth !== 1) {
+                continue;
+            }
+
+            if ($token[0] === T_DOUBLE_ARROW) {
+                if ($pendingKey === null || $awaitingType) {
+                    throw new RuntimeException(sprintf(
+                        'ALLOWED_KEYS carries a "=>" at token %d that does not follow exactly one key.',
+                        $i
+                    ));
+                }
+                $awaitingType = true;
+                continue;
+            }
+
+            if ($token[0] === T_CONSTANT_ENCAPSED_STRING) {
+                $text = trim($token[1], "'\"");
+                if (str_contains($text, '\\')) {
+                    throw new RuntimeException(sprintf(
+                        'ALLOWED_KEYS entry "%s" uses an escaped literal; this parser only understands '
+                        . 'plain quoted snake.dotted keys.',
+                        $text
+                    ));
+                }
+
+                if (!$awaitingType) {
+                    if ($pendingKey !== null) {
+                        throw new RuntimeException(sprintf(
+                            'ALLOWED_KEYS key "%s" is not followed by "=>" before the next string.',
+                            $pendingKey
+                        ));
+                    }
+                    $pendingKey = $text;
+                    continue;
+                }
+
+                if ($pendingKey === null) {
+                    throw new RuntimeException(sprintf(
+                        'ALLOWED_KEYS carries a type value "%s" with no key pending — impossible state.',
+                        $text
+                    ));
+                }
+                $entries[$pendingKey] = $text;
+                $pendingKey = null;
+                $awaitingType = false;
+            }
+        }
+
+        if (!$closed) {
+            throw new RuntimeException('The ALLOWED_KEYS literal never closes — hub source is truncated.');
+        }
+
+        if ($pendingKey !== null || $awaitingType) {
+            throw new RuntimeException(sprintf(
+                'ALLOWED_KEYS ends with an incomplete entry (%s awaiting a %s).',
+                $pendingKey !== null ? '"' . $pendingKey . '"' : 'a bare value',
+                $awaitingType ? 'type value' : '"=>" after the key'
+            ));
+        }
+
+        return $entries;
+    }
+
+    /**
+     * Index of the first bare (non-comment) identifier token with this name.
+     *
+     * Comments are single doc-comment tokens, so a `{@see ALLOWED_KEYS}` in
+     * prose never matches — only real code does.
+     *
+     * @param list<array{0:int, 1:string, 2:int}|string> $tokens
+     */
+    private static function findTokenByName(array $tokens, string $name): ?int
+    {
+        foreach ($tokens as $index => $token) {
+            if (is_array($token) && $token[0] === T_STRING && $token[1] === $name) {
+                return $index;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Index of the `[` that opens the array literal assigned after `$from`.
+     *
+     * @param list<array{0:int, 1:string, 2:int}|string> $tokens
+     *
+     * @throws RuntimeException When no `= [` is found before the statement ends.
+     */
+    private static function findArrayOpenAfter(array $tokens, int $from): int
+    {
+        $count = count($tokens);
+        $sawEquals = false;
+
+        for ($i = $from + 1; $i < $count; $i++) {
+            $token = $tokens[$i];
+            if (!is_string($token)) {
+                continue;
+            }
+
+            if (!$sawEquals) {
+                if ($token === '=') {
+                    $sawEquals = true;
+                }
+                continue;
+            }
+
+            if ($token === '[') {
+                return $i;
+            }
+
+            if ($token === ';') {
+                break;
+            }
+        }
+
+        throw new RuntimeException(
+            'No array literal follows "ALLOWED_KEYS =" — the const is no longer a plain array literal.'
+        );
     }
 
     /**
