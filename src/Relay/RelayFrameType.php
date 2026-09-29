@@ -41,13 +41,13 @@ use InvalidArgumentException;
  *   HEARTBEAT        = 0x06 — either→either: keep-alive probe/ack (channel 0)
  *   DISCONNECTED     = 0x07 — H→C: server tunnel closed, client should reconnect (channel 0)
  *   ERROR            = 0x08 — H↔any: error condition (channel 0)
- *   HUB_HELLO        = 0x09 — Leaf→Master: JSON text after WS upgrade (channel 0)
- *   HUB_HELLO_ACK    = 0x0A — Master→Leaf: JSON text response (channel 0)
- *   HUB_HEARTBEAT    = 0x0B — Both→Both: keep-alive (channel 0)
- *   LIBRARY_SHARE_UPDATE = 0x0C — Master→Leaf: JSON (channel 0)
- *   LIBRARY_SHARE_REVOKED= 0x0D — Master→Leaf: JSON (channel 0)
- *   ADMIN_DELEGATION = 0x0E — Master→Leaf: JSON (channel 0)
- *   HUB_DISCONNECTED = 0x0F — Both→Both: clean close (channel 0)
+ *   HUB_HELLO        = 0x09 — RETIRED (see "Federation wire types 0x09–0x0F" below)
+ *   HUB_HELLO_ACK    = 0x0A — RETIRED
+ *   HUB_HEARTBEAT    = 0x0B — RETIRED
+ *   LIBRARY_SHARE_UPDATE = 0x0C — RETIRED
+ *   LIBRARY_SHARE_REVOKED= 0x0D — RETIRED
+ *   ADMIN_DELEGATION = 0x0E — RETIRED
+ *   HUB_DISCONNECTED = 0x0F — RETIRED
  *   HTTP_REQUEST     = 0x10 — Hub→Server: a single proxied HTTP request; the 4-byte
  *                             field carries a per-request id (NOT a client channel),
  *                             payload = {@see RelayHttpRequest} JSON. See below.
@@ -85,6 +85,28 @@ use InvalidArgumentException;
  * honour HTTP_CANCEL simply ignores it — the frame is advisory and never
  * requires a response frame back to the hub.
  *
+ * ## Federation wire types 0x09–0x0F — RETIRED
+ *
+ * The seven dedicated federation frame types (`HUB_HELLO` … `HUB_DISCONNECTED`)
+ * were designed but never shipped. The hub's wire authority —
+ * `phlix-hub/docs/websockets.md` (frame catalog rows 0x09–0x0F at :62-68, the
+ * "Federation envelope law" paragraph at :79, and the `:8805` sync-payload
+ * section at :306 and :358) — declares them **retired wire types**: no hub
+ * implementation ever emits them and receivers ignore frames carrying them.
+ * The shipped federation protocol instead rides:
+ *
+ *   - the signed handshake on JSON **text** WebSocket frames (`hub_hello`,
+ *     `hub_hello_ack`, `hub_hello_auth`) — not binary 0x09/0x0A;
+ *   - liveness on the generic `HEARTBEAT` (`0x06`) and clean close on the
+ *     generic `DISCONNECTED` (`0x07`);
+ *   - shares, revocations and (reserved) admin delegations on generic `DATA`
+ *     (`0x05`) envelopes carrying a JSON discriminator (`shares` / `share_id`
+ *     / `user_id`+`action`).
+ *
+ * The cases below are **retained solely for decode compatibility** — a peer
+ * that still encodes one of these values must be able to decode it without
+ * hard-failing the framer. They must never be used to encode a new frame.
+ *
  * @package Phlix\Shared\Relay
  * @since 0.5.0
  */
@@ -98,12 +120,79 @@ enum RelayFrameType: int
     case HEARTBEAT = 0x06;
     case DISCONNECTED = 0x07;
     case ERROR = 0x08;
+    /**
+     * RETIRED federation wire type (`phlix-hub/docs/websockets.md` :62).
+     *
+     * The signed hello rides a JSON **text** WebSocket frame (`hub_hello`),
+     * never this binary opcode. Decode-compat only — never encode with it.
+     *
+     * @deprecated Since 0.49.1 the hub wire authority declares 0x09 retired;
+     *             replaced by the JSON text `hub_hello` handshake frame.
+     */
     case HUB_HELLO = 0x09;
+    /**
+     * RETIRED federation wire type (`phlix-hub/docs/websockets.md` :63).
+     *
+     * The hello acknowledgement rides a JSON **text** WebSocket frame
+     * (`hub_hello_ack`), never this binary opcode. Decode-compat only.
+     *
+     * @deprecated Since 0.49.1 the hub wire authority declares 0x0A retired;
+     *             replaced by the JSON text `hub_hello_ack` handshake frame.
+     */
     case HUB_HELLO_ACK = 0x0A;
+    /**
+     * RETIRED federation wire type (`phlix-hub/docs/websockets.md` :64).
+     *
+     * Federation liveness uses the generic relay `HEARTBEAT` (`0x06`), not
+     * this opcode. Decode-compat only.
+     *
+     * @deprecated Since 0.49.1 the hub wire authority declares 0x0B retired;
+     *             replaced by the generic `HEARTBEAT` (`0x06`) frame.
+     */
     case HUB_HEARTBEAT = 0x0B;
+    /**
+     * RETIRED federation wire type (`phlix-hub/docs/websockets.md` :65).
+     *
+     * Library-share updates ride a generic `DATA` (`0x05`) envelope carrying
+     * the JSON discriminator `{"shares": [...]}`. Decode-compat only.
+     *
+     * @deprecated Since 0.49.1 the hub wire authority declares 0x0C retired;
+     *             replaced by a `DATA` (`0x05`) envelope with a `shares`
+     *             JSON discriminator.
+     */
     case LIBRARY_SHARE_UPDATE = 0x0C;
+    /**
+     * RETIRED federation wire type (`phlix-hub/docs/websockets.md` :66).
+     *
+     * Share revocations ride a generic `DATA` (`0x05`) envelope carrying the
+     * JSON discriminator `{"share_id": ...}`. Decode-compat only.
+     *
+     * @deprecated Since 0.49.1 the hub wire authority declares 0x0D retired;
+     *             replaced by a `DATA` (`0x05`) envelope with a `share_id`
+     *             JSON discriminator.
+     */
     case LIBRARY_SHARE_REVOKED = 0x0D;
+    /**
+     * RETIRED federation wire type (`phlix-hub/docs/websockets.md` :67).
+     *
+     * Admin delegations (reserved, receive-only) ride a generic `DATA`
+     * (`0x05`) envelope carrying the JSON discriminator
+     * `{"user_id", "peer_id", "action"}`. Decode-compat only.
+     *
+     * @deprecated Since 0.49.1 the hub wire authority declares 0x0E retired;
+     *             replaced by a `DATA` (`0x05`) envelope with a
+     *             `user_id`/`peer_id`/`action` JSON discriminator.
+     */
     case ADMIN_DELEGATION = 0x0E;
+    /**
+     * RETIRED federation wire type (`phlix-hub/docs/websockets.md` :68).
+     *
+     * Clean federation close uses the generic relay `DISCONNECTED` (`0x07`),
+     * not this opcode. Decode-compat only.
+     *
+     * @deprecated Since 0.49.1 the hub wire authority declares 0x0F retired;
+     *             replaced by the generic `DISCONNECTED` (`0x07`) frame.
+     */
     case HUB_DISCONNECTED = 0x0F;
     case HTTP_REQUEST = 0x10;
     case HTTP_RESPONSE = 0x11;

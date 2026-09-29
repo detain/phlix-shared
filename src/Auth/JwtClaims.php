@@ -276,6 +276,48 @@ final class JwtClaims
     }
 
     /**
+     * True when the token's `nbf` (not-before) claim is still in the future,
+     * past the supplied clock-skew `$leeway` — i.e. the token exists but is
+     * not yet acceptable.
+     *
+     * `nbf` is a wall-clock (Unix epoch) claim, so this compares against
+     * `time()` (or an injected `$now`), mirroring {@see self::isExpired()}.
+     * A token with no `nbf` claim is always valid from the moment it is
+     * issued, so this returns false for it (early exit).
+     *
+     * Both known estate consumers guard `nbf` inline today; this helper
+     * exists so they can share one canonical predicate when they next
+     * re-pin. Their leeway policies differ and are deliberate:
+     * - the hub validates its own HS256 tokens with ZERO leeway —
+     *   `phlix-hub/src/Auth/JwtHandler.php:223` (`$claims->nbf > time()`
+     *   inside `validateToken()`; the minting side never sets `nbf`, so any
+     *   future-dated `nbf` is forgery or clock drift, and strictness is the
+     *   safe default);
+     * - the server's OIDC ID-token check tolerates 60 seconds of provider
+     *   clock skew — `phlix-server/src/Plugins/Oidc/IdTokenValidator.php:204-208`
+     *   (`$nbf > time() + 60`), matching the OIDC practice of allowing
+     *   bounded skew against third-party issuers.
+     *
+     * Callers minting-and-verifying in-process pass no `$leeway`; callers
+     * verifying externally-issued tokens pass their configured skew.
+     *
+     * @param int      $leeway Seconds of clock skew to forgive before the
+     *                         token becomes valid. Default 0 (strict).
+     * @param int|null $now    Reference wall-clock time; `time()` when null.
+     *
+     * @return bool True when `nbf` is set and later than `$now + $leeway`.
+     */
+    public function isNotYetValid(int $leeway = 0, ?int $now = null): bool
+    {
+        if ($this->nbf === null) {
+            return false;
+        }
+
+        $now ??= time();
+        return $this->nbf > $now + $leeway;
+    }
+
+    /**
      * True when `$scope` is present in this token's scope list.
      */
     public function hasScope(string $scope): bool

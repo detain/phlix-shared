@@ -67,6 +67,22 @@
             "maximum": 2592000,
             "default": 604800,
             "restart": false
+        },
+        "auth.signups_disabled": {
+            "type": "boolean",
+            "group": "auth",
+            "description": "Close self-service user signups on this hub.",
+            "label": "Disable new signups",
+            "helpText": "When true, the hub's registration endpoint rejects every new signup with 403 auth.signups_disabled before credentials are even checked; existing users keep signing in normally. The shipped default is false (signups open, mirroring the boot-time HUB_SIGNUPS_ENABLED environment flag which defaults to true). The gate consults the effective value per signup through the hub settings resolver, so a change applies live without a restart; if the settings read fails the hub degrades to the boot-time flag.",
+            "helpLinks": [
+                {
+                    "text": "OAuth 2.0 - Threat Model",
+                    "url": "https://datatracker.ietf.org/doc/html/rfc6819#section-4.1"
+                }
+            ],
+            "tier": "standard",
+            "default": false,
+            "restart": false
         }
     }
 }

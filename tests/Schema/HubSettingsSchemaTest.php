@@ -69,6 +69,13 @@ final class HubSettingsSchemaTest extends TestCase
      * `phlix-hub/config/auth.php`'s `access_ttl`. The `*_token_ttl` spellings
      * this schema previously carried match no config path.
      *
+     * Frozen list — drift is caught by
+     * {@see self::test_properties_match_hub_allow_list_when_hub_checkout_available()},
+     * which parses the live `ALLOWED_KEYS` constant out of a sibling (or
+     * `PHLIX_HUB_REPO`-pointed) phlix-hub checkout. Where no hub checkout is
+     * on disk, keep this list in lockstep with
+     * `phlix-hub/src/Hub/HubSettingsRepository.php::ALLOWED_KEYS` by hand.
+     *
      * @return array<string, array{0: string, 1: string}>
      */
     public static function propertyProvider(): array
@@ -79,6 +86,7 @@ final class HubSettingsSchemaTest extends TestCase
             // config/auth.php — NOT `access_token_ttl` / `refresh_token_ttl`
             'auth.access_ttl' => ['auth.access_ttl', 'integer'],
             'auth.refresh_ttl' => ['auth.refresh_ttl', 'integer'],
+            'auth.signups_disabled' => ['auth.signups_disabled', 'boolean'],
         ];
     }
 
@@ -157,7 +165,7 @@ final class HubSettingsSchemaTest extends TestCase
         sort($expected);
 
         $this->assertSame($expected, $actual, 'hub-settings schema must declare exactly the expected settings keys.');
-        $this->assertCount(3, $actual);
+        $this->assertCount(4, $actual);
     }
 
     public function test_forbidden_infrastructure_keys_are_absent(): void
