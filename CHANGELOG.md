@@ -4,6 +4,67 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.50.0] - 2026-10-01
+
+Minor: one new public method and one new schema property over v0.49.1, plus
+docblock-only deprecations and test hardening. `git diff v0.49.1..HEAD -- src`
+adds `JwtClaims::isNotYetValid()` and annotations on `RelayFrameType`; no
+existing signature, enum case, value, or behaviour changes, so every consumer
+upgrading 0.49.1 → 0.50.0 keeps identical runtime behaviour until it calls the
+new surface.
+
+### Added
+
+- `Phlix\Shared\Auth\JwtClaims::isNotYetValid(int $leeway = 0, ?int $now = null): bool`
+  — the canonical `nbf` (not-before) predicate, mirroring `isExpired()`: wall-clock
+  comparison, early exit `false` when no `nbf` claim is present, injectable clock.
+  Both known estate consumers guard `nbf` inline today with deliberately different
+  leeway policies — the hub validates its own HS256 tokens with **zero** leeway
+  (`phlix-hub/src/Auth/JwtHandler.php:223`), the server's OIDC ID-token check
+  tolerates 60 seconds of provider skew (`phlix-server/src/Plugins/Oidc/IdTokenValidator.php:204-208`).
+  The default `$leeway = 0` matches the strict in-process mint-and-verify case;
+  external-issuer verifiers pass their configured skew. Consumers adopt this on
+  their next re-pin; nothing in this package calls it yet.
+- `auth.signups_disabled` in `schemas/hub-settings.schema.json` — boolean,
+  `tier: standard`, `default: false`, `restart: false`. The hub's registration
+  endpoint rejects every new signup with `403 auth.signups_disabled` before
+  credentials are checked when true; existing users keep signing in. The gate
+  consults the effective value per signup through the hub settings resolver, so a
+  change applies live; a failed settings read degrades to the boot-time
+  `HUB_SIGNUPS_ENABLED` flag. This is the schema half the hub's
+  `HubSettingsController::SUPPLEMENTAL_META` bridge was holding until upstream —
+  the hub retires that bridge at its next pin of this tag.
+
+### Changed
+
+- `Phlix\Shared\Relay\RelayFrameType`: the seven federation wire types
+  `0x09`–`0x0F` (`HUB_HELLO`, `HUB_HELLO_ACK`, `HUB_HEARTBEAT`,
+  `LIBRARY_SHARE_UPDATE`, `LIBRARY_SHARE_REVOKED`, `ADMIN_DELEGATION`,
+  `HUB_DISCONNECTED`) gain `@deprecated` docblocks. **Docblocks only** — the
+  cases, their values, and `label()` are untouched, so the enum stays a
+  byte-faithful mirror of the vendored wire dictionary. The deprecation records
+  the hub's authority (`phlix-hub/docs/websockets.md`, `openapi.yaml`
+  `x-phlix-websockets`): federation handshake/offer traffic now travels as JSON
+  text frames and `DATA` (0x05) envelopes, and these constants have no producer
+  or consumer on any shipped path.
+
+### Tests
+
+- `HubSettingsSchemaTest` ships the `ALLOWED_KEYS` drift guard its sibling commit
+  promised: it tokenizes the live hub checkout's `HubSettingsRepository.php`
+  (via `PHLIX_HUB_REPO` or a `phlix-hub` sibling; a broken pointer FAILS, only a
+  genuinely absent checkout skips), parses the `ALLOWED_KEYS` `'key' => 'type'`
+  literal, and asserts the schema's properties equal the hub's allow-list in
+  both directions AND types. Falsifiability is pinned in CI (fixture drift
+  injection, total-or-loud type mapping), not merely proven once.
+- `RelayFrameType::label()` gains a documented `@psalm-suppress DeprecatedConstant`
+  — a `match` over `$this` must name the retired cases it exhausts; the
+  self-reference from the declaring enum is intentional.
+
+Gate baseline at this tip: phpunit 1191 tests / 85,788 assertions OK; phpstan
+level 9 clean; psalm errorLevel 1 fresh scan clean; phpcs PSR-12 `src/` clean;
+`composer validate --strict` and the security-audit check clean.
+
 ## [0.49.1] - 2026-08-12
 
 Corrects the `transcoding.segment_format` copy, which described the world as it
