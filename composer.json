@@ -40,6 +40,7 @@
         "test": "phpunit",
         "stan": "phpstan analyze --no-progress",
         "cs": "phpcs --standard=PSR12 src/",
+        "cs-tests": "phpcs --standard=phpcs-tests.xml",
         "psalm": "psalm --no-progress"
     }
 }
