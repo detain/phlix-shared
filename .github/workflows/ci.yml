@@ -40,8 +40,26 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist
 
-      - name: Run PHPCS
-        run: ./vendor/bin/phpcs --standard=PSR12 -n --colors src/
+      # 2026-10-02 CI-gate audit — the `-n` that used to sit in this command
+      # suppressed warnings from BOTH the report and the exit math, and tests/
+      # was not gated at all. src/ measures 0 errors / 0 warnings under full
+      # PSR-12 (measured at 1880888), so this invocation is strict: errors AND
+      # warnings fail, exit code read directly by the runner. Do NOT re-add
+      # `-n`, do NOT add phpcs:ignore inline suppressions, do not grep the log
+      # for a totals line (the default `full` report never prints one) — fix
+      # the code instead.
+      - name: Run PHPCS (src/, strict PSR-12)
+        run: ./vendor/bin/phpcs --standard=PSR12 --colors src/
+
+      # Additive tests/ gate (mirrors phlix-server coding-standards.yml). THE
+      # GATE IS phpcs's NONZERO EXIT CODE: errors exit non-zero; the 28
+      # pre-existing LineLength warnings stay printed in the log and are
+      # neutralized in the exit math ONLY by the documented
+      # ignore_warnings_on_exit config inside phpcs-tests.xml — never by `-n`,
+      # never by `|| true`. Every exclusion in that ruleset carries its own
+      # measurement and classification.
+      - name: Run PHPCS on tests/ (PSR-12 minus two documented test-idiom sniffs)
+        run: ./vendor/bin/phpcs --standard=phpcs-tests.xml --colors
 
   phpstan:
     name: PHPStan Static Analysis

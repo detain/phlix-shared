@@ -6,7 +6,11 @@
 
     <arg name="colors"/>
     <arg name="extensions" value="php"/>
-    <arg value="np"/>
+    <!-- The 'n' flag (phpcs no-warnings) hid warnings from bare
+         `vendor/bin/phpcs` local runs — the same defect class as the removed
+         `-n` on the CI src/ step (2026-10-02 audit). src/ is measured 0 errors
+         / 0 warnings, so warnings must be visible and must fail here too. -->
+    <arg value="p"/>
 
     <rule ref="PSR12"/>
 </ruleset>
