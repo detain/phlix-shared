@@ -48,10 +48,16 @@
            read, not more correct.
 
         WARNINGS ARE REPORTED AND DO NOT BLOCK — and the difference from `-n`
-        matters. phpcs exits non-zero on WARNINGS ALONE, so a gate that trusts
-        its exit code would be permanently red here over 28 pre-existing
-        LineLength warnings (long lines in generated-pin fixtures), and the next
-        person would silence it with `-n`. That is precisely the defect this
+        matters. Measured on the pinned 3.13.6 (2026-10-02, throwaway
+        single-violation probes): the exit trigger is `errors + warnings > 0`,
+        so WARNINGS ALONE exit non-zero — a lone non-fixable LineLength
+        warning exits 1 — and the 1-vs-2 split is FIXABILITY, not
+        warning-vs-error (1 = violations found, none phpcbf-fixable;
+        2 = at least one fixable). A gate that trusts its exit code would
+        therefore be permanently red here at exit 1 over the 28 pre-existing
+        LineLength warnings (long lines in generated-pin fixtures, none of
+        them fixable), and the next person would silence it with `-n`.
+        Re-measure this sentence on any phpcs major bump. That is precisely the defect this
         ruleset's existence prevents: `-n` on the src/ CI step SUPPRESSED
         warnings from both the report and the exit math until 2026-10-02. So the
         `ignore_warnings_on_exit` config below is set instead — it changes only
