@@ -303,6 +303,86 @@
             ],
             "default": "approval"
         },
+        "auth.password.enabled": {
+            "type": "boolean",
+            "description": "Whether username-and-password sign-in is accepted. Applies immediately to new login attempts; already-issued sessions are unaffected. The server refuses to turn this off while any active administrator lacks a usable alternative factor, and refuses to turn off every sign-in method at once.",
+            "group": "auth",
+            "label": "Enable password sign-in",
+            "helpText": "Turns the classic username-and-password sign-in surface on or off. When off, password logins are refused before any credential is checked, and HTTP Basic authentication for OPDS catalog clients stops working; every other sign-in method keeps working and sessions already issued stay valid. This is the escape hatch for organisations that want passkeys or a single-sign-on provider to be the only way in. Two safety rails are enforced by the server: you cannot switch this off while an active administrator account has no other usable factor (a passkey, or an identity from a provider that is enabled and configured), and you cannot end up with all five sign-in methods off at once. If the persisted state is ever forced into all-off outside these APIs, the server falls back to password-only sign-in and logs it loudly.",
+            "helpLinks": [
+                {
+                    "text": "Password authentication",
+                    "url": "https://en.wikipedia.org/wiki/Password_authentication"
+                }
+            ],
+            "tier": "standard",
+            "restart": false,
+            "default": true
+        },
+        "auth.webauthn.enabled": {
+            "type": "boolean",
+            "description": "Whether passkey (WebAuthn) sign-in is accepted. Applies immediately to new authentication challenges; already-issued sessions are unaffected. Turning this off does not delete stored credentials — enrolment and the account credential list stay reachable through the account API while a signed-in session exists.",
+            "group": "auth",
+            "label": "Enable passkey (WebAuthn) sign-in",
+            "helpText": "Controls whether passkeys can be used to sign in. When off, the passkey login endpoints refuse new authentication and new credential enrolment, so nobody can start or finish a WebAuthn sign-in. Existing credentials are NOT deleted and the signed-in account's passkey management pages stay reachable — that is deliberate, so an administrator switching the method back on finds the credentials still there, and so users can enrol a passkey before password sign-in is disabled. Like the password switch this is protected by the server's lock-out guard: it refuses to turn this off while an active administrator would be left with no usable sign-in factor, and refuses to turn off every method at once.",
+            "helpLinks": [
+                {
+                    "text": "WebAuthn",
+                    "url": "https://en.wikipedia.org/wiki/FIDO#Web_Authentication_(WebAuthn)"
+                }
+            ],
+            "tier": "standard",
+            "restart": false,
+            "default": true
+        },
+        "auth.oidc.enabled": {
+            "type": "boolean",
+            "description": "Whether OpenID Connect sign-in is offered. Absent or false means off. Turning this off unregisters the OIDC provider on the next request, so the login button and callback stop working; existing linked accounts can still sign in by another method. Subject to the server's lock-out guard.",
+            "group": "auth",
+            "label": "Enable OpenID Connect (OIDC) sign-in",
+            "helpText": "Master switch for signing in through an external OpenID Connect provider (Keycloak, Authentik, Google, and similar). The provider must also be configured — an issuer URL and client credentials — otherwise this switch has nothing to register. When turned off, the callback route stops accepting logins on the next request and existing OIDC-linked users are not deleted or altered; they sign in through whatever other method is enabled for them. This key is the same row the integrations panel's enable/disable control writes, so the two surfaces never disagree. The server's lock-out guard refuses to turn this off while an active administrator is only able to sign in through OIDC, and refuses to turn off every sign-in method at once.",
+            "helpLinks": [
+                {
+                    "text": "OpenID Connect",
+                    "url": "https://en.wikipedia.org/wiki/OpenID#OpenID_Connect_(OIDC)"
+                }
+            ],
+            "tier": "standard",
+            "restart": false,
+            "default": false
+        },
+        "auth.ldap.enabled": {
+            "type": "boolean",
+            "description": "Whether LDAP directory sign-in is offered. Absent or false means off. Turning this off unregisters the LDAP provider on the next request, so the LDAP login path stops working; existing accounts created from LDAP logins can still sign in by another method. Subject to the server's lock-out guard.",
+            "group": "auth",
+            "label": "Enable LDAP sign-in",
+            "helpText": "Master switch for authenticating against an LDAP directory (Active Directory, OpenLDAP). The LDAP server itself must be configured — host and base DN — otherwise this switch has nothing to register. When turned off, the LDAP login endpoint refuses new logins on the next request; accounts that were provisioned from earlier LDAP sign-ins keep existing and can use another enabled method. This key is the same row the integrations panel's enable/disable control writes, so the two surfaces never disagree. The server's lock-out guard refuses to turn this off while an active administrator is only able to sign in through LDAP, and refuses to turn off every sign-in method at once.",
+            "helpLinks": [
+                {
+                    "text": "Lightweight Directory Access Protocol",
+                    "url": "https://en.wikipedia.org/wiki/Lightweight_Directory_Access_Protocol"
+                }
+            ],
+            "tier": "standard",
+            "restart": false,
+            "default": false
+        },
+        "auth.github.enabled": {
+            "type": "boolean",
+            "description": "Whether GitHub OAuth sign-in is offered. Absent or false means off. Turning this off unregisters the GitHub provider on the next request, so the login button and callback stop working; existing GitHub-linked accounts can still sign in by another method. Subject to the server's lock-out guard.",
+            "group": "auth",
+            "label": "Enable GitHub sign-in",
+            "helpText": "Master switch for signing in with a GitHub account via OAuth. A GitHub OAuth application must be configured — client ID and secret — otherwise this switch has nothing to register. When turned off, the GitHub callback route stops accepting logins on the next request; users previously linked through GitHub keep their accounts and sign in through whatever other method is enabled for them. This key is the same row the integrations panel's enable/disable control writes, so the two surfaces never disagree. The server's lock-out guard refuses to turn this off while an active administrator is only able to sign in through GitHub, and refuses to turn off every sign-in method at once.",
+            "helpLinks": [
+                {
+                    "text": "OAuth",
+                    "url": "https://en.wikipedia.org/wiki/OAuth"
+                }
+            ],
+            "tier": "standard",
+            "restart": false,
+            "default": false
+        },
         "auth.password.min_length": {
             "type": "integer",
             "description": "Minimum number of characters required in a user password. Enforced on self-service registration and on both administrator create-user and change-password paths. Cannot be set below 8: the control may only strengthen the shipped policy, never weaken it.",

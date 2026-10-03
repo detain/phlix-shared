@@ -4,6 +4,23 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Five `auth.<method>.enabled` booleans in `schemas/server-settings.schema.json`
+  — the F7 auth-method toggles: `password` (default `true`), `webauthn`
+  (default `true`), `oidc` / `ldap` / `github` (default `false`), all
+  `tier: standard`, `restart: false`, group `auth`. The external three are the
+  same `server_settings` rows `phlix-server`'s `AuthProviderBootstrapper::flagKey()`
+  already reads and writes (absent = OFF); `password` and `webauthn` are new
+  store-side keys answered default-true-when-absent. All five are consumed live
+  by `phlix-server` `src/Auth/AuthMethodPolicy.php`, which also enforces at write
+  time that sign-in can never be switched off entirely (R1) and never in a way
+  that locks out an active administrator who has no other usable factor (R2).
+  Schema property count 73 → 78; `ServerSettingsSchemaTest` tripwire rotated to
+  match.
+
 ## [0.50.0] - 2026-10-01
 
 Minor: one new public method and one new schema property over v0.49.1, plus

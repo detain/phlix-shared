@@ -229,6 +229,25 @@ final class ServerSettingsSchemaTest extends TestCase
             'metadata.overwrite_existing' => ['metadata.overwrite_existing', 'boolean'],
             // config/auth.php
             'auth.signup_mode' => ['auth.signup_mode', 'string'],
+            // The five F7 auth-method toggles. All resolve to config/auth.php
+            // subtrees (['password']['enabled'], ['webauthn']['enabled'],
+            // ['oidc']['enabled'], ['ldap']['enabled'], ['github']['enabled']).
+            // Consumed LIVE (class (a)) by phlix-server src/Auth/
+            // AuthMethodPolicy.php — isEnabled() answers the login-path gates
+            // (AuthManager::login / verifyCredentials password gate,
+            // WebAuthnController start/finish gates) and assertSafeTransition()
+            // enforces R1 (never all-off) and R2 (never lock out an active
+            // admin) at write time in AdminSettingsController::update() and
+            // AuthProviderController::disableProvider(). oidc/ldap/github are
+            // the SAME server_settings rows AuthProviderBootstrapper::flagKey()
+            // already reads/writes (absent = OFF); password/webauthn are new
+            // store-side keys, default-true absent-safe, declared in
+            // config/auth.php so the schema-defaults contract holds pre-vendor.
+            'auth.password.enabled' => ['auth.password.enabled', 'boolean'],
+            'auth.webauthn.enabled' => ['auth.webauthn.enabled', 'boolean'],
+            'auth.oidc.enabled' => ['auth.oidc.enabled', 'boolean'],
+            'auth.ldap.enabled' => ['auth.ldap.enabled', 'boolean'],
+            'auth.github.enabled' => ['auth.github.enabled', 'boolean'],
             // Resolves to config/auth.php -> ['password']['min_length'].
             // Consumed LIVE (read-path class (a)) by Phlix\Auth\PasswordPolicy,
             // which is the single enforcement point for all three sites that
@@ -550,8 +569,10 @@ final class ServerSettingsSchemaTest extends TestCase
         sort($expected);
 
         $this->assertSame($expected, $actual, 'server-settings schema must declare exactly the expected settings keys.');
-        // 72 -> 73 in 0.49.0: `transcoding.segment_format` (S313).
-        $this->assertCount(73, $actual);
+        // 73 -> 78: the five F7 auth-method toggles (auth.password/webauthn/
+        // oidc/ldap/github .enabled), consumed live by phlix-server
+        // src/Auth/AuthMethodPolicy.php.
+        $this->assertCount(78, $actual);
     }
 
     /**
