@@ -1507,6 +1507,95 @@
             "tier": "standard",
             "restart": true,
             "default": true
+        },
+        "security.hsts_max_age_seconds": {
+            "type": "integer",
+            "description": "Lifetime in seconds of the Strict-Transport-Security response header Phlix attaches to HTTP responses: how long a browser must keep refusing to fall back to plain HTTP for this host. 0 is the standard clear-the-pin signal. The `includeSubDomains` suffix is not configurable and always ships with the header. Read live per request, so changes apply to the very next response — no restart.",
+            "group": "security",
+            "label": "HSTS max age (seconds)",
+            "helpText": "HTTP Strict Transport Security tells a browser that has once reached Phlix over HTTPS to stay on HTTPS for this long, defeating downgrade and cookie-sniffing attacks on the first visit of each window. The shipped value is one year, the widely recommended pin length; anything from about 30 days up is considered serious protection. Shorten it while testing a TLS rollout, and set it to 0 only to EXPLICITLY ask clients to drop an existing pin — for example when a host is permanently leaving HTTPS, which for a media server should never be the plan. Note that a browser only ever honours this header after an HTTPS response, so it protects repeat visitors, not the first plain-HTTP request.",
+            "helpLinks": [
+                {
+                    "text": "HTTP Strict Transport Security",
+                    "url": "https://developer.mozilla.org/docs/Web/HTTP/Headers/Strict-Transport-Security"
+                }
+            ],
+            "tier": "advanced",
+            "restart": false,
+            "minimum": 0,
+            "maximum": 31536000,
+            "default": 31536000
+        },
+        "security.frame_options": {
+            "type": "string",
+            "group": "security",
+            "description": "Value of the legacy X-Frame-Options response header that controls whether other sites may embed Phlix in an iframe (clickjacking surface). `SAMEORIGIN` (the shipped default) permits framing only by pages on the same origin, `DENY` forbids framing entirely, `NONE` omits the header so no legacy instruction is sent. Read live per request; no restart.",
+            "label": "Frame-embedding policy",
+            "helpText": "Which framing instruction Phlix puts in the legacy X-Frame-Options header. Keep `SAMEORIGIN` unless you have a specific reason: it is what every mainstream media server sends. `DENY` additionally blocks Phlix's own pages from framing each other — relevant only if a future feature embeds same-origin views in an iframe. `NONE` stops sending the legacy header entirely; be aware that Phlix also always sends the Content-Security-Policy `frame-ancestors 'self'` directive, which modern browsers obey OVER X-Frame-Options and which this setting deliberately does not touch — the CSP is assembled in code because parts of it are load-bearing for playback (media and worker sources) and an editor could break streaming. So `NONE` relaxes only old-browser legacy behavior and changes nothing for current ones. Note that a permissive value here never ADDS framing ability — it only removes the legacy belt.",
+            "helpLinks": [
+                {
+                    "text": "X-Frame-Options",
+                    "url": "https://developer.mozilla.org/docs/Web/HTTP/Reference/Headers/X-Frame-Options"
+                },
+                {
+                    "text": "CSP frame-ancestors",
+                    "url": "https://developer.mozilla.org/docs/Web/HTTP/Reference/Headers/Content-Security-Policy#frame-ancestors"
+                }
+            ],
+            "tier": "advanced",
+            "restart": false,
+            "enum": [
+                "DENY",
+                "SAMEORIGIN",
+                "NONE"
+            ],
+            "enumLabels": {
+                "DENY": "No framing at all (legacy header)",
+                "SAMEORIGIN": "Allow framing only from the same origin (default)",
+                "NONE": "Omit the legacy header (CSP frame-ancestors still applies)"
+            },
+            "optionHelp": {
+                "DENY": "Never frameable — not even by Phlix's own pages. Pick this only if you are certain nothing same-origin ever embeds a Phlix view in an iframe; today nothing does, but a future feature could.",
+                "SAMEORIGIN": "The shipped default and the right answer for almost every deployment: Phlix pages can frame Phlix pages, strangers cannot. Same protection level the header has always sent.",
+                "NONE": "Stop sending the legacy X-Frame-Options header. Modern browsers still enforce Phlix's always-on CSP frame-ancestors 'self', so for them nothing changes — this option only relaxes legacy clients. Legitimate use: integrating Phlix into a frame host that already same-origin-proxies it and trips over legacy header quirks."
+            },
+            "default": "SAMEORIGIN"
+        },
+        "metadata.min_match_confidence": {
+            "type": "number",
+            "description": "Minimum confidence (0..1) a TMDB title match must reach before it is accepted during metadata resolution: 0.7 x normalised-title similarity + 0.3 x release-year agreement, a candidate with no year caps at 0.7. 0 (the shipped default) disables the gate and reproduces pre-key behavior exactly — the first search result was always taken. Checked live on each lookup; no restart.",
+            "group": "metadata",
+            "label": "Minimum metadata match confidence",
+            "helpText": "Guards against mis-tagging: an auto-lookup that accepts whatever the provider's first hit is can attach the wrong movie — same title, wrong year, or a remake. Raising this threshold makes the resolver refuse weak first hits and fall through to the next candidate or local match instead, at the cost of some items being left unmatched for a human to fix. 0 turns the check off (today's behavior). Reasonable tightening starts around 0.5: a title with an almost-exact name match scores near 0.7 even with the wrong year, while a correct title-and-year match scores 1.0. Values above about 0.7 will reject every candidate whose year is missing or different, which for scene-named files from older libraries is common — use them only while babysitting a re-match.",
+            "helpLinks": [
+                {
+                    "text": "The Movie Database",
+                    "url": "https://www.themoviedb.org"
+                }
+            ],
+            "tier": "advanced",
+            "restart": false,
+            "minimum": 0,
+            "maximum": 1,
+            "default": 0.0
+        },
+        "metadata.cache_ttl_hours": {
+            "type": "integer",
+            "description": "How many hours fetched metadata is considered fresh before the resolver re-queries providers for the item. The shipped default of 24 reproduces the previous hardcoded 24-hour window byte-for-byte. Read live per lookup; no restart.",
+            "group": "metadata",
+            "label": "Metadata cache lifetime (hours)",
+            "helpText": "Metadata lookups hit external APIs, so Phlix remembers what it fetched and reuses it while fresh. Raise this if your library is stable and you want fewer provider round-trips (rate limits, slow scans); lower it if you frequently fix titles, order new releases whose details land late, or run plugins that update external ids and want those picked up sooner. Freshness is judged from the item's last-refresh timestamp, so the change applies to the next lookup per item, not retroactively in bulk. The bound of 8760 is one year — beyond that you are effectively disabling refresh and should do that per-library instead.",
+            "helpLinks": [
+                {
+                    "text": "The Movie Database",
+                    "url": "https://www.themoviedb.org"
+                }
+            ],
+            "tier": "advanced",
+            "restart": false,
+            "minimum": 1,
+            "maximum": 8760,
+            "default": 24
         }
     }
 }

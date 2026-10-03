@@ -510,6 +510,42 @@ final class ServerSettingsSchemaTest extends TestCase
             // dlna.enabled, request-time casting lookups are casting.*.enabled.
             'discovery.ssdp.enabled' => ['discovery.ssdp.enabled', 'boolean'],
             'discovery.mdns.enabled' => ['discovery.mdns.enabled', 'boolean'],
+            // Resolve to config/security.php (a NET-NEW config file authored by
+            // the W4 phase-5-header lane; precedent for net-new files: the
+            // stats.php / dlna.php rows above). Consumed live PER REQUEST by
+            // phlix-server src/Server/Http/Middleware/SecurityHeadersPolicy.php
+            // — the header decorator runs inside HttpHandler::__invoke(), so
+            // both keys are read-path class (a) LIVE and restart:false is the
+            // truth, not an aspiration.
+            //
+            // DELIBERATE NON-SURFACE: no CSP key ships here. Phlix's
+            // Content-Security-Policy is assembled in code with load-bearing
+            // directives (media-src/worker-src 'self' blob: are required by
+            // hls.js MSE playback; style-src unsafe-inline by the token-theme
+            // surface), and a free-form schema string would let one PUT break
+            // streaming estate-wide. The DO-NOT-EXPOSE decision + the
+            // force-inject law are docblocked at the CSP single-source in
+            // phlix-server SecurityHeaders::contentSecurityPolicy().
+            // frame_options:'NONE' likewise relaxes ONLY the legacy header —
+            // CSP frame-ancestors 'self' stays emitted regardless; the helpText
+            // says so.
+            'security.hsts_max_age_seconds' => ['security.hsts_max_age_seconds', 'integer'],
+            'security.frame_options' => ['security.frame_options', 'string'],
+            // Resolve to config/metadata.php (exists; composed into
+            // config/server.php). These two complete the W3 settings-program
+            // pair whose POLICIES shipped first (phlix-server
+            // src/Media/Metadata/MatchConfidencePolicy.php +
+            // MetadataCachePolicy.php read them live per lookup — read-path
+            // class (a), restart:false): the W3 lane shipped the enforcement
+            // with config-default resolvability only, and the schema
+            // declaration was explicitly owed to a follow-up. min_match_
+            // confidence 0 = gate off = byte-identical pre-key behavior;
+            // cache_ttl_hours 24 = the former hardcoded window. Bounds are
+            // mandatory here (F9 lesson): the admin PUT path validates
+            // against these via justinrainbow, so 0..1 / 1..8760 are the
+            // SAME clamps the policies apply defensively at read time.
+            'metadata.min_match_confidence' => ['metadata.min_match_confidence', 'number'],
+            'metadata.cache_ttl_hours' => ['metadata.cache_ttl_hours', 'integer'],
         ];
     }
 
@@ -603,7 +639,16 @@ final class ServerSettingsSchemaTest extends TestCase
         // (discovery.ssdp/mdns .enabled), consumed live by phlix-server
         // src/Discovery/DiscoveryPolicy.php at DiscoveryServer's timer
         // registration AND every tick.
-        $this->assertCount(80, $actual);
+        // 80 -> 84: the W4 phase-5 security-header pair
+        // (security.hsts_max_age_seconds 0..31536000, security.frame_options
+        // enum DENY|SAMEORIGIN|NONE — bounds mandatory per the F9 lesson, the
+        // PUT path enforces them via justinrainbow) plus the schema half of the
+        // W3 settings-program metadata duo (metadata.min_match_confidence
+        // 0..1 gate-off-at-0, metadata.cache_ttl_hours 1..8760 = the former
+        // 24 h hardcode), all four restart:false live reads consumed by
+        // phlix-server SecurityHeadersPolicy / the two existing W3 policies
+        // whose "until the schema declares" KNOWN LIMIT docblocks this closes.
+        $this->assertCount(84, $actual);
     }
 
     /**

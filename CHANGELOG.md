@@ -38,6 +38,28 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   and the `casting.*.enabled` switches).
   Schema property count 78 → 80; `ServerSettingsSchemaTest` tripwire rotated to
   match.
+- Four Phase-5 exposure keys in `schemas/server-settings.schema.json`, bounds
+  mandatory on all of them (F9 lesson — the admin PUT path enforces `enum` /
+  `minimum` / `maximum` through real JSON-Schema validation):
+  `security.hsts_max_age_seconds` (integer 0..31536000, default 31536000 —
+  0 is the standard clear-the-pin signal) and `security.frame_options`
+  (enum `DENY|SAMEORIGIN|NONE`, default `SAMEORIGIN`, the shipped
+  X-Frame-Options value; `NONE` omits the legacy header while the always-on
+  CSP `frame-ancestors 'self'` deliberately stays unexposed — one free-form
+  CSP string would let a single PUT break hls.js MSE playback estate-wide,
+  the DO-NOT-EXPOSE law is docblocked at the server CSP single-source), both
+  group `security`, `restart: false` live per-request reads consumed by
+  `phlix-server` `src/Server/Http/Middleware/SecurityHeadersPolicy.php` over
+  the net-new `config/security.php` defaults; plus the schema half of the
+  W3 settings-program duo — `metadata.min_match_confidence` (number
+  0..1, default 0.0 = gate off = byte-identical pre-key behavior) and
+  `metadata.cache_ttl_hours` (integer 1..8760, default 24 = the former
+  hard-coded window) — closing the "until the schema declares this key"
+  KNOWN LIMIT the two W3 policy classes carried; their consumers
+  `MatchConfidencePolicy` / `MetadataCachePolicy` are unchanged and their
+  clamps are the same bounds.
+  Schema property count 80 → 84; tripwire and `propertyProvider` rotated to
+  match.
 
 ## [0.50.0] - 2026-10-01
 
