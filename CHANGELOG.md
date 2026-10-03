@@ -20,6 +20,24 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   that locks out an active administrator who has no other usable factor (R2).
   Schema property count 73 → 78; `ServerSettingsSchemaTest` tripwire rotated to
   match.
+- Two `discovery.*.enabled` booleans in `schemas/server-settings.schema.json` —
+  the background multicast-probe gates: `discovery.ssdp.enabled` and
+  `discovery.mdns.enabled`, both group `discovery`, `tier: standard`, default
+  `true` (pure opt-out — the shipped default reproduces the pre-key behavior,
+  where `phlix-server`'s `DiscoveryServer::start()` fired its SSDP M-SEARCH
+  (60 s) and mDNS (30 s) timers unconditionally). They re-attach the two
+  `enabled` flags that `phlix-server`'s `config/discovery.php` has always
+  carried but that no loader ever read (the 0.28.0 sweep deleted
+  `discovery.discovery_port` under exactly that finding; the port key stays
+  deleted). Consumed live via `phlix-server` `src/Discovery/DiscoveryPolicy.php`
+  at both gate points: timer registration (boot) and every tick, so OFF goes
+  quiet within one interval while re-enabling needs a process that re-runs
+  `start()` — `restart: true` is the honest flag and the helpText states the
+  asymmetry, including that the Workerman daemon topology does not currently
+  start `DiscoveryServer` at all (the live LAN surfaces remain `dlna.enabled`
+  and the `casting.*.enabled` switches).
+  Schema property count 78 → 80; `ServerSettingsSchemaTest` tripwire rotated to
+  match.
 
 ## [0.50.0] - 2026-10-01
 

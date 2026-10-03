@@ -446,8 +446,11 @@ final class ServerSettingsSchemaTest extends TestCase
             // (WebPortalRouter::defaultSubtitleLanguage()).
             // config/trickplay.php, config/newsletter.php
             // NOTE: `discovery.discovery_port` was DELETED in 0.28.0 —
-            // config/discovery.php has NO loader anywhere in phlix-server, and
-            // Application::startDiscoveryIfEnabled() reads no flag at all.
+            // config/discovery.php had NO loader anywhere in phlix-server at the
+            // time, and Application::startDiscoveryIfEnabled() read no flag at
+            // all. That audit killed the PORT key for good (still nothing reads
+            // it); the ssdp/mdns ENABLE flags beneath the same file gained real
+            // consumers later (see the discovery.* provider rows above).
             'trickplay.enabled' => ['trickplay.enabled', 'boolean'],
             // NOTE: `trickplay.interval_seconds` was DELETED in 0.28.0. There are
             // TWO trickplay implementations; config/trickplay.php describes the
@@ -483,6 +486,30 @@ final class ServerSettingsSchemaTest extends TestCase
             'process.marker-detection.enabled' => ['process.marker-detection.enabled', 'boolean'],
             'process.media-asset.enabled' => ['process.media-asset.enabled', 'boolean'],
             'process.similarity.enabled' => ['process.similarity.enabled', 'boolean'],
+            // Resolve to config/discovery.php -> ['ssdp']['enabled'] /
+            // ['mdns']['enabled'] — defaults that ALREADY shipped in that file;
+            // until the W2 discovery-gate lane nothing loaded them (the 0.28.0
+            // sweep deleted discovery.discovery_port precisely because
+            // config/discovery.php "has NO loader anywhere"). These two keys are
+            // NOT the same broken promise: phlix-server now reads them live
+            // through Phlix\Discovery\DiscoveryPolicy (SettingsRepository
+            // getEffective, absent-safe default TRUE) at both gate points of
+            // DiscoveryServer::start() — timer registration (boot-time) and
+            // every timer tick — so OFF goes quiet within one interval without
+            // a restart, while ON again needs a process that re-runs start()
+            // (the helpText states this asymmetry).
+            //
+            // REACHABILITY DISCLOSED: DiscoveryServer is started only by
+            // Application::run() -> startDiscoveryIfEnabled(); the Workerman
+            // daemon (start.php) deliberately never calls run(), so in today's
+            // standard deployment these keys gate a code path that the daemon
+            // does not start. The gate is still the authoritative answer for
+            // wherever the class runs (foreground mode, tests, future wiring)
+            // and the config defaults now resolve through the settings layer.
+            // The LIVE LAN surfaces are elsewhere: the SSDP advertiser is
+            // dlna.enabled, request-time casting lookups are casting.*.enabled.
+            'discovery.ssdp.enabled' => ['discovery.ssdp.enabled', 'boolean'],
+            'discovery.mdns.enabled' => ['discovery.mdns.enabled', 'boolean'],
         ];
     }
 
@@ -572,7 +599,11 @@ final class ServerSettingsSchemaTest extends TestCase
         // 73 -> 78: the five F7 auth-method toggles (auth.password/webauthn/
         // oidc/ldap/github .enabled), consumed live by phlix-server
         // src/Auth/AuthMethodPolicy.php.
-        $this->assertCount(78, $actual);
+        // 78 -> 80: the two background-discovery multicast gates
+        // (discovery.ssdp/mdns .enabled), consumed live by phlix-server
+        // src/Discovery/DiscoveryPolicy.php at DiscoveryServer's timer
+        // registration AND every tick.
+        $this->assertCount(80, $actual);
     }
 
     /**

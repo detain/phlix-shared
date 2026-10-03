@@ -1475,6 +1475,38 @@
             "tier": "standard",
             "restart": true,
             "default": "Phlix Media Server"
+        },
+        "discovery.ssdp.enabled": {
+            "type": "boolean",
+            "description": "Run the periodic background SSDP probe (an M-SEARCH multicast this server sends onto the local network every 60 seconds to find DLNA servers and renderers). Pure opt-out: the shipped default reproduces the pre-key behavior exactly — probes ran unconditionally. Turning it off stops this server asking; it does not affect the SSDP advertiser that announces Phlix TO TVs (\"Announce server via DLNA/UPnP\") nor the per-request casting lookups under the Roku/AirPlay/DLNA casting switches.",
+            "group": "discovery",
+            "label": "Background SSDP discovery probe",
+            "helpText": "Some deployments never need this server to go looking for other devices on the LAN — casting targets are typed in, or casting is switched off entirely. Turning this off silences the 60-second SSDP M-SEARCH multicast. Turning it OFF applies within one interval — the running timer re-checks this setting on every tick, so no restart is needed to go quiet. Turning it back ON does need a restart: the periodic timer itself is only registered when the background discovery service starts, so a process that booted with this off never holds a timer to re-check. The setting gates both the periodic probe and the initial probe issued at service start.",
+            "helpLinks": [
+                {
+                    "text": "SSDP",
+                    "url": "https://en.wikipedia.org/wiki/Simple_Service_Discovery_Protocol"
+                }
+            ],
+            "tier": "standard",
+            "restart": true,
+            "default": true
+        },
+        "discovery.mdns.enabled": {
+            "type": "boolean",
+            "description": "Run the periodic background mDNS probe (a multicast DNS query this server sends onto the local network every 30 seconds to keep the Chromecast, AirPlay and Roku device lists fresh). Pure opt-out: the shipped default reproduces the pre-key behavior exactly — probes ran unconditionally. Turning it off stops this server asking; the request-time casting lookups under the Roku/AirPlay casting switches are separate and unaffected.",
+            "group": "discovery",
+            "label": "Background mDNS discovery probe",
+            "helpText": "Keeps the casting device caches warm by re-querying the LAN every 30 seconds. If nothing on your network is ever cast to from this server, the queries are wasted multicast traffic. Turning this OFF silences further queries within one interval — the running timer re-checks this setting on every tick, so no restart is needed to go quiet. Turning it back ON does need a restart: the periodic timer is only registered when the background discovery service starts, so a process that booted with this off never holds a timer to re-check. The setting gates both the periodic query and the initial query issued at service start.",
+            "helpLinks": [
+                {
+                    "text": "Multicast DNS",
+                    "url": "https://en.wikipedia.org/wiki/Multicast_DNS"
+                }
+            ],
+            "tier": "standard",
+            "restart": true,
+            "default": true
         }
     }
 }
