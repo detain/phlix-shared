@@ -4,7 +4,20 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.51.0] - 2026-10-05
+
+Minor: eleven additive `server-settings.schema.json` properties over v0.50.0
+(73 → 84) — the F7 auth-method quintet, the discovery probe duo, and the
+security/metadata quartet. Zero runtime PHP surface changed:
+`git diff v0.50.0..HEAD -- src` is empty apart from this release's
+`Version.php` bump, and every key ships its bounds (`enum` / `minimum` /
+`maximum`) so the admin PUT path enforces them through real JSON-Schema
+validation (F9 lesson). Shipped defaults reproduce pre-key behavior
+byte-identically, so consumers upgrading 0.50.0 → 0.51.0 keep their current
+runtime until an operator changes a setting. `phlix-server` admits all eleven
+keys through its schema-derived `AdminSettingsController::allowedKeys()` at
+its next re-pin of this tag — closing the seam its CHANGELOG and
+`AdminSettingsControllerTest` pins document.
 
 ### Added
 
@@ -60,6 +73,32 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   clamps are the same bounds.
   Schema property count 80 → 84; tripwire and `propertyProvider` rotated to
   match.
+
+### Tooling
+
+- The phpcs gates were hardened with no product-code change (1bcb844 /
+  2e63b30 / c744414): CI now runs `src/` strict under full PSR-12 — the old
+  `-n` hid 28 warnings from both the report and the exit math while `src/`
+  measured 0/0 anyway — a new `tests/` ruleset (`phpcs-tests.xml`) gates the
+  suite with exactly two classified, measured sniff exclusions
+  (`PSR1.Methods.CamelCapsMethodName` for the 354 snake_case
+  `test_*`/`provide_*` methods, `PSR1.Classes.ClassDeclaration.MultipleClasses`
+  for the six in-file fixtures), the 28 pre-existing `LineLength` warnings
+  stay visible in logs and are neutralized in the exit math only by the
+  ruleset's documented `ignore_warnings_on_exit` (never `-n`, never
+  `|| true`), and `phpcs.xml.dist` no longer carries `-n` for bare local
+  runs. The ruleset's exit-code prose is the measured pinned-3.13.6
+  semantics (sum-of-errors-and-warnings-minus-ignores; the 1-vs-2 split is
+  fixability, not warning-vs-error).
+
+Gate baseline at this tip: phpunit 1267 tests / 111,240 assertions OK on the
+CI-equivalent skip set (the live-sibling-hub `ALLOWED_KEYS` drift guard
+throws on the hub's un-upstreamed W5 keys + `json` vocabulary — its
+documented fail-loud behavior off-CI; CI skips it for want of a hub
+checkout); phpstan level 9 clean; psalm errorLevel 1 fresh scan clean
+(99.5070%); phpcs strict `src/` clean and the tests ruleset exit 0 at
+0 errors / 28 documented warnings; `composer validate --strict` and the
+security-audit check (59 locked packages) clean.
 
 ## [0.50.0] - 2026-10-01
 
