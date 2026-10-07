@@ -78,6 +78,12 @@ final class HubSettingsSchemaTest extends TestCase
      * on disk, keep this list in lockstep with
      * `phlix-hub/src/Hub/HubSettingsRepository.php::ALLOWED_KEYS` by hand.
      *
+     * Rotated 2026-10-07 (v0.52.0): the fourteen W5 Phase-6 keys upstreamed
+     * from the hub's retired SUPPLEMENTAL_META bridge (4 → 18). The hub's
+     * `json` type vocabulary maps onto the schema's `object` type — the
+     * mapping was extended for it in {@see self::jsonSchemaTypeForHubType()}
+     * at the same time.
+     *
      * @return array<string, array{0: string, 1: string}>
      */
     public static function propertyProvider(): array
@@ -89,6 +95,26 @@ final class HubSettingsSchemaTest extends TestCase
             'auth.access_ttl' => ['auth.access_ttl', 'integer'],
             'auth.refresh_ttl' => ['auth.refresh_ttl', 'integer'],
             'auth.signups_disabled' => ['auth.signups_disabled', 'boolean'],
+            // ---- W5 Phase-6 settings program (upstreamed 2026-10-07) ------
+            // config/hub.php
+            'hub.maintenance_mode' => ['hub.maintenance_mode', 'boolean'],
+            // config/federation.php
+            'federation.enabled' => ['federation.enabled', 'boolean'],
+            // config/requests.php
+            'requests.auto_approve' => ['requests.auto_approve', 'boolean'],
+            // config/invite.php
+            'invite.default_expiry_seconds' => ['invite.default_expiry_seconds', 'integer'],
+            // config/server.php (quota / metrics / relay / rate-limit / arr)
+            'server.max_servers_per_user' => ['server.max_servers_per_user', 'integer'],
+            'server.max_users_per_server' => ['server.max_users_per_server', 'integer'],
+            'server.metrics.enabled' => ['server.metrics.enabled', 'boolean'],
+            'server.metrics.retention_days' => ['server.metrics.retention_days', 'integer'],
+            'server.relay.reconnect_drain_grace_seconds' => ['server.relay.reconnect_drain_grace_seconds', 'number'],
+            'server.rate_limit' => ['server.rate_limit', 'object'],
+            'server.arr.sonarr.enabled' => ['server.arr.sonarr.enabled', 'boolean'],
+            'server.arr.sonarr.url' => ['server.arr.sonarr.url', 'string'],
+            'server.arr.radarr.enabled' => ['server.arr.radarr.enabled', 'boolean'],
+            'server.arr.radarr.url' => ['server.arr.radarr.url', 'string'],
         ];
     }
 
@@ -128,6 +154,13 @@ final class HubSettingsSchemaTest extends TestCase
             'server.enrollment_ttl' => ['server.enrollment_ttl', ['minimum' => 60, 'maximum' => 2592000]],
             'auth.access_ttl' => ['auth.access_ttl', ['minimum' => 300, 'maximum' => 86400]],
             'auth.refresh_ttl' => ['auth.refresh_ttl', ['minimum' => 3600, 'maximum' => 2592000]],
+            // W5 Phase-6 keys (upstreamed 2026-10-07): bounds are a contract —
+            // the hub's PUT law validates against these merged-meta values.
+            'invite.default_expiry_seconds' => ['invite.default_expiry_seconds', ['minimum' => 0, 'maximum' => 31536000]],
+            'server.max_servers_per_user' => ['server.max_servers_per_user', ['minimum' => 0, 'maximum' => 1000]],
+            'server.max_users_per_server' => ['server.max_users_per_server', ['minimum' => 0, 'maximum' => 10000]],
+            'server.metrics.retention_days' => ['server.metrics.retention_days', ['minimum' => 1, 'maximum' => 3650]],
+            'server.relay.reconnect_drain_grace_seconds' => ['server.relay.reconnect_drain_grace_seconds', ['minimum' => 0, 'maximum' => 300]],
         ];
     }
 
@@ -167,7 +200,7 @@ final class HubSettingsSchemaTest extends TestCase
         sort($expected);
 
         $this->assertSame($expected, $actual, 'hub-settings schema must declare exactly the expected settings keys.');
-        $this->assertCount(4, $actual);
+        $this->assertCount(18, $actual);
     }
 
     public function test_forbidden_infrastructure_keys_are_absent(): void
@@ -474,6 +507,7 @@ final class HubSettingsSchemaTest extends TestCase
         self::assertSame('string', self::jsonSchemaTypeForHubType('string'));
         self::assertSame('number', self::jsonSchemaTypeForHubType('float'));
         self::assertSame('number', self::jsonSchemaTypeForHubType('number'));
+        self::assertSame('object', self::jsonSchemaTypeForHubType('json'));
 
         $this->expectException(RuntimeException::class);
         self::jsonSchemaTypeForHubType('date');
@@ -599,6 +633,10 @@ final class HubSettingsSchemaTest extends TestCase
             'bool' => 'boolean',
             'string' => 'string',
             'float', 'number' => 'number',
+            // The hub serialises sparse-JSON blobs (e.g. `server.rate_limit`)
+            // under the `json` type; the schema renders them as objects —
+            // mapped deliberately when the W5 keys were upstreamed (v0.52.0).
+            'json' => 'object',
             default => throw new RuntimeException(sprintf(
                 'Hub ALLOWED_KEYS carries type vocabulary "%s" that this mapping has never seen; '
                 . 'extend jsonSchemaTypeForHubType() deliberately, not by silent coercion.',
