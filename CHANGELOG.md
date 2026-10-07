@@ -4,6 +4,50 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.52.0] - 2026-10-07
+
+Minor: fourteen additive `hub-settings.schema.json` properties over v0.51.0
+(4 → 18) — the hub's W5 Phase-6 settings keys upstreamed from its
+`SUPPLEMENTAL_META` bridge (phlix-hub 98a10ca), closing the retirement seam
+that bridge documented. Zero runtime PHP surface changed: `git diff
+v0.51.0..HEAD -- src` is empty apart from this release's `Version.php` bump,
+and every upstreamed block copies the bridge's wire-served metadata verbatim
+(label / helpText / tier / group / enum fields / bounds / default / restart),
+so `phlix-hub`'s next re-pin deletes the bridge with its
+`GET /api/v1/me/hub-settings` meta payload byte-identical. Two deliberate
+deltas: `helpLinks` go from the bridge's empty list to one honest doc link
+per key (this package's plan §3.5 law binds schema properties — additive,
+unpinned); and numeric `minimum`/`maximum` literals are written in the exact
+JSON lexical form each key's wire has always carried (float literals `60.0`
+on the four original keys, int literals on the fourteen), which the hub's
+meta extraction now passes through verbatim — the schema declares the PHP
+type, key by key.
+
+### Added
+
+- Fourteen W5 Phase-6 properties in `schemas/hub-settings.schema.json`:
+  `hub.maintenance_mode`, `federation.enabled`, `requests.auto_approve`,
+  `invite.default_expiry_seconds`, `server.max_servers_per_user`,
+  `server.max_users_per_server`, `server.metrics.enabled`,
+  `server.metrics.retention_days`, `server.relay.reconnect_drain_grace_seconds`,
+  `server.rate_limit`, `server.arr.sonarr.enabled`, `server.arr.sonarr.url`,
+  `server.arr.radarr.enabled`, `server.arr.radarr.url`. The five numeric-cap
+  keys ship their bounds in-schema (0..31536000 / 0..1000 / 0..10000 /
+  1..3650 / 0..300) so the hub's PUT law reads them from the schema from now
+  on (F9 lesson). `server.rate_limit` types as `object` with default `{}` —
+  decoded to the empty-map PHP value the hub has always served.
+- `HubSettingsSchemaTest` vocabulary: `jsonSchemaTypeForHubType()` gained the
+  `json → object` arm (Fail-Fast pin #3 extended). This is the exact
+  vocabulary the live sibling-hub drift guard threw on since the hub shipped
+  these keys — the guard runs ERROR → PASS against phlix-hub tip `e5f5dd9`
+  with this release.
+
+### Changed
+
+- `HubSettingsSchemaTest` tripwires rotated to the 18-key roster in the same
+  commit as the schema (propertyProvider 4 → 18 rows, `assertCount` 4 → 18,
+  constraintProvider 3 → 8 rows). Schema-only minor precedent: v0.51.0.
+
 ## [0.51.0] - 2026-10-05
 
 Minor: eleven additive `server-settings.schema.json` properties over v0.50.0
