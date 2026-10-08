@@ -4,6 +4,56 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Schema-and-tests only; zero runtime PHP surface changed. Both changes ride to
+consumers at the NEXT tag seam only — `phlix-server` still pins `^0.51.0`
+(lock at 01bd2a9) and `phlix-hub` pins `^0.52.0` (lock at febd8af), and no tag
+is created here (owner-gated). Nothing on any consumer's wire changes until
+its lock is re-pinned past the next release.
+
+### Added
+
+- Complete per-key value pin tables in `ServerSettingsSchemaTest` and
+  `HubSettingsSchemaTest` (`pinTable()` + a data-provider test pinning, for
+  EVERY property: exact `type`, exact `default` (value AND PHP decode type —
+  `assertSame`), exact `minimum`/`maximum`/`enum` where present (null in the
+  table means the keyword must be ABSENT), and the effective `restart`/`secret`
+  dimensions as consumers read them (`?? false`)). Closes the silent-behavior-
+  change gap the v0.52.0 adversarial review named: per-key default VALUES were
+  unpinned end-to-end — `server.arr.sonarr.enabled`/`server.arr.radarr.enabled`
+  had zero per-key pins anywhere, and a bool default flipping true→false passed
+  the existing type-consistency/bounds checks unnoticed. Historical-behavior-
+  critical rows carry provenance comments (F7 quintet t/t/f/f/f, segment_format
+  fmp4 post-S60, cds_enabled default-off unauthenticated surface, hsts
+  default==ceiling, min_match_confidence 0.0 gate-off, W5 caps 0 = unlimited
+  sentinel, original hub TTLs' float bound literals). Load-bearing lexical
+  forms are pinned strictly: `metadata.min_match_confidence` `0.0` and
+  `server.relay.reconnect_drain_grace_seconds` `5.0` decode to PHP float only
+  because the JSON literals carry decimal points; the pin docblocks record that
+  PHP's own `json_encode` serialises `0.0` as bare `0`, so a decode/encode
+  round-trip through tooling flips these pins deliberately, never silently.
+  Set-equality guards (`test_pin_table_covers_exactly_the_schema_properties`)
+  fail the day a new key joins either schema without a full pin row; the hub
+  guard additionally pins that exactly `server.metrics.enabled` and
+  `server.rate_limit` are `restart:true`. Existing `propertyProvider`/key-set/
+  `assertCount` tripwires untouched — the tables are additive.
+
+### Changed
+
+- `auth.signup_mode` helpText (server schema): appended one admin-facing
+  sentence disclosing the accepted sign-up/sign-in boundary from the owner's
+  A+C decision — this toggle governs account CREATION only, the
+  `auth.*.enabled` toggles govern sign-in FACTORS, so disabling
+  `auth.password.enabled` does not block registration while signups are open,
+  and an account created in that window cannot sign in with its password once
+  its current session ends. No runtime coupling was added (deliberate: the
+  knobs stay independent); the surprise is now impossible to miss where the
+  admin reads it. Metadata-only edit: no type/default/bounds/enum changed, so
+  the hub drift comparator's law (properties ↔ ALLOWED_KEYS names/types) is
+  untouched, and no test in phlix-server or phlix-hub pins the previous
+  helpText verbatim (grep-verified).
+
 ## [0.52.0] - 2026-10-07
 
 Minor: fourteen additive `hub-settings.schema.json` properties over v0.51.0

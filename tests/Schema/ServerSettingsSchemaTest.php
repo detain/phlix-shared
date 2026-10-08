@@ -610,6 +610,161 @@ final class ServerSettingsSchemaTest extends TestCase
             ],
         ];
     }
+    /**
+     * Complete per-key value pin table for `server-settings.schema.json`.
+     *
+     * Where {@see self::propertyProvider()} pins the key roster and JSON-Schema
+     * TYPE, this table pins the VALUES: the exact `default`, the exact
+     * `minimum`/`maximum` (null = the keyword must be ABSENT), the exact `enum`
+     * (null = absent, order included), and the effective `restart`/`secret`
+     * metadata dimensions. The pre-existing per-key tests only check that a
+     * default is type-consistent and inside bounds — a bool default flipping
+     * true -> false, or a cap drifting 1000 -> 1001, passed them silently. The
+     * v0.52.0 adversarial review named this class of silent-behavior-change
+     * (per-key defaults and metadata dims unpinned, bool flips undetectable
+     * end-to-end) as the schema suite's main gap; this table closes it for the
+     * server schema.
+     *
+     * EVERY value below was extracted from the shipped schema at v0.52.0 and
+     * hand-audited against deployed behavior; rows whose value is load-bearing
+     * for a historical decision carry a provenance comment. Sensitivity rules:
+     *
+     * - Comparisons are `assertSame` (===). For `number`-typed keys the JSON
+     *   lexical form decides the PHP decode type: a `0.0` literal decodes to
+     *   float, an `0` literal to int. This is fragile in one known direction:
+     *   PHP's own json_encode serialises float 0.0 as the bare token `0`, so
+     *   any tooling that re-writes the schema through a PHP decode/encode
+     *   round-trip WILL flip these pins (0.0 -> int 0) even though the two
+     *   forms are numerically identical on the wire. That flip must be a
+     *   conscious re-pin, never a silent one — which is what the strict pin is
+     *   for. Same law, mirror direction: pinning `metadata.cache_ttl_hours`
+     *   24 as int means rewriting it as `24.0` also goes red.
+     * - `restart`/`secret` are compared as the CONSUMERS read them: an absent
+     *   dimension behaves as false (`?? false` / `!empty()`), so the pin
+     *   records the EFFECTIVE value, not the presence of the keyword.
+     *   Presence-and-type of the keywords that ARE written is checked by
+     *   test_optional_extended_keywords_are_well_formed().
+     * - Object-valued defaults (`metadata.provider_priority`) decode from JSON
+     *   objects to PHP assoc arrays; `{}` and `[]` both decode to `[]` under
+     *   the assoc flag this suite uses, so an empty-map pin is a value pin,
+     *   not a shape pin.
+     *
+     * The roster itself is guarded against silent gaps by
+     * test_pin_table_covers_exactly_the_schema_properties() — a new key without
+     * a pin row here fails that test. Do not weaken this table by reading the
+     * expectations back out of the schema; the whole point is a SECOND,
+     * hand-maintained statement of the values, so a one-sided edit goes red.
+     *
+     * @return array<string, array{type: string, default: mixed, minimum: int|float|null, maximum: int|float|null, enum: list<string>|null, restart: bool, secret: bool}>
+     */
+    private static function pinTable(): array
+    {
+        return [
+            'hwaccel.enabled' => ['type' => 'boolean', 'default' => true, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => true, 'secret' => false],
+            'hwaccel.prefer_hardware' => ['type' => 'boolean', 'default' => true, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => true, 'secret' => false],
+            'transcoding.preferred_accelerator' => ['type' => 'string', 'default' => '', 'minimum' => null, 'maximum' => null, 'enum' => ["","cuda","qsv","vaapi","videotoolbox","amf","opencl","d3d11va","dxva2","v4l2m2m"], 'restart' => true, 'secret' => false],
+            'transcoding.tone_mapping_mode' => ['type' => 'string', 'default' => 'none', 'minimum' => null, 'maximum' => null, 'enum' => ["none","zscale","libplacebo"], 'restart' => true, 'secret' => false],
+            'transcoding.prefer_hdr_output' => ['type' => 'boolean', 'default' => false, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => true, 'secret' => false],
+            'ffmpeg.max_concurrent_transcodes' => ['type' => 'integer', 'default' => 4, 'minimum' => 1, 'maximum' => 64, 'enum' => null, 'restart' => true, 'secret' => false],
+            'ffmpeg.transcode_timeout' => ['type' => 'integer', 'default' => 7200, 'minimum' => 60, 'maximum' => 86400, 'enum' => null, 'restart' => true, 'secret' => false],
+            'ffmpeg.max_concurrent_scan_probes' => ['type' => 'integer', 'default' => 4, 'minimum' => 1, 'maximum' => 16, 'enum' => null, 'restart' => true, 'secret' => false],
+            'server.hls.cache_max_age' => ['type' => 'integer', 'default' => 10800, 'minimum' => 60, 'maximum' => 86400, 'enum' => null, 'restart' => true, 'secret' => false],
+            'server.hls.cache_max_bytes' => ['type' => 'integer', 'default' => 8589934592, 'minimum' => 1073741824, 'maximum' => 1099511627776, 'enum' => null, 'restart' => true, 'secret' => false],
+            'tmdb.api_key' => ['type' => 'string', 'default' => '', 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => true, 'secret' => true],
+            'auth.signup_mode' => ['type' => 'string', 'default' => 'approval', 'minimum' => null, 'maximum' => null, 'enum' => ["open","approval","disabled"], 'restart' => false, 'secret' => false],
+            'auth.password.enabled' => ['type' => 'boolean', 'default' => true, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
+            'auth.webauthn.enabled' => ['type' => 'boolean', 'default' => true, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
+            'auth.oidc.enabled' => ['type' => 'boolean', 'default' => false, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
+            'auth.ldap.enabled' => ['type' => 'boolean', 'default' => false, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
+            'auth.github.enabled' => ['type' => 'boolean', 'default' => false, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
+            'auth.password.min_length' => ['type' => 'integer', 'default' => 8, 'minimum' => 8, 'maximum' => 128, 'enum' => null, 'restart' => false, 'secret' => false],
+            'auth.access_ttl' => ['type' => 'integer', 'default' => 3600, 'minimum' => 60, 'maximum' => 86400, 'enum' => null, 'restart' => false, 'secret' => false],
+            'auth.refresh_ttl' => ['type' => 'integer', 'default' => 604800, 'minimum' => 3600, 'maximum' => 7776000, 'enum' => null, 'restart' => false, 'secret' => false],
+            'auth.max_profiles' => ['type' => 'integer', 'default' => 5, 'minimum' => 1, 'maximum' => 50, 'enum' => null, 'restart' => false, 'secret' => false],
+            'access.default_concurrent_streams' => ['type' => 'integer', 'default' => 1, 'minimum' => 1, 'maximum' => 100, 'enum' => null, 'restart' => false, 'secret' => false],
+            'server.rate_limit.register.max' => ['type' => 'integer', 'default' => 5, 'minimum' => 1, 'maximum' => 100000, 'enum' => null, 'restart' => true, 'secret' => false],
+            'server.rate_limit.register.window' => ['type' => 'integer', 'default' => 600, 'minimum' => 1, 'maximum' => 86400, 'enum' => null, 'restart' => true, 'secret' => false],
+            'server.rate_limit.refresh.max' => ['type' => 'integer', 'default' => 30, 'minimum' => 1, 'maximum' => 100000, 'enum' => null, 'restart' => true, 'secret' => false],
+            'server.rate_limit.refresh.window' => ['type' => 'integer', 'default' => 60, 'minimum' => 1, 'maximum' => 86400, 'enum' => null, 'restart' => true, 'secret' => false],
+            'server.rate_limit.webauthn_start.max' => ['type' => 'integer', 'default' => 10, 'minimum' => 1, 'maximum' => 100000, 'enum' => null, 'restart' => true, 'secret' => false],
+            'server.rate_limit.webauthn_start.window' => ['type' => 'integer', 'default' => 60, 'minimum' => 1, 'maximum' => 86400, 'enum' => null, 'restart' => true, 'secret' => false],
+            'server.rate_limit.webauthn_finish.max' => ['type' => 'integer', 'default' => 10, 'minimum' => 1, 'maximum' => 100000, 'enum' => null, 'restart' => true, 'secret' => false],
+            'server.rate_limit.webauthn_finish.window' => ['type' => 'integer', 'default' => 60, 'minimum' => 1, 'maximum' => 86400, 'enum' => null, 'restart' => true, 'secret' => false],
+            'server.rate_limit.jwks.max' => ['type' => 'integer', 'default' => 120, 'minimum' => 1, 'maximum' => 100000, 'enum' => null, 'restart' => true, 'secret' => false],
+            'server.rate_limit.jwks.window' => ['type' => 'integer', 'default' => 60, 'minimum' => 1, 'maximum' => 86400, 'enum' => null, 'restart' => true, 'secret' => false],
+            'server.rate_limit.ws_connect.max' => ['type' => 'integer', 'default' => 30, 'minimum' => 1, 'maximum' => 100000, 'enum' => null, 'restart' => true, 'secret' => false],
+            'server.rate_limit.ws_connect.window' => ['type' => 'integer', 'default' => 60, 'minimum' => 1, 'maximum' => 86400, 'enum' => null, 'restart' => true, 'secret' => false],
+            'transcoding.preset' => ['type' => 'string', 'default' => 'veryfast', 'minimum' => null, 'maximum' => null, 'enum' => ["ultrafast","superfast","veryfast","faster","fast","medium","slow","slower","veryslow"], 'restart' => false, 'secret' => false],
+            'transcoding.crf_h264' => ['type' => 'integer', 'default' => 23, 'minimum' => 16, 'maximum' => 40, 'enum' => null, 'restart' => false, 'secret' => false],
+            'transcoding.audio_bitrate' => ['type' => 'string', 'default' => '128k', 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
+            'transcoding.segment_format' => ['type' => 'string', 'default' => 'fmp4', 'minimum' => null, 'maximum' => null, 'enum' => ["mpegts","fmp4"], 'restart' => false, 'secret' => false],
+            'artwork.download_enabled' => ['type' => 'boolean', 'default' => true, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
+            'scanner.ignore_patterns' => ['type' => 'array', 'default' => [".part",".tmp",".download",".!ut","_unpack"], 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
+            'subtitles.default_language' => ['type' => 'string', 'default' => 'eng', 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
+            'subtitles.provider_priority' => ['type' => 'array', 'default' => ["opensubtitles"], 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
+            'trickplay.enabled' => ['type' => 'boolean', 'default' => true, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
+            'newsletter.enabled' => ['type' => 'boolean', 'default' => false, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => true, 'secret' => false],
+            'newsletter.send_hour' => ['type' => 'integer', 'default' => 9, 'minimum' => 0, 'maximum' => 23, 'enum' => null, 'restart' => true, 'secret' => false],
+            'port-forward.port_forwarding.upnp_enabled' => ['type' => 'boolean', 'default' => true, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => true, 'secret' => false],
+            'lastfm.api_key' => ['type' => 'string', 'default' => '', 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => true, 'secret' => true],
+            'lastfm.shared_secret' => ['type' => 'string', 'default' => '', 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => true, 'secret' => true],
+            'lastfm.enabled' => ['type' => 'boolean', 'default' => false, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => true, 'secret' => false],
+            'trakt.client_id' => ['type' => 'string', 'default' => '', 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => true],
+            'trakt.client_secret' => ['type' => 'string', 'default' => '', 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => true],
+            'trakt.redirect_uri' => ['type' => 'string', 'default' => 'https://your-server.com/api/v1/oauth/trakt/callback', 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
+            'matching.noise_suffixes' => ['type' => 'array', 'default' => self::NOISE_SUFFIX_DEFAULTS, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => true, 'secret' => false],
+            'metadata.provider_priority' => ['type' => 'object', 'default' => self::PROVIDER_PRIORITY_DEFAULTS, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => true, 'secret' => false],
+            'metadata.genres_mode' => ['type' => 'string', 'default' => 'first', 'minimum' => null, 'maximum' => null, 'enum' => ["first","union"], 'restart' => true, 'secret' => false],
+            'metadata.overwrite_existing' => ['type' => 'boolean', 'default' => true, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
+            'relay.reconnect_delay' => ['type' => 'integer', 'default' => 5, 'minimum' => 1, 'maximum' => 60, 'enum' => null, 'restart' => true, 'secret' => false],
+            'relay.ping_interval' => ['type' => 'integer', 'default' => 30, 'minimum' => 5, 'maximum' => 300, 'enum' => null, 'restart' => true, 'secret' => false],
+            'server.hls.segment_seconds' => ['type' => 'integer', 'default' => 6, 'minimum' => 1, 'maximum' => 30, 'enum' => null, 'restart' => true, 'secret' => false],
+            'server.hls.max_concurrent_segments' => ['type' => 'integer', 'default' => 8, 'minimum' => 1, 'maximum' => 32, 'enum' => null, 'restart' => true, 'secret' => false],
+            'process.library-scan.enabled' => ['type' => 'boolean', 'default' => true, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => true, 'secret' => false],
+            'process.plugin-auto-update.enabled' => ['type' => 'boolean', 'default' => true, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => true, 'secret' => false],
+            'process.marker-detection.enabled' => ['type' => 'boolean', 'default' => true, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => true, 'secret' => false],
+            'process.media-asset.enabled' => ['type' => 'boolean', 'default' => true, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => true, 'secret' => false],
+            'process.similarity.enabled' => ['type' => 'boolean', 'default' => true, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => true, 'secret' => false],
+            'webhooks.enabled' => ['type' => 'boolean', 'default' => true, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => true, 'secret' => false],
+            'stats.enabled' => ['type' => 'boolean', 'default' => true, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => true, 'secret' => false],
+            'metrics.enabled' => ['type' => 'boolean', 'default' => true, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => true, 'secret' => false],
+            'theme_music.enabled' => ['type' => 'boolean', 'default' => true, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => true, 'secret' => false],
+            'theme_music.source' => ['type' => 'string', 'default' => 'local_then_plex', 'minimum' => null, 'maximum' => null, 'enum' => ["local_then_plex","local_only","off"], 'restart' => true, 'secret' => false],
+            'dlna.enabled' => ['type' => 'boolean', 'default' => true, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => true, 'secret' => false],
+            'casting.chromecast.enabled' => ['type' => 'boolean', 'default' => true, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
+            'casting.roku.enabled' => ['type' => 'boolean', 'default' => true, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
+            'casting.airplay.enabled' => ['type' => 'boolean', 'default' => true, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
+            'dlna.cds_enabled' => ['type' => 'boolean', 'default' => false, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => true, 'secret' => false],
+            'dlna.allowed_cidrs' => ['type' => 'array', 'default' => [], 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
+            'dlna.restrict_to_lan' => ['type' => 'boolean', 'default' => true, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
+            'dlna.friendly_name' => ['type' => 'string', 'default' => 'Phlix Media Server', 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => true, 'secret' => false],
+            'discovery.ssdp.enabled' => ['type' => 'boolean', 'default' => true, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => true, 'secret' => false],
+            'discovery.mdns.enabled' => ['type' => 'boolean', 'default' => true, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => true, 'secret' => false],
+            'security.hsts_max_age_seconds' => ['type' => 'integer', 'default' => 31536000, 'minimum' => 0, 'maximum' => 31536000, 'enum' => null, 'restart' => false, 'secret' => false],
+            'security.frame_options' => ['type' => 'string', 'default' => 'SAMEORIGIN', 'minimum' => null, 'maximum' => null, 'enum' => ["DENY","SAMEORIGIN","NONE"], 'restart' => false, 'secret' => false],
+            'metadata.min_match_confidence' => ['type' => 'number', 'default' => 0.0, 'minimum' => 0, 'maximum' => 1, 'enum' => null, 'restart' => false, 'secret' => false],
+            // Provenance (W3): 24 reproduces the former hardcoded window exactly.
+            'metadata.cache_ttl_hours' => ['type' => 'integer', 'default' => 24, 'minimum' => 1, 'maximum' => 8760, 'enum' => null, 'restart' => false, 'secret' => false],
+        ];
+    }
+
+    /**
+     * PHPUnit-shaped view of {@see self::pinTable()}: each dataset is the
+     * ordered list [key, pin-row] — an associative row returned bare from a
+     * provider would be spread positionally into the test's arguments.
+     *
+     * @return array<string, array{0: string, 1: array{type: string, default: mixed, minimum: int|float|null, maximum: int|float|null, enum: list<string>|null, restart: bool, secret: bool}}>
+     */
+    public static function schemaPinProvider(): array
+    {
+        $out = [];
+        foreach (self::pinTable() as $key => $pin) {
+            $out[$key] = [$key, $pin];
+        }
+
+        return $out;
+    }
+
 
     public function test_schema_declares_the_expected_meta_header(): void
     {
@@ -1103,6 +1258,99 @@ final class ServerSettingsSchemaTest extends TestCase
                 sprintf('Property "%s" "%s" must equal the documented bound.', $key, $constraintKey)
             );
         }
+    }
+
+    /**
+     * @dataProvider schemaPinProvider
+     *
+     * @param array{type: string, default: mixed, minimum: int|float|null, maximum: int|float|null, enum: list<string>|null, restart: bool, secret: bool} $pin
+     */
+    public function test_property_value_pin_matches_the_schema(string $key, array $pin): void
+    {
+        $properties = self::properties();
+        $this->assertArrayHasKey($key, $properties);
+        $property = $properties[$key];
+
+        $this->assertSame($pin['type'], $property['type'] ?? null, sprintf('Property "%s" type drifted from the pin table.', $key));
+
+        // The default is the behavior an untouched install runs — pinned by
+        // value AND PHP type (see the lexical-form law in schemaPinProvider()).
+        $this->assertArrayHasKey('default', $property, sprintf('Property "%s" must declare a default.', $key));
+        $this->assertSame($pin['default'], $property['default'], sprintf('Property "%s" default drifted from the pin table — a shipped-behavior change requires a conscious re-pin here.', $key));
+
+        foreach (['minimum', 'maximum'] as $bound) {
+            if ($pin[$bound] === null) {
+                $this->assertArrayNotHasKey($bound, $property, sprintf('Property "%s" must NOT declare "%s" — the pin table records it as absent.', $key, $bound));
+                continue;
+            }
+            $this->assertArrayHasKey($bound, $property, sprintf('Property "%s" must declare "%s".', $key, $bound));
+            $this->assertSame($pin[$bound], $property[$bound], sprintf('Property "%s" "%s" drifted from the pin table (PUT-path validation bound — F9 law).', $key, $bound));
+        }
+
+        if ($pin['enum'] === null) {
+            $this->assertArrayNotHasKey('enum', $property, sprintf('Property "%s" must NOT declare an "enum" — the pin table records it as absent.', $key));
+        } else {
+            $this->assertSame($pin['enum'], $property['enum'] ?? null, sprintf('Property "%s" enum drifted from the pin table (members AND order).', $key));
+        }
+
+        // Effective dimension values as consumers read them: absent == false.
+        $this->assertSame($pin['restart'], $property['restart'] ?? false, sprintf('Property "%s" effective "restart" drifted from the pin table — the admin UI restart hint and the apply-now promise depend on this.', $key));
+        $this->assertSame($pin['secret'], $property['secret'] ?? false, sprintf('Property "%s" effective "secret" drifted from the pin table — masking a credential field is a security dimension.', $key));
+    }
+
+    /**
+     * Roster guard: the pin table must cover EXACTLY the schema properties.
+     *
+     * The data-provider test above can only check keys the table KNOWS about;
+     * without this set-equality, a new schema key added without a pin row
+     * would join the schema silently. The internal-consistency leg additionally
+     * pins the table's own secret column against the documented credential
+     * list, so the two secret statements cannot disagree.
+     */
+    public function test_pin_table_covers_exactly_the_schema_properties(): void
+    {
+        $schemaKeys = array_keys(self::properties());
+        $pinKeys = array_keys(self::pinTable());
+
+        sort($schemaKeys);
+        sort($pinKeys);
+
+        $missing = array_diff($schemaKeys, $pinKeys);
+        $extra = array_diff($pinKeys, $schemaKeys);
+
+        $this->assertSame(
+            [],
+            $missing,
+            sprintf(
+                'Schema properties %s have no row in schemaPinProvider(). Every key needs a full '
+                . 'value pin (type / default / bounds / enum / restart / secret) before it can ship — '
+                . 'add the rows deliberately, after verifying each default reproduces deployed behavior.',
+                implode(', ', $missing)
+            )
+        );
+        $this->assertSame(
+            [],
+            $extra,
+            sprintf(
+                'schemaPinProvider() carries keys %s that the schema no longer declares. A deleted key '
+                . 'must leave the pin table too (see CONSUMERLESS_KEY_DENYLIST for the deletion record).',
+                implode(', ', $extra)
+            )
+        );
+
+        // Internal consistency: the table's secret column == the documented credential set.
+        $secretFromTable = array_keys(array_filter(
+            self::pinTable(),
+            static fn (array $pin): bool => $pin['secret']
+        ));
+        $expectedSecrets = self::SECRET_KEYS;
+        sort($secretFromTable);
+        sort($expectedSecrets);
+        $this->assertSame(
+            $expectedSecrets,
+            $secretFromTable,
+            'The pin table\'s secret column must name exactly SECRET_KEYS — the two secret statements cannot disagree.'
+        );
     }
 
     /**

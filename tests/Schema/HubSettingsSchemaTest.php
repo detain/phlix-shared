@@ -163,6 +163,77 @@ final class HubSettingsSchemaTest extends TestCase
             'server.relay.reconnect_drain_grace_seconds' => ['server.relay.reconnect_drain_grace_seconds', ['minimum' => 0, 'maximum' => 300]],
         ];
     }
+    /**
+     * Complete per-key value pin table for `hub-settings.schema.json`.
+     *
+     * Sister of `ServerSettingsSchemaTest::schemaPinProvider()` — same law,
+     * same extraction method, restated independently for the hub schema so the
+     * two tables cannot be quietly "fixed" toward each other. Pins, per key:
+     * the exact `default` (value AND PHP decode type), the exact
+     * `minimum`/`maximum` (null = must be ABSENT), `enum` (null = absent; no
+     * hub key declares one today), and the effective `restart` dimension
+     * (absent == false for consumers). The hub schema declares no `secret`
+     * dimension — hub credentials live in the repository's DENIED_KEYS list,
+     * never in the admin surface — so every row pins `secret: false` and the
+     * consumer-semantic `?? false` comparison below goes red the day anyone
+     * writes a `secret` keyword into this schema.
+     *
+     * The float-vs-int literal law stated in the server sibling applies here
+     * with force: the four ORIGINAL keys carry FLOAT-bound literals (`60.0`,
+     * `2592000.0`, `300.0`, `86400.0`, `3600.0` — the exact wire form the
+     * hub's pre-schema meta always served, recorded in the v0.52.0 CHANGELOG),
+     * while the fourteen upstreamed W5 keys carry int bound literals, and
+     * `server.relay.reconnect_drain_grace_seconds` keeps its float `5.0`
+     * default because the TunnelManager grace has always been a float seconds
+     * value. Every lexical form is pinned by === below; re-encoding the schema
+     * through PHP's json_encode (which serialises 60.0 as `60`) will flip
+     * these pins deliberately, not silently.
+     *
+     * @return array<string, array{type: string, default: mixed, minimum: int|float|null, maximum: int|float|null, enum: list<string>|null, restart: bool, secret: bool}>
+     */
+    private static function pinTable(): array
+    {
+        return [
+            'server.enrollment_ttl' => ['type' => 'integer', 'default' => 604800, 'minimum' => 60.0, 'maximum' => 2592000.0, 'enum' => null, 'restart' => false, 'secret' => false],
+            'auth.access_ttl' => ['type' => 'integer', 'default' => 3600, 'minimum' => 300.0, 'maximum' => 86400.0, 'enum' => null, 'restart' => false, 'secret' => false],
+            'auth.refresh_ttl' => ['type' => 'integer', 'default' => 604800, 'minimum' => 3600.0, 'maximum' => 2592000.0, 'enum' => null, 'restart' => false, 'secret' => false],
+            'auth.signups_disabled' => ['type' => 'boolean', 'default' => false, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
+            'hub.maintenance_mode' => ['type' => 'boolean', 'default' => false, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
+            'federation.enabled' => ['type' => 'boolean', 'default' => true, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
+            'requests.auto_approve' => ['type' => 'boolean', 'default' => false, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
+            'invite.default_expiry_seconds' => ['type' => 'integer', 'default' => 604800, 'minimum' => 0, 'maximum' => 31536000, 'enum' => null, 'restart' => false, 'secret' => false],
+            'server.max_servers_per_user' => ['type' => 'integer', 'default' => 0, 'minimum' => 0, 'maximum' => 1000, 'enum' => null, 'restart' => false, 'secret' => false],
+            'server.max_users_per_server' => ['type' => 'integer', 'default' => 0, 'minimum' => 0, 'maximum' => 10000, 'enum' => null, 'restart' => false, 'secret' => false],
+            'server.metrics.enabled' => ['type' => 'boolean', 'default' => true, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => true, 'secret' => false],
+            'server.metrics.retention_days' => ['type' => 'integer', 'default' => 7, 'minimum' => 1, 'maximum' => 3650, 'enum' => null, 'restart' => false, 'secret' => false],
+            'server.relay.reconnect_drain_grace_seconds' => ['type' => 'number', 'default' => 5.0, 'minimum' => 0, 'maximum' => 300, 'enum' => null, 'restart' => false, 'secret' => false],
+            'server.rate_limit' => ['type' => 'object', 'default' => [], 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => true, 'secret' => false],
+            // Provenance (W5): opt-in integration, ships false; the v0.52.0 review
+            // named this exact pair as the zero-pin gap this table closes.
+            'server.arr.sonarr.enabled' => ['type' => 'boolean', 'default' => false, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
+            'server.arr.sonarr.url' => ['type' => 'string', 'default' => 'http://localhost:8989', 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
+            'server.arr.radarr.enabled' => ['type' => 'boolean', 'default' => false, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
+            'server.arr.radarr.url' => ['type' => 'string', 'default' => 'http://localhost:7878', 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
+        ];
+    }
+
+    /**
+     * PHPUnit-shaped view of {@see self::pinTable()}: each dataset is the
+     * ordered list [key, pin-row] — an associative row returned bare from a
+     * provider would be spread positionally into the test's arguments.
+     *
+     * @return array<string, array{0: string, 1: array{type: string, default: mixed, minimum: int|float|null, maximum: int|float|null, enum: list<string>|null, restart: bool, secret: bool}}>
+     */
+    public static function schemaPinProvider(): array
+    {
+        $out = [];
+        foreach (self::pinTable() as $key => $pin) {
+            $out[$key] = [$key, $pin];
+        }
+
+        return $out;
+    }
+
 
     public function test_schema_declares_the_expected_meta_header(): void
     {
@@ -378,6 +449,90 @@ final class HubSettingsSchemaTest extends TestCase
                 sprintf('Property "%s" "%s" must equal the documented bound.', $key, $constraintKey)
             );
         }
+    }
+
+    /**
+     * @dataProvider schemaPinProvider
+     *
+     * @param array{type: string, default: mixed, minimum: int|float|null, maximum: int|float|null, enum: list<string>|null, restart: bool, secret: bool} $pin
+     */
+    public function test_property_value_pin_matches_the_schema(string $key, array $pin): void
+    {
+        $properties = self::properties();
+        $this->assertArrayHasKey($key, $properties);
+        $property = $properties[$key];
+
+        $this->assertSame($pin['type'], $property['type'] ?? null, sprintf('Property "%s" type drifted from the pin table.', $key));
+
+        $this->assertArrayHasKey('default', $property, sprintf('Property "%s" must declare a default.', $key));
+        $this->assertSame($pin['default'], $property['default'], sprintf('Property "%s" default drifted from the pin table — the hub serves this value to every operator who never overrides the key.', $key));
+
+        foreach (['minimum', 'maximum'] as $bound) {
+            if ($pin[$bound] === null) {
+                $this->assertArrayNotHasKey($bound, $property, sprintf('Property "%s" must NOT declare "%s" — the pin table records it as absent.', $key, $bound));
+                continue;
+            }
+            $this->assertArrayHasKey($bound, $property, sprintf('Property "%s" must declare "%s".', $key, $bound));
+            $this->assertSame($pin[$bound], $property[$bound], sprintf('Property "%s" "%s" drifted from the pin table (the hub PUT law validates against this bound).', $key, $bound));
+        }
+
+        if ($pin['enum'] === null) {
+            $this->assertArrayNotHasKey('enum', $property, sprintf('Property "%s" must NOT declare an "enum" — the pin table records it as absent.', $key));
+        } else {
+            $this->assertSame($pin['enum'], $property['enum'] ?? null, sprintf('Property "%s" enum drifted from the pin table (members AND order).', $key));
+        }
+
+        $this->assertSame($pin['restart'], $property['restart'] ?? false, sprintf('Property "%s" effective "restart" drifted from the pin table — restart:true means a live PUT silently lies about taking effect.', $key));
+        $this->assertSame($pin['secret'], $property['secret'] ?? false, sprintf('Property "%s" effective "secret" drifted from the pin table — the hub schema carries NO secret dimension; credential keys belong in DENIED_KEYS territory, never here.', $key));
+    }
+
+    /**
+     * Roster guard: the pin table must cover EXACTLY the schema properties.
+     *
+     * Mirrors the server sibling. The internal-consistency leg additionally
+     * pins the restart-dimension law the W5 review verified in the hub code:
+     * exactly `server.metrics.enabled` (the MetricsCollector factory captures
+     * the flag by value at container build) and `server.rate_limit` (the
+     * limiter overrides are merged in factory closures) are restart:true — any
+     * third restart:true row, or a removal, fails here.
+     */
+    public function test_pin_table_covers_exactly_the_schema_properties(): void
+    {
+        $schemaKeys = array_keys(self::properties());
+        $pinKeys = array_keys(self::pinTable());
+
+        sort($schemaKeys);
+        sort($pinKeys);
+
+        $missing = array_diff($schemaKeys, $pinKeys);
+        $extra = array_diff($pinKeys, $schemaKeys);
+
+        $this->assertSame(
+            [],
+            $missing,
+            sprintf(
+                'Hub schema properties %s have no row in schemaPinProvider(). Every key needs a full '
+                . 'value pin before it can ship — add the rows deliberately, after verifying each '
+                . 'default reproduces the value the hub has been serving (or documenting the change).',
+                implode(', ', $missing)
+            )
+        );
+        $this->assertSame(
+            [],
+            $extra,
+            sprintf('schemaPinProvider() carries hub keys %s the schema no longer declares.', implode(', ', $extra))
+        );
+
+        $restartFromTable = array_keys(array_filter(
+            self::pinTable(),
+            static fn (array $pin): bool => $pin['restart']
+        ));
+        sort($restartFromTable);
+        $this->assertSame(
+            ['server.metrics.enabled', 'server.rate_limit'],
+            $restartFromTable,
+            'Exactly server.metrics.enabled and server.rate_limit are restart:true — factory-captured by value; every other hub key applies live.'
+        );
     }
 
     /**
