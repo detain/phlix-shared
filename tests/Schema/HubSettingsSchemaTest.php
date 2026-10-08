@@ -234,7 +234,6 @@ final class HubSettingsSchemaTest extends TestCase
         return $out;
     }
 
-
     public function test_schema_declares_the_expected_meta_header(): void
     {
         $schema = self::schema();
