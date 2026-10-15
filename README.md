@@ -15,7 +15,7 @@ Composer-installable, PHP 8.3+, zero I/O — pure interfaces and value objects o
 
 ## Status
 
-**v0.49.1 — exposes `transcoding.segment_format` in `schemas/server-settings.schema.json` (72 → 73 keys: 49 `restart: true`, 24 `restart: false`) and corrects its `default` and option copy for the shipped `fmp4` container.** Cumulative surface:
+**v0.52.0** (`Phlix\Shared\Version::VERSION`). `schemas/server-settings.schema.json` carries 84 keys (51 `restart: true`, 33 `restart: false`); `schemas/hub-settings.schema.json` carries 18 keys in lockstep with `phlix-hub`'s `HubSettingsRepository::ALLOWED_KEYS`. Cumulative surface:
 
 - `Phlix\Shared\Plugin\{LifecycleInterface, Manifest, ManifestType, ManifestValidationError, EventNameMap}`
 - `Phlix\Shared\Events\{AbstractEvent, Playback\*, Library\*, Auth\*}` — 12 event DTOs.
@@ -91,13 +91,13 @@ admin SPA under `schemas/` (resolve their absolute paths via
   `optionHelp`, `helpText`, and `description` now describe `fmp4` as the shipped container and
   `mpegts` as the supported rollback (0.49.1+).
 
-  **`restart` flags (0.46.0–0.48.0).** Every one of the 73 keys has been traced to its
-  consumer: 49 carry `restart: true` and 24 carry `restart: false`. `restart: true` means the
+  **`restart` flags (0.46.0–0.48.0 audit).** Every one of the then-73 keys was traced to its
+  consumer; keys added since each carry an explicit flag too. As of 0.52.0 the schema holds
+  84 keys: 51 carry `restart: true` and 33 carry `restart: false`. `restart: true` means the
   admin **Restart server** control (a graceful SIGUSR2 reload that cycles workers, re-runs
   `onWorkerStart`, and rebuilds DI containers) — required for any value captured at worker
-  start, container build, or route build. The 24 `restart: false` keys resolve through
-  `SettingsRepository::getEffective()` at use time and are genuinely live. No key was added
-  or removed by this audit.
+  start, container build, or route build. The `restart: false` keys resolve through
+  `SettingsRepository::getEffective()` at use time and are genuinely live.
 - `schemas/webhook-events.json` — data catalog of the supported webhook event types for the
   admin SPA webhook picker. Distinct from the plugin PSR-14 events in `EventNameMap` (0.7.0+).
 - `schemas/library-query.schema.json` — JSON Schema (draft 2020-12) for the query parameters of
@@ -124,28 +124,10 @@ no Smarty. It is intended to be safely required by any PHP 8.3+ codebase.
 
 ## Installation
 
-Until `detain/phlix-shared` is published to Packagist (planned post-v1.0),
-consumers require it via a Composer VCS repository entry. Use the HTTPS URL
-so CI runners without SSH keys can resolve it:
-
-```json
-{
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/detain/phlix-shared.git"
-        }
-    ],
-    "require": {
-        "detain/phlix-shared": "^0.6"
-    }
-}
-```
-
-Then:
+`detain/phlix-shared` is published on Packagist:
 
 ```bash
-composer update detain/phlix-shared
+composer require detain/phlix-shared:^0.52
 ```
 
 ## Related repositories
