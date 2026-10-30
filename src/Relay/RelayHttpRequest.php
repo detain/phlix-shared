@@ -45,6 +45,19 @@ use const JSON_THROW_ON_ERROR;
  * SHOULD reject (413) a request whose encoded envelope would exceed the limit
  * rather than truncate it.
  *
+ * SECURITY: `HTTP_REQUEST` is a hub → server (untrusted-producer) frame.
+ * The gate — `ALLOWED_METHODS`, the path traversal/encoding denylist, and the
+ * `STRIPPED_HEADERS` trust set — is defined ONLY here and is inherited by
+ * every consumer that deserializes via `fromJson()` (it ends in
+ * `assertSafe()`). The public constructor is the TRUSTED-INPUT path: it runs
+ * NO gate, so an envelope reassembled by hand (e.g. streaming HEAD+BODY
+ * reconstruction) MUST have `assertSafe()` called on it before dispatch, and
+ * `withoutForbiddenHeaders()` applied before forwarding upstream. The
+ * streaming sibling `RelayHttpRequestHead` deliberately parses shape only and
+ * defers this gate to that reconstitution; consumers of the head MUST NOT
+ * trust its method/path/headers until it has been gated here — see that
+ * class's SECURITY CONTRACT.
+ *
  * @package Phlix\Shared\Relay
  * @since 0.10.0
  */

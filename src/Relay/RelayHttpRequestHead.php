@@ -38,6 +38,22 @@ use const JSON_THROW_ON_ERROR;
  * streamed separately via BODY chunks. This allows large PUT/PATCH/POST
  * bodies to be sent efficiently without base64 encoding overhead.
  *
+ * SECURITY CONTRACT — `fromJson()` validates wire SHAPE only. The method is
+ * checked non-empty, the path only starts with `/`, and every header pair
+ * only has to be strings; there is NO method allowlist, NO traversal/encoding
+ * denylist, and NO trust-header stripping here — `authorization`, `cookie`,
+ * `x-forwarded-for` and `x-phlix-relay-user` all parse through as perfectly
+ * valid strings. This deferral is deliberate: the gate for this frame belongs
+ * to {@see RelayHttpRequest} (`ALLOWED_METHODS`, `assertSafe()`,
+ * `STRIPPED_HEADERS`) and is applied when the consumer RECONSTITUTES the
+ * accumulated HEAD+BODY stream into that envelope — the server-side pattern
+ * (call `assertSafe()` and forward only `withoutForbiddenHeaders()` at END).
+ * Consumers MUST NOT dispatch on, auth off, or trust any parsed field of a
+ * head in isolation; producers SHOULD construct heads only from an already
+ * gated `RelayHttpRequest`. A consumer that trusts this parser directly
+ * inherits path traversal, method smuggling, and credential-header injection
+ * from an untrusted hub → server wire.
+ *
  * @package Phlix\Shared\Relay
  * @since 0.17.0
  */
@@ -85,6 +101,10 @@ final readonly class RelayHttpRequestHead
 
     /**
      * Parse a head JSON string.
+     *
+     * Shape-only validation — see the class SECURITY CONTRACT: the result is
+     * not gated until reconstituted through
+     * {@see RelayHttpRequest::assertSafe()}.
      *
      * @param string $json JSON text from a HEAD chunk.
      *

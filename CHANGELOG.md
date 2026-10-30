@@ -6,6 +6,21 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+Review-majors batch (shared M-06/M-08, the two lenses on one defect): the relay
+streaming DTOs now carry the security law where consumers must read it.
+`RelayHttpRequestHead::fromJson()` validates shape only — no method allowlist,
+no traversal denylist, credential-bearing headers parse through — and the sole
+consumer compensates by reconstituting the envelope and calling
+`RelayHttpRequest::assertSafe()` at END; that deferral was deliberate but lived
+nowhere the contract obliged it to be read. Each streaming head now states its
+SECURITY CONTRACT (head fields MUST NOT be trusted/gated around until the
+envelope gate runs; producers build from gated envelopes), `RelayHttpRequest`
+documents its untrusted-producer law, the trust-input/public-constructor
+bypass, and the streaming sibling's relationship to it, and
+`RelayHttpResponseHead` gained the matching header-trust paragraph. Behavior
+unchanged by design: enforcing inside the head parser would move wire
+rejection timing across the hub→server contract for the sole shipped producer.
+
 Review-majors batch (shared M-05): the add-a-key runbook now SHIPS with the
 repository. The only step-by-step version lived in `.claude/rules/schema-changes.md`
 — untracked by construction (`.gitignore:12` excludes `.claude/`, and git cannot

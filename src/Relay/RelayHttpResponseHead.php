@@ -41,6 +41,16 @@ use const JSON_THROW_ON_ERROR;
  * 100..999 or whose `bodyLength` is negative, so readers may branch on these
  * fields without adding their own range guards.
  *
+ * SECURITY CONTRACT — like its request sibling, this parser validates shape
+ * and the numeric ranges named above and NOTHING MORE: header pairs must be
+ * strings, but no header is filtered here, and nothing authenticates the
+ * producer. The direction is server → hub, yet the wire crosses a network
+ * boundary, so a hub-side consumer must treat `headers` as attacker-influence
+ * able content — apply the same trust discipline the request direction uses
+ * ({@see RelayHttpRequest::STRIPPED_HEADERS}) before reflecting or forwarding
+ * them, and gate status/bodyLength against your own expectations rather than
+ * assuming the sibling's range checks cover semantics.
+ *
  * @package Phlix\Shared\Relay
  * @since 0.10.0
  */
