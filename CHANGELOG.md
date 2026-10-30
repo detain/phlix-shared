@@ -6,6 +6,26 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+Review-minors batch W-min115 (shared): transport-law wording, doc discovery,
+docblock hygiene and CI action pinning. One behavior-adjacent disclosure: the
+`Arr` transport law was stated as an absolute "event-loop consumers MUST
+inject an async transport" in four places; the estate truth is an adjudicated
+split — phlix-hub deliberately keeps the default blocking `CurlArrTransport`
+under its S425 position (Swoole hooks native curl, so it is cooperative
+there), while phlix-server injects a workerman/http-client transport at its
+own seam. The prose now says "should … unless the platform hooks curl" and
+names both consumer positions; no code path changed. `@since 0.3.0` joins the
+three `Auth` contracts' docblocks (introduction release read from the
+CHANGELOG's own [0.3.0] section). CI float risk closed:
+`actions/checkout@v6` (×6) and `codecov/codecov-action@v6` are now SHA-pinned
+(v6/v6.1.0 = `d23441a4…`, codecov v6 HEAD = `f2274c2c…`), matching the
+pre-existing setup-php/codacy pins. README Requirements now lists all four
+runtime PSR deps (adds `psr/clock ^1.0`, `psr/log ^3.0` — was an
+undercount for anyone auditing their PSR surface from the README), the dev
+loop gained the `tests/` phpcs gate CI enforces (with its `composer cs-tests`
+alias), and the bundled-schemas section names the hub-drift guard, its
+`PHLIX_HUB_REPO` fail-loud pointer and the CI-skip fact.
+
 Docs/CI/dist-surface only (W-min114 minors cluster); zero runtime PHP surface
 changed. The `.gitattributes` + `composer.json` `archive` pair changes only the
 *distributed* tree, and even that rides to consumers at the NEXT tag seam —

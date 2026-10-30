@@ -64,6 +64,12 @@ for the files without a dedicated accessor, such as `manifest.schema.json`):
   Its property keys must stay in lockstep with `phlix-hub`'s
   `HubSettingsRepository::ALLOWED_KEYS` — that constant is what the hub settings controller
   enumerates, and the schema supplies only the render metadata for those keys (0.24.0+).
+  The lockstep is guarded from this side by `tests/Schema/HubSettingsSchemaTest.php`,
+  whose drift test parses the LIVE constant out of a hub checkout — found via the
+  `PHLIX_HUB_REPO` env pointer (a broken pointer fails the run; it never silently
+  skips) or a `phlix-hub` sibling directory of this checkout — and skips only when no
+  hub checkout exists at all (shared CI takes that skip; the test's frozen mirror and
+  the hub's own reverse guard cover the keys there).
 - `schemas/server-settings.schema.json` — JSON Schema (draft 2020-12) for the editable
   server settings (`/api/v1/admin/settings`); phlix-server derives its writable allow-list
   from this schema and the admin SPA renders the settings form from it (0.7.0+).
@@ -132,8 +138,10 @@ The PSR-14 dispatcher wiring (Tukio) and the schema validators stay in
 - PHP `^8.3` — CI-verified on PHP 8.3 and 8.4 (phpcs, phpstan, psalm and
   phpunit each run both legs); declared compatible below PHP 9.0.
 - Composer 2.x
+- `psr/clock ^1.0`
 - `psr/container ^2.0`
 - `psr/event-dispatcher ^1.0`
+- `psr/log ^3.0`
 
 The package has zero framework dependencies — no Workerman, no Monolog,
 no Smarty. It is intended to be safely required by any PHP 8.3+ codebase,
@@ -161,10 +169,15 @@ composer install
 ./vendor/bin/phpunit
 ./vendor/bin/phpstan analyze --no-progress
 ./vendor/bin/phpcs --standard=PSR12 src/
+./vendor/bin/phpcs --standard=phpcs-tests.xml
 ./vendor/bin/psalm --no-progress
 composer validate --strict
 php scripts/security-audit-check.php
 ```
+
+CI enforces every line above, including the `tests/` phpcs gate. The
+`composer` scripts `test`, `stan`, `cs`, `cs-tests` and `psalm` alias the
+vendor-binary lines.
 
 ⚠ The last step replaces `composer audit --no-dev`. **Never audit with a
 development-dependency exclusion:** `--no-dev` drops every `require-dev` package

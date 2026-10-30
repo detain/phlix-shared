@@ -27,9 +27,16 @@ use RuntimeException;
  *
  * All HTTP I/O is delegated to an injected {@see ArrTransportInterface}. When none
  * is supplied the class falls back to the bundled, **blocking** {@see CurlArrTransport}
- * so direct instantiation in CLI scripts/tests keeps working unchanged. Event-loop
- * consumers (Workerman/Webman) MUST inject an async, non-blocking transport so a slow
- * *arr instance never stalls the worker — see {@see ArrTransportInterface}.
+ * so direct instantiation in CLI scripts/tests keeps working unchanged. On a
+ * cooperative event loop (Workerman/Webman) a blocking request stalls the whole
+ * worker while an *arr call is in flight, so those consumers should inject an
+ * async, non-blocking transport — unless the platform hooks curl itself:
+ * phlix-hub deliberately keeps this default transport under its S425
+ * adjudication (its resident workers enable `SWOOLE_HOOK_ALL`, which includes
+ * `SWOOLE_HOOK_NATIVE_CURL`, so the blocking call yields its coroutine below
+ * this layer), while phlix-server injects a workerman/http-client-backed
+ * transport precisely because its curated Swoole hook mask excludes native
+ * curl. See {@see ArrTransportInterface}.
  *
  * @package Phlix\Shared\Arr
  * @since 0.4.0
@@ -51,8 +58,10 @@ abstract class AbstractArrClient
      * @param LoggerInterface|null $logger Optional logger instance.
      * @param int $timeout Request timeout in seconds (default 30).
      * @param ArrTransportInterface|null $transport Optional HTTP transport. When null,
-     *     a blocking {@see CurlArrTransport} (CLI/test only) is used. Event-loop
-     *     consumers MUST inject an async, non-blocking transport.
+     *     the blocking {@see CurlArrTransport} is used — appropriate for CLI/tests and
+     *     for runtimes that hook curl (phlix-hub's S425 position); cooperative
+     *     event-loop consumers (Workerman/Webman) should inject an async,
+     *     non-blocking transport.
      */
     public function __construct(
         string $baseUrl,

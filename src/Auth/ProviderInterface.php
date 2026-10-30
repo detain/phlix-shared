@@ -20,10 +20,8 @@ namespace Phlix\Shared\Auth;
  * implementation (typically a thin adapter in phlix-server that
  * delegates to an external library).
  *
- * @package Phlix\Auth
- * @author Phlix Team
- * @version 1.0.0
- * @description Contract for pluggable external authentication providers.
+ * @package Phlix\Shared\Auth
+ * @since 0.3.0
  *
  * @see AuthResult The result object returned by authenticate().
  * @see UserInfo  The user info object returned by getUserInfo().

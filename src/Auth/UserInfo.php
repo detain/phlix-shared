@@ -19,9 +19,7 @@ namespace Phlix\Shared\Auth;
  * and profile display.
  *
  * @package Phlix\Shared\Auth
- * @author Phlix Team
- * @version 1.0.0
- * @description User information from an external authentication provider.
+ * @since 0.3.0
  *
  * @see ProviderInterface::getUserInfo() Where this object is returned.
  * @see AuthResult The auth result that wraps user info on successful authentication.

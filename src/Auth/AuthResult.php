@@ -19,9 +19,7 @@ namespace Phlix\Shared\Auth;
  * stores externalId on the user row for future lookups.
  *
  * @package Phlix\Shared\Auth
- * @author Phlix Team
- * @version 1.0.0
- * @description Result of an external provider authentication attempt.
+ * @since 0.3.0
  *
  * @see ProviderInterface::authenticate() Where this object is returned.
  * @see UserInfo The user info object that describes the authenticated identity.

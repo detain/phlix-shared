@@ -18,11 +18,14 @@ namespace Phlix\Shared\Arr\Transport;
  * this interface, so the actual wire mechanism is a pluggable, injectable concern
  * rather than a hard-coded blocking call. This keeps the package honest about its
  * "zero I/O" charter: the only bundled implementation that touches the network is
- * {@see CurlArrTransport}, which is intended for CLI/test usage only.
+ * {@see CurlArrTransport}, intended for CLI/test use and for consumers whose
+ * runtime hooks curl (see the event-loop note below).
  *
- * **Event-loop consumers (Workerman/Webman) MUST inject an async, non-blocking
+ * **Event-loop consumers (Workerman/Webman) should inject an async, non-blocking
  * transport** (e.g. a `workerman/http-client`-backed implementation living in the
- * consumer) so that a slow *arr instance never stalls the worker's coroutines.
+ * consumer) so that a slow *arr instance never stalls the worker's coroutines —
+ * unless the runtime hooks curl, as in phlix-hub's Swoole worker start
+ * (`SWOOLE_HOOK_NATIVE_CURL`, adjudicated at S425: the default transport is kept).
  *
  * Implementations MUST NOT throw on a non-2xx HTTP status — they return the status
  * and raw body and let the caller map it. They MAY throw on a genuine transport

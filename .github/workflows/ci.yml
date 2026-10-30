@@ -7,13 +7,17 @@ on:
     branches: [master, main]
 
 jobs:
+  # Every `uses:` line below is pinned to a commit SHA (estate law —
+  # M-SHARED-36): actions/checkout@… = v6/v6.1.0, setup-php@… = v2.40.0,
+  # codecov@… = current v6 HEAD, codacy@… = v1.3.0. Do not float any of them
+  # back to a moving tag.
   composer-validate:
     name: Composer Validation
     runs-on: ubuntu-26.04
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
 
       - name: Setup PHP
         uses: shivammathur/setup-php@4424c9aab975b57bd706ee5a39c6b4334d6e4f60
@@ -41,7 +45,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
 
       - name: Setup PHP
         uses: shivammathur/setup-php@4424c9aab975b57bd706ee5a39c6b4334d6e4f60
@@ -83,7 +87,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
 
       - name: Setup PHP
         uses: shivammathur/setup-php@4424c9aab975b57bd706ee5a39c6b4334d6e4f60
@@ -107,7 +111,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
 
       - name: Setup PHP
         uses: shivammathur/setup-php@4424c9aab975b57bd706ee5a39c6b4334d6e4f60
@@ -131,7 +135,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
 
       - name: Setup PHP
         uses: shivammathur/setup-php@4424c9aab975b57bd706ee5a39c6b4334d6e4f60
@@ -147,7 +151,7 @@ jobs:
         run: ./vendor/bin/phpunit --colors=always
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@f2274c2c340e0c81c8f7dc407b2a477b8935f171
         with:
           files: ./coverage.xml
           flags: phpunit
@@ -168,7 +172,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
 
       - name: Setup PHP
         uses: shivammathur/setup-php@4424c9aab975b57bd706ee5a39c6b4334d6e4f60

@@ -96,9 +96,10 @@ step against `detain/phlix` if needed.
 2. `./vendor/bin/phpunit` green.
 3. `./vendor/bin/phpstan analyze --no-progress` green.
 4. `./vendor/bin/phpcs --standard=PSR12 src/` clean.
-5. `./vendor/bin/psalm --no-progress` clean.
-6. `composer validate --strict` clean.
-7. `php scripts/security-audit-check.php` no advisories.
+5. `./vendor/bin/phpcs --standard=phpcs-tests.xml` clean (the tests/ gate CI enforces).
+6. `./vendor/bin/psalm --no-progress` clean.
+7. `composer validate --strict` clean.
+8. `php scripts/security-audit-check.php` no advisories.
 
 If any tool emits warnings, fix the code — do not add to a baseline.
 
