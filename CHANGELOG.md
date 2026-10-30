@@ -6,6 +6,17 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+Review-majors batch (shared M-02/M-03): the dependency prose now mirrors
+`composer.json` exactly. AGENTS.md's "only third-party runtime deps" sentence
+named two PSRs where the package requires four; it now enumerates the real set
+(`psr/clock`, `psr/container`, `psr/event-dispatcher`, `psr/log`). README's
+Requirements records why `psr/event-dispatcher` stays despite zero code
+references — a deliberate consumer-convenience typing declaration, dispatch of
+these event DTOs being structurally valid PSR-14 — and `AbstractEvent`'s
+docblock carries the same keep law. (The README table rows for `psr/clock` and
+`psr/log` had already landed in the W-min115 minors batch; this commit closes
+the remaining ask halves.)
+
 Review-minors batch W-min118 (shared — the final shared-minors batch): schema-vocabulary
 truth, a teaching enum throw, and one contract for the HMAC verifier.
 `subtitles.default_language` now states the vocabulary its server consumer actually

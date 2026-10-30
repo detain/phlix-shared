@@ -149,6 +149,14 @@ The PSR-14 dispatcher wiring (Tukio) and the schema validators stay in
 - `psr/event-dispatcher ^1.0`
 - `psr/log ^3.0`
 
+`psr/event-dispatcher` is deliberately declarative: no class in `src/`
+imports a PSR-14 interface — dispatching the plain event DTOs under
+`Phlix\Shared\Events\` is structurally valid PSR-14 usage — and the
+require is kept as a consumer-convenience typing declaration so packages
+wiring a dispatcher resolve the contract through this package's own
+dependency set (keep-by-decision, not oversight; see
+`Phlix\Shared\Events\AbstractEvent`).
+
 The package has zero framework dependencies — no Workerman, no Monolog,
 no Smarty. It is intended to be safely required by any PHP 8.3+ codebase,
 with one caveat: the `Arr\*` HTTP clients are real network code (their

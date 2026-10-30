@@ -42,9 +42,14 @@ Keep everything else that way.
   > in `detain/phlix-docs`.
 - **Zero Workerman dependency.** This package must remain consumable
   outside the Workerman runtime.
-- **Framework-neutral PSRs only.** `psr/container` and
-  `psr/event-dispatcher` are the only third-party runtime deps. Adding
+- **Framework-neutral PSRs only.** The runtime dependency surface is
+  exactly the four PSR packages `composer.json` requires: `psr/clock`,
+  `psr/container`, `psr/event-dispatcher`, and `psr/log`. Adding
   anything else needs explicit sign-off in a plan step.
+  (`psr/event-dispatcher` is the declarative member: no class in `src/`
+  imports it — PSR-14 dispatch of these event DTOs is structural — and
+  it is kept as a deliberate consumer-convenience typing declaration,
+  not oversight; see the README Requirements note.)
 - **PHPDoc on every public class and method.** `@package`, `@since`,
   parameter and return tags as appropriate. Static analysers depend on
   it.

@@ -26,6 +26,12 @@ use Psr\Clock\ClockInterface;
  * populated. They MUST NOT add mutator methods or write to inherited
  * properties.
  *
+ * Note on the package's `psr/event-dispatcher` require: no class here
+ * imports a PSR-14 interface — dispatching these plain, immutable DTOs
+ * is structurally valid PSR-14 usage — and the dependency is declared
+ * deliberately as a consumer-convenience typing surface (keep by
+ * decision, not oversight; mirrored in the README Requirements note).
+ *
  * @package Phlix\Shared\Events
  * @since 0.2.0
  */
