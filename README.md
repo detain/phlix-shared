@@ -139,6 +139,49 @@ for the files without a dedicated accessor, such as `manifest.schema.json`):
 The PSR-14 dispatcher wiring (Tukio) and the schema validators stay in
 `phlix-server` and consume this package via Composer.
 
+## Adding a server settings key (runbook)
+
+The schemas are this repo's whole job; touching one means touching its test
+locks in the same commit. `tests/Schema/ServerSettingsSchemaTest.php` holds
+**three** locks, and every one of them fails loudly with guidance text —
+this runbook is those steps written down before you hit them:
+
+1. **Schema JSON.** Add the property to `schemas/server-settings.schema.json`.
+   The key must be a dotted path resolvable by the server's
+   `SettingsRepository::getDefault()` (leading run = a `config/` file, longest
+   file path wins, every file segment jailed to `/^[A-Za-z0-9_-]+$/` — see the
+   Key-naming contract above). Give it `label`, `helpText`, `group`, `tier`,
+   and an **explicit** `restart` (`true`/`false` — the unset count is pinned
+   at 0); mark credentials `secret: true`.
+2. **Roster lock.** Add the key's row to `ServerSettingsSchemaTest::propertyProvider()`
+   (`'key' => ['key', '<json-type>']`) and bump the `assertCount(N, $actual)`
+   in `test_schema_has_exactly_the_expected_property_keys` — the roster test
+   asserts the schema declares exactly the documented keys, set-equality plus count.
+3. **Pin lock.** Add the key's full-value row to `ServerSettingsSchemaTest::pinTable()`:
+   type / default / bounds / enum / restart / secret, each verified to reproduce
+   deployed behavior before it ships (the `schemaPinProvider()` data-provider test
+   checks the schema against this table, and
+   `test_pin_table_covers_exactly_the_schema_properties` set-equality refuses a
+   schema key without a pin row — its throw message is the deliberate "add the
+   rows deliberately" guidance).
+4. **Naming/keyword laws.** The remaining pins (first-segment config-file name,
+   forbidden key namespaces, secret-credential list, label/help presence,
+   enum-option documentation, numeric bounds presence) run per key and per
+   header; read their failure messages, do not widen them.
+5. **Consumer rule.** Keys are deleted through `CONSUMERLESS_KEY_DENYLIST`
+   (deletion record; a deny-listed key must not be re-added). A new key must
+   therefore have a real consumer in `phlix-server` reading the effective value —
+   adding schema surface nothing reads is how key-count theater starts.
+6. **Hub keys differ.** For `schemas/hub-settings.schema.json`, the property
+   keys must stay set-equal with `phlix-hub`'s `HubSettingsRepository::ALLOWED_KEYS`
+   (see Bundled schemas above); the two-sided drift guard is
+   `tests/Schema/HubSettingsSchemaTest.php` (live via a hub checkout or the
+   `PHLIX_HUB_REPO` pointer; CI runs the frozen mirror leg).
+7. **Verify + release.** `./vendor/bin/phpunit`, `phpstan analyze`, both phpcs
+   legs, `composer validate --strict` — all green in the same commit. Release is
+   lockstep: `Version::VERSION` = CHANGELOG heading = annotated git tag
+   (AGENTS.md "Versioning"); consumers then bump their `^0.x` pin.
+
 ## Requirements
 
 - PHP `^8.3` — CI-verified on PHP 8.3 and 8.4 (phpcs, phpstan and phpunit

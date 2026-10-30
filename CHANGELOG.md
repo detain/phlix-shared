@@ -6,6 +6,18 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+Review-majors batch (shared M-05): the add-a-key runbook now SHIPS with the
+repository. The only step-by-step version lived in `.claude/rules/schema-changes.md`
+— untracked by construction (`.gitignore:12` excludes `.claude/`, and git cannot
+re-include files under an excluded parent directory, so the `!.claude/rules/`
+negations are dead) — and a fresh clone carried no contributing half of the
+schema-SSOT story at all. README gains an "Adding a server settings key" runbook:
+the three schema-test locks by method name (roster+assertCount, `pinTable()`
+rows, `test_pin_table_covers_exactly_the_schema_properties` set-equality — the
+uncruised file only knew two), the naming-law one-liner, the consumer rule via
+`CONSUMERLESS_KEY_DENYLIST`, the hub ALLOWED_KEYS lockstep pointer, and the
+Version/CHANGELOG/tag release lockstep.
+
 Review-majors batch (shared M-04): the README restart-audit paragraph no longer
 contradicts its own page — the 0.46.0–0.48.0 audit window held 72 schema keys
 (tag-verified v0.46.0 = v0.47.0 = v0.48.0 = v0.48.1), not 73; `transcoding.segment_format`
