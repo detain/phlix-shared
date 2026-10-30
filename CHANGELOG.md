@@ -26,6 +26,20 @@ loop gained the `tests/` phpcs gate CI enforces (with its `composer cs-tests`
 alias), and the bundled-schemas section names the hub-drift guard, its
 `PHLIX_HUB_REPO` fail-loud pointer and the CI-skip fact.
 
+CI forward-fix (rides on top of W-min115; completes the W-min114 matrix
+claim): the first CI 8.4 legs proved a fresh install differs from a reused
+vendor tree — the locked `vimeo/psalm` 5.26.1 declares a `~8.3.0` PHP
+ceiling, so a plain `composer install` on an 8.4 runner rejects the whole
+lock (reproduced on real PHP 8.4.27: plain install dies in lock
+verification, `--ignore-platform-req=php` proceeds). The 8.4 legs of phpcs,
+phpstan and phpunit now install with that scoped ignore (psalm is the sole
+violator and those legs never run it); the psalm gate went back to 8.3-only
+because running psalm's code under 8.4, while measured green locally, sits
+outside the tool's own declared support. README's ceiling sentence now
+states exactly which gates run which legs. W-min114's original wording
+stands as what it measured (tool gates green on 8.4 against a warm vendor
+tree); this paragraph is the CI-truth addendum — history kept verbatim.
+
 Docs/CI/dist-surface only (W-min114 minors cluster); zero runtime PHP surface
 changed. The `.gitattributes` + `composer.json` `archive` pair changes only the
 *distributed* tree, and even that rides to consumers at the NEXT tag seam —

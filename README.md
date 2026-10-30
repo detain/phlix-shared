@@ -135,8 +135,10 @@ The PSR-14 dispatcher wiring (Tukio) and the schema validators stay in
 
 ## Requirements
 
-- PHP `^8.3` — CI-verified on PHP 8.3 and 8.4 (phpcs, phpstan, psalm and
-  phpunit each run both legs); declared compatible below PHP 9.0.
+- PHP `^8.3` — CI-verified on PHP 8.3 and 8.4 (phpcs, phpstan and phpunit
+  each run both legs; the psalm gate is 8.3-only because the toolchain's
+  locked vimeo/psalm 5.x declares a `~8.3.0` ceiling); declared compatible
+  below PHP 9.0.
 - Composer 2.x
 - `psr/clock ^1.0`
 - `psr/container ^2.0`
