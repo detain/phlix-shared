@@ -113,8 +113,10 @@ for the files without a dedicated accessor, such as `manifest.schema.json`):
   `optionHelp`, `helpText`, and `description` now describe `fmp4` as the shipped container and
   `mpegts` as the supported rollback (0.49.1+).
 
-  **`restart` flags (0.46.0–0.48.0 audit).** Every one of the then-73 keys was traced to its
-  consumer; keys added since each carry an explicit flag too. As of 0.52.0 the schema holds
+  **`restart` flags (0.46.0–0.48.0 audit).** Every one of the then-72 keys was traced to
+  its consumer (the audit window held 72 — v0.46.0 = v0.47.0 = v0.48.0 = v0.48.1; the 73rd,
+  `transcoding.segment_format`, arrived with the 0.49.0 addition named just above); keys
+  added since each carry an explicit flag too. As of 0.52.0 the schema holds
   84 keys: 51 carry `restart: true` and 33 carry `restart: false`. `restart: true` means the
   admin **Restart server** control (a graceful SIGUSR2 reload that cycles workers, re-runs
   `onWorkerStart`, and rebuilds DI containers) — required for any value captured at worker

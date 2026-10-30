@@ -6,6 +6,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+Review-majors batch (shared M-04): the README restart-audit paragraph no longer
+contradicts its own page — the 0.46.0–0.48.0 audit window held 72 schema keys
+(tag-verified v0.46.0 = v0.47.0 = v0.48.0 = v0.48.1), not 73; `transcoding.segment_format`
+became the 73rd only at 0.49.0, which the same README had already announced three
+bullets earlier. The CHANGELOG's correct `73 → 78`/`73 → 84` arithmetic (73 being the
+true v0.50.0 count) is untouched history.
+
 Review-majors batch (shared M-02/M-03): the dependency prose now mirrors
 `composer.json` exactly. AGENTS.md's "only third-party runtime deps" sentence
 named two PSRs where the package requires four; it now enumerates the real set
