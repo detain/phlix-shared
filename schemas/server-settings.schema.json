@@ -674,7 +674,7 @@
         },
         "transcoding.audio_bitrate": {
             "type": "string",
-            "description": "AAC audio bitrate for transcoded output, e.g. 128k. Accepts a bare number. Clamped to 32..512 kbps. Applies to the next transcode.",
+            "description": "AAC audio bitrate for transcoded output, e.g. 128k. Accepts a bare number. The 32..512 kbps clamp is applied by the consumer (phlix-server's `EncodeSettings::audioBitrate()` reads and sanitizes the value); this schema constrains only the type. Applies to the next transcode.",
             "group": "transcoding",
             "label": "Audio bitrate",
             "helpText": "The bitrate used when audio has to be re-encoded to AAC, which happens whenever the original track is in a format the client cannot play. Audio that is already AAC is usually passed through untouched, so this does not affect every stream. The shipped 128k is transparent enough for stereo on most equipment; 192k or 256k is worth considering if people listen on good headphones or a hi-fi, and lower values save bandwidth on constrained connections. Enter either 128k or plain 128 \u2014 both are understood. Note this is per stream, so it adds to the total bandwidth of every simultaneous viewer. Changing it makes previously transcoded items re-encode the next time they are played.",

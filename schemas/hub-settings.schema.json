@@ -72,7 +72,7 @@
             "type": "boolean",
             "group": "auth",
             "description": "Close self-service user signups on this hub.",
-            "label": "Disable new signups",
+            "label": "Signups disabled",
             "helpText": "When true, the hub's registration endpoint rejects every new signup with 403 auth.signups_disabled before credentials are even checked; existing users keep signing in normally. The shipped default is false (signups open, mirroring the boot-time HUB_SIGNUPS_ENABLED environment flag which defaults to true). The gate consults the effective value per signup through the hub settings resolver, so a change applies live without a restart; if the settings read fails the hub degrades to the boot-time flag.",
             "helpLinks": [
                 {
@@ -89,7 +89,7 @@
             "group": "hub",
             "description": "Gate all hub API traffic behind a 503 maintenance response.",
             "label": "Maintenance mode",
-            "helpText": "When enabled, the hub answers 503 provider_unavailable for API traffic. Auth, hub-settings, admin settings/restart and /health stay reachable so the off-switch is never locked behind the gate; the /app SPA shell keeps serving. Live within ~1s per worker; a settings outage fails OPEN to the HUB_MAINTENANCE_MODE boot flag.",
+            "helpText": "When enabled, the hub answers 503 provider_unavailable for API traffic. Auth, hub-settings, admin settings/restart and /health stay reachable so the off-switch is never locked behind the gate; the /app SPA shell keeps serving. Changes apply live within about one second per worker. If the settings store cannot be read, the gate fails open to the HUB_MAINTENANCE_MODE boot flag: the hub keeps serving rather than locking every visitor out behind an unreadable setting.",
             "helpLinks": [
                 {
                     "text": "HTTP 503 Service Unavailable",
@@ -105,7 +105,7 @@
             "group": "federation",
             "description": "Master switch for hub-to-hub federation traffic.",
             "label": "Enable hub federation",
-            "helpText": "Master switch for hub-to-hub federation. Off: peer mutations 409 provider.not_configured, inbound handshake/DATA frames are refused or dropped, and outbound dials stop. Reads and hub-config CRUD stay open; the :8805 listener stays bound until a restart. Re-enabling instantly re-admits traffic on links that survived the off-window, and re-establishes links that dropped while off within <=60s automatically (the reconnect chain parks at the <=60s backoff cap during the disabled window and re-checks on that cadence — no restart or explicit trigger needed). The same cap also throttles the disabled-window re-check cadence; a hub-config save / peer relay toggle still dials immediately.",
+            "helpText": "Master switch for hub-to-hub federation. Off: peer mutations 409 provider.not_configured, inbound handshake/DATA frames are refused or dropped, and outbound dials stop. Reads and hub-config CRUD stay open, and the federation listener (port 8805) stays bound until a restart. Re-enabling instantly re-admits traffic on links that survived the off-window, and re-establishes links that dropped while off within <=60s automatically (the reconnect chain parks at the <=60s backoff cap during the disabled window and re-checks on that cadence — no restart or explicit trigger needed). The same cap also throttles the disabled-window re-check cadence; a hub-config save / peer relay toggle still dials immediately.",
             "helpLinks": [
                 {
                     "text": "Federation (object management)",
@@ -121,7 +121,7 @@
             "group": "requests",
             "description": "Approve newly filed media requests immediately, best effort.",
             "label": "Auto-approve media requests",
-            "helpText": "Newly filed requests are approved immediately after the pending row lands (best-effort: any approval failure — arr disabled, down, quota — leaves the request pending exactly like the manual queue). Live per create.",
+            "helpText": "Newly filed requests are approved immediately after the pending row lands (best-effort: any approval failure — arr disabled, down, quota — leaves the request pending exactly like the manual queue). The flag is read at each request creation, so changes apply live without a restart.",
             "helpLinks": [
                 {
                     "text": "Approval work flow",
@@ -137,7 +137,7 @@
             "group": "invite",
             "description": "Invite lifetime applied when the creator omits an explicit expiry.",
             "label": "Default invite expiry (seconds)",
-            "helpText": "Invite lifetime applied ONLY when the creator omits expires_in (an explicit body value always wins). 0 = never expire; 604800 = the 7-day default invites shipped with before this setting. Live per create.",
+            "helpText": "Invite lifetime applied ONLY when the creator omits expires_in (an explicit body value always wins). 0 = never expire; 604800 = the 7-day default invites shipped with before this setting. The value is read at each invite creation, so changes apply live to newly created invites without a restart.",
             "helpLinks": [
                 {
                     "text": "Magic link (authentication)",
@@ -155,7 +155,7 @@
             "group": "server",
             "description": "Per-account cap on owned servers; 0 means unlimited.",
             "label": "Max servers per user",
-            "helpText": "Per-account server quota checked at claim time against ALL owned servers (any status). 0 = unlimited, the shipped behavior. Rare concurrent claims of DIFFERENT codes may overshoot by the concurrency count — a quota guard, not a billing-strict invariant.",
+            "helpText": "Per-account server quota checked at claim time against ALL servers the account owns, whatever their status. 0 = unlimited, the shipped behavior. The check runs while claims are created and does not serialize them, so rare concurrent claims of different codes can overshoot the cap by the number of parallel claims: this is a quota guard, not a billing-strict invariant.",
             "helpLinks": [
                 {
                     "text": "Quota (computing)",
@@ -191,7 +191,7 @@
             "group": "server",
             "description": "Arm per-worker metrics collection for relay and HTTP workers.",
             "label": "Enable metrics collection",
-            "helpText": "Read once per worker at boot (HTTP/relay workers arm their collectors in onWorkerStart); mid-lifetime flips apply to NEW workers — use the graceful restart to recycle. Metrics flush/prune stop when every worker boots with this off.",
+            "helpText": "Read once per worker at boot (HTTP/relay workers arm their collectors in onWorkerStart), so a mid-lifetime change only affects workers forked afterwards: use the in-app graceful restart to recycle the running workers and make the new value take effect at once. Metrics flush and prune stop entirely when every worker boots with this off.",
             "helpLinks": [
                 {
                     "text": "Observability (software)",
@@ -225,7 +225,7 @@
             "group": "server",
             "description": "Grace window for a displaced relay tunnel to finish in-flight requests.",
             "label": "Reconnect drain grace (seconds)",
-            "helpText": "Seconds a displaced incumbent tunnel keeps draining in-flight requests after a validated reconnect. 0 = immediate hard displacement. Live at each displacement event; clamped 0..300 at read.",
+            "helpText": "Seconds a displaced incumbent tunnel keeps draining in-flight requests after a validated reconnect. 0 = immediate hard displacement. The value is read at each displacement event and clamped to 0..300 seconds, so changes apply live without a restart.",
             "helpLinks": [
                 {
                     "text": "Load balancing (computing)",
@@ -243,7 +243,7 @@
             "group": "server",
             "description": "Sparse JSON overrides merged over the hub's static rate-limiter section.",
             "label": "Rate-limit overrides (JSON)",
-            "helpText": "Sparse override blob over config/server.php rate_limit, e.g. {\"login\":{\"max\":10},\"cap\":5000}. Known surface keys: login, proxy, heartbeat, jwks, relay_connect, client_mount, mcp, alexa, signup, cap. Values must be integers > 0 to count; unknown keys are ignored. Applied per worker at boot — use the graceful restart to recycle. Tightening signup/login limits while locked out is not possible: limits exist to protect the hub, and the exempt maintenance paths do not bypass them.",
+            "helpText": "A JSON object of sparse overrides merged over the hub's static rate-limiter section in config/server.php, e.g. {\"login\":{\"max\":10},\"cap\":5000}. Known surface keys: login, proxy, heartbeat, jwks, relay_connect, client_mount, mcp, alexa, signup, cap. Values must be integers greater than 0 to take effect; unknown keys are ignored. The overrides are merged once per worker at boot, so applying a change needs the in-app graceful restart. Plan limit changes carefully: the limits exist to protect the hub and still apply on the maintenance-exempt paths, so a tightened signup or login limit cannot be worked around while locked out.",
             "helpLinks": [
                 {
                     "text": "RFC 6585 - Additional HTTP Status Codes (429)",
@@ -259,7 +259,7 @@
             "group": "server",
             "description": "Enable the Sonarr integration for request approval.",
             "label": "Sonarr integration enabled",
-            "helpText": "Overrides HUB_SONARR_ENABLED live at each approval. The API key stays env-only (HUB_SONARR_API_KEY) and is never exposed through the settings surface — see the DENIED_KEYS admission law.",
+            "helpText": "Overrides HUB_SONARR_ENABLED live at each approval. The API key stays env-only (HUB_SONARR_API_KEY) and is never exposed through the settings surface: the hub's settings allow-list deliberately refuses the key, so it can only ever be set by the environment.",
             "helpLinks": [
                 {
                     "text": "Sonarr",
@@ -291,7 +291,7 @@
             "group": "server",
             "description": "Enable the Radarr integration for request approval.",
             "label": "Radarr integration enabled",
-            "helpText": "Overrides HUB_RADARR_ENABLED live at each approval. The API key stays env-only (HUB_RADARR_API_KEY) and is never exposed through the settings surface — see the DENIED_KEYS admission law.",
+            "helpText": "Overrides HUB_RADARR_ENABLED live at each approval. The API key stays env-only (HUB_RADARR_API_KEY) and is never exposed through the settings surface: the hub's settings allow-list deliberately refuses the key, so it can only ever be set by the environment.",
             "helpLinks": [
                 {
                     "text": "Radarr",

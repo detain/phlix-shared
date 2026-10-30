@@ -53,6 +53,44 @@ its lock is re-pinned past the next release.
   the hub drift comparator's law (properties ↔ ALLOWED_KEYS names/types) is
   untouched, and no test in phlix-server or phlix-hub pins the previous
   helpText verbatim (grep-verified).
+- Docs truth pass for the estate minors review (batch W-min110), prose only — no key, type,
+  default, bound, enum, `restart` or `secret` dimension moved, so the hub drift comparator and
+  the per-key pin tables of both schema suites are unaffected. In
+  `schemas/server-settings.schema.json`, the `transcoding.audio_bitrate` description now
+  attributes the 32..512 kbps clamp to where it actually runs (phlix-server's
+  `EncodeSettings::audioBitrate()` reads and sanitizes the value) instead of implying the
+  schema clamps — no validation keyword ever did (M-SHARED-17). In
+  `schemas/hub-settings.schema.json`, nine `helpText`s and one label were re-voiced from
+  operator shorthand into full sentences in the server schema's admin voice: the maintenance
+  fail-open disclosure, the federation port written as "port 8805", the
+  `server.max_servers_per_user` overshoot caveat, both "Live per create." fragments on
+  `requests.auto_approve` and `invite.default_expiry_seconds` expanded, the
+  `server.relay.reconnect_drain_grace_seconds` read-time sentence, the
+  `server.metrics.enabled` recycle phrasing, `server.rate_limit` re-ordered affirmative-first,
+  and the internal "DENIED_KEYS admission law" shorthand on `server.arr.sonarr.enabled` /
+  `server.arr.radarr.enabled` replaced with what it operationally means (M-SHARED-44);
+  `auth.signups_disabled` label joined the affirmative family ("Signups disabled").
+- README truth pass for the same batch: the `trakt.*` flat-prefix note re-points at
+  `TraktOperatorConfig::SETTING_KEY_MAP` — `TraktOAuthController` has carried only an `@see`
+  pointer at it since the server's SRV-HYGIENE extraction (M-SHARED-01); the "Cumulative
+  surface" enumeration now actually is cumulative — it names the previously unlisted
+  `Plugin\ConfigurableInterface`, `Hub\LibraryRef`, the Relay HTTP *request* envelope classes,
+  the whole `Security\Hmac` namespace, `Support\PayloadAssert`, `Version`, and the Arr
+  factory/transport/support surface (M-SHARED-06); and the bundled-schemas sentence now states
+  the real resolution scheme instead of implying every file has an accessor: a dedicated
+  `SchemaPaths` accessor where one exists, else `SchemaPaths::dir()` joined with the file name
+  — `manifest.schema.json` has none (M-SHARED-06).
+
+### Docs
+
+- Two CHANGELOG-format disclosures, folded as a note rather than rewriting published history
+  (estate policy keeps released CHANGELOG entries verbatim and folds corrections forward).
+  (1) The nine `[0.1.0]`–`[0.9.0]` headings (lines 1935–2144) carry an em-dash between version
+  and date while the 48 headings from `[0.10.0]` up carry a hyphen; the split is exactly the
+  published record and stays as-is (M-SHARED-48). (2) The `[0.52.0]` heading date `2026-10-07`
+  is the UTC date of the annotated tag — tagger date `2026-10-06 21:21:46 -0400` is
+  `2026-10-07 01:21 UTC`; `v0.50.0`/`v0.51.0` were tagged midday and so read the same in both
+  timezones. Release-entry dates follow the UTC calendar of the tag moment (M-SHARED-49).
 
 ## [0.52.0] - 2026-10-07
 

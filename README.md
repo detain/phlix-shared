@@ -17,7 +17,7 @@ Composer-installable, PHP 8.3+, zero I/O — pure interfaces and value objects o
 
 **v0.52.0** (`Phlix\Shared\Version::VERSION`). `schemas/server-settings.schema.json` carries 84 keys (51 `restart: true`, 33 `restart: false`); `schemas/hub-settings.schema.json` carries 18 keys in lockstep with `phlix-hub`'s `HubSettingsRepository::ALLOWED_KEYS`. Cumulative surface:
 
-- `Phlix\Shared\Plugin\{LifecycleInterface, Manifest, ManifestType, ManifestValidationError, EventNameMap}`
+- `Phlix\Shared\Plugin\{LifecycleInterface, ConfigurableInterface, Manifest, ManifestType, ManifestValidationError, EventNameMap}`
 - `Phlix\Shared\Events\{AbstractEvent, Playback\*, Library\*, Auth\*}` — 12 event DTOs.
 - `Phlix\Shared\Auth\{JwtClaims, ProviderInterface, AuthResult, UserInfo}`
 - `Phlix\Shared\Metadata\MetadataSourceInterface` — the typed contract a metadata-source plugin
@@ -28,18 +28,28 @@ Composer-installable, PHP 8.3+, zero I/O — pure interfaces and value objects o
   the subtitle analogue of `MetadataSourceInterface`: `getName()`, `getPriority()`, the
   `searchByPath()`/`searchByHash()`/`searchByImdbId()` fan-out returning `SubtitleCandidate` values, and the
   quota-consuming `download()` that may throw `QuotaExceeded` (0.42.0+).
-- `Phlix\Shared\Hub\{ClaimRequest, ClaimResponse, ServerInfoDto, HeartbeatDto}`
+- `Phlix\Shared\Hub\{ClaimRequest, ClaimResponse, ServerInfoDto, HeartbeatDto, LibraryRef}`
 - `Phlix\Shared\Relay\{RelayFrameType, RelayWireCodecInterface, RelayFrame}` — channel-mux protocol (0.5+);
-  plus `{RelayHttpRequest, RelayHttpResponseHead, RelayHttpResponseChunk, RelayHttpResponseCodec}` —
+  plus `Relay\{RelayHttpRequest, RelayHttpRequestHead, RelayHttpRequestChunk, RelayHttpRequestCodec}` and
+  `Relay\{RelayHttpResponseHead, RelayHttpResponseChunk, RelayHttpResponseCodec}` —
   HTTP-over-relay request/response envelopes + `HEAD→BODY*→END` chunk framing (0.10.0+).
-- `Phlix\Shared\Arr\{BazarrClient, ProwlarrClient, RadarrClient, SonarrClient}` — *arr HTTP clients.
+- `Phlix\Shared\Arr\{ArrClientInterface, ArrClientFactory, AbstractArrClient, BazarrClient, ProwlarrClient, RadarrClient, SonarrClient, SyncResult, SecretRedactor, TrashGuidesProvider}` —
+  *arr HTTP clients with their factory, shared base, sync value object, redactor and
+  TrashGuides provider; `Arr\Transport\{ArrTransportInterface, CurlArrTransport}` is the pluggable
+  wire layer underneath.
+- `Phlix\Shared\Security\Hmac` — constant-time HMAC sign/verify primitive (webhooks, relay tokens).
+- `Phlix\Shared\Support\PayloadAssert` — the presence/type assertion trait every wire DTO in
+  `Hub\`/`Auth\` parses through.
 - `Phlix\Shared\Schema\SchemaPaths` — pure path resolver for the bundled `schemas/` files (0.7.0+).
+- `Phlix\Shared\Version` — the single `VERSION` constant consumers pin and report.
 
 ### Bundled schemas
 
 The package ships the canonical JSON files used by both phlix-server and the
-admin SPA under `schemas/` (resolve their absolute paths via
-`Phlix\Shared\Schema\SchemaPaths`):
+admin SPA under `schemas/` (resolve their absolute paths via the dedicated
+`Phlix\Shared\Schema\SchemaPaths` accessors — `serverSettings()`, `hubSettings()`,
+`webhookEvents()`, `mediaItem()`, `libraryQuery()` — and via `SchemaPaths::dir()`
+for the files without a dedicated accessor, such as `manifest.schema.json`):
 
 - `schemas/manifest.schema.json` — JSON Schema (draft 2020-12) for plugin manifests,
   loaded at runtime by `phlix-server`'s `Phlix\Plugins\Manifest\ManifestSchema` validator (0.6.0+).
@@ -71,7 +81,7 @@ admin SPA under `schemas/` (resolve their absolute paths via
   The `trakt.*` keys deliberately use a FLAT prefix backed by `phlix-server`'s
   `config/trakt.php` re-export shim rather than the nested `scrobblers.trakt.*` form:
   `trakt.*` overrides are already persisted in live `server_settings` tables and
-  `TraktOAuthController::SETTING_KEY_MAP` reads those exact keys, so renaming them would
+  `TraktOperatorConfig::SETTING_KEY_MAP` reads those exact keys, so renaming them would
   orphan real rows (0.25.0+).
   Adds `matching.noise_suffixes` (array of strings; the admin-extensible match-title noise list —
   0.13.0+) and `metadata.provider_priority` (object: media type → ordered array of source names;
