@@ -1424,6 +1424,35 @@ final class ServerSettingsSchemaTest extends TestCase
     }
 
     /**
+     * M-SHARED-20: `trakt.redirect_uri` is the OAuth code-flow return target;
+     * the schema is its canonical contract and must say "absolute https URI",
+     * not "any string". The placeholder default has to satisfy its own
+     * pattern or the constraint is fiction.
+     */
+    public function test_trakt_redirect_uri_declares_its_https_uri_contract(): void
+    {
+        $properties = self::properties();
+        $this->assertArrayHasKey('trakt.redirect_uri', $properties);
+
+        $property = $properties['trakt.redirect_uri'];
+        $this->assertSame('uri', $property['format'] ?? null, 'redirect_uri must declare format "uri".');
+        $this->assertSame(
+            '^https://',
+            $property['pattern'] ?? null,
+            'redirect_uri must declare the https-only pattern.'
+        );
+
+        $pattern = $property['pattern'] ?? null;
+        $default = $property['default'] ?? null;
+        $this->assertIsString($default, 'default must be a string.');
+        $this->assertSame(
+            1,
+            preg_match('#' . $pattern . '#', $default),
+            'The default must satisfy the property\'s own pattern.'
+        );
+    }
+
+    /**
      * M-SHARED-50: the newsletter digest day is fixed (config file), only the
      * hour is admin-adjustable. The helpText must not point at a phantom day
      * control, and no day key may appear in the admin surface.

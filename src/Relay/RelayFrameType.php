@@ -249,13 +249,7 @@ enum RelayFrameType: int
      */
     public static function fromValue(int $value): self
     {
-        foreach (self::cases() as $case) {
-            if ($case->value === $value) {
-                return $case;
-            }
-        }
-
-        throw new InvalidArgumentException(
+        return self::tryFrom($value) ?? throw new InvalidArgumentException(
             sprintf('Invalid relay frame type value: 0x%02X', $value),
         );
     }
@@ -271,12 +265,6 @@ enum RelayFrameType: int
      */
     public static function isValid(int $value): bool
     {
-        foreach (self::cases() as $case) {
-            if ($case->value === $value) {
-                return true;
-            }
-        }
-
-        return false;
+        return self::tryFrom($value) !== null;
     }
 }

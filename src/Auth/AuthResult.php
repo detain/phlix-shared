@@ -11,12 +11,16 @@ declare(strict_types=1);
 
 namespace Phlix\Shared\Auth;
 
+use InvalidArgumentException;
+
 /**
  * Immutable value object returned by {@see ProviderInterface::authenticate()}.
  *
  * Captures the outcome of an authentication attempt against an external
- * provider. On success, the caller uses userId to issue a local JWT and
- * stores externalId on the user row for future lookups.
+ * provider. On success with a resolved account, the caller uses userId to
+ * issue a local JWT; external-provider successes may legitimately carry
+ * userId === null, in which case the caller maps externalId onto (or
+ * creates) the local account through the linking flow before issuing.
  *
  * @package Phlix\Shared\Auth
  * @since 0.3.0
@@ -39,18 +43,22 @@ namespace Phlix\Shared\Auth;
  *     success: false,
  *     error:   'token_expired',
  * );
- * );
  * ```
  */
 final readonly class AuthResult
 {
     /**
      * @param bool                          $success    True when authentication succeeded.
-     * @param string|null                   $userId     Local Phlix user UUID (null on failure).
+     * @param string|null                   $userId     Local Phlix user UUID — set by
+     *     identity providers that resolve straight to an account; null on failures and,
+     *     by design, on external-provider successes whose local account is matched
+     *     later by the linking flow (see phlix-server's account-link controller).
      * @param string|null                   $externalId Provider-specific ID (null on failure).
      * @param string|null                   $error      Machine-readable error code (null on success).
      * @param array<string, mixed>         $attributes Arbitrary provider-returned claims
      *                                                   (email, name, avatarUrl, etc.).
+     *
+     * @throws InvalidArgumentException When a "success" result also carries an error.
      */
     public function __construct(
         public bool $success,
@@ -59,10 +67,22 @@ final readonly class AuthResult
         public ?string $error = null,
         public array $attributes = [],
     ) {
+        // Fail-fast at the construction boundary (the package's PayloadAssert
+        // doctrine): "success with an error attached" is not a state any
+        // consumer may meaningfully handle. Note the inverse is deliberately
+        // NOT constrained — external-provider successes legitimately carry
+        // userId === null until the linking flow maps the account.
+        if ($success && $error !== null) {
+            throw new InvalidArgumentException(
+                'AuthResult cannot carry an error on success (success and error are mutually exclusive).'
+            );
+        }
     }
 
     /**
      * Return true when the authentication attempt succeeded.
+     *
+     * Convenience alias of the canonical read, {@see self::$success}.
      *
      * @return bool
      */
@@ -73,6 +93,8 @@ final readonly class AuthResult
 
     /**
      * Return true when the authentication attempt failed.
+     *
+     * Convenience alias of the canonical read, {@see self::$success}.
      *
      * @return bool
      */

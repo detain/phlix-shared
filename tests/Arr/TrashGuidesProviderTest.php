@@ -328,4 +328,58 @@ class TrashGuidesProviderTest extends TestCase
         $this->assertNull($customFormats->getValue($provider));
         $this->assertNull($version->getValue($provider));
     }
+
+    /**
+     * M-SHARED-22: a poisoned config must not turn the fetch into a local
+     * stream read. The https-only guard fires before any stream call, so
+     * `file://` (which would SUCCEED against a real local file!) is refused
+     * deterministically and offline.
+     */
+    public function testFetchUrlRefusesFileSchemeBeforeAnyRead(): void
+    {
+        $provider   = new TrashGuidesProvider();
+        $reflection = new \ReflectionClass($provider);
+        $fetchUrl   = $reflection->getMethod('fetchUrl');
+        $fetchUrl->setAccessible(true);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('only https:// URLs are allowed (got scheme "file")');
+
+        // /etc/passwd exists on every CI venue; the OLD code happily read and
+        // returned it. The test only passes if the guard refuses first.
+        $fetchUrl->invoke($provider, 'file:///etc/passwd');
+    }
+
+    /**
+     * M-SHARED-22: plain http is refused too (the TRaSH-Guides upstream is
+     * https-only; no legitimate caller loses anything).
+     */
+    public function testFetchUrlRefusesHttpScheme(): void
+    {
+        $provider   = new TrashGuidesProvider();
+        $reflection = new \ReflectionClass($provider);
+        $fetchUrl   = $reflection->getMethod('fetchUrl');
+        $fetchUrl->setAccessible(true);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('only https:// URLs are allowed (got scheme "http")');
+
+        $fetchUrl->invoke($provider, 'http://raw.githubusercontent.com/x/y.json');
+    }
+
+    /**
+     * M-SHARED-22: a scheme-less path is not a fetchable URL either.
+     */
+    public function testFetchUrlRefusesSchemelessPath(): void
+    {
+        $provider   = new TrashGuidesProvider();
+        $reflection = new \ReflectionClass($provider);
+        $fetchUrl   = $reflection->getMethod('fetchUrl');
+        $fetchUrl->setAccessible(true);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('only https:// URLs are allowed (got scheme "none")');
+
+        $fetchUrl->invoke($provider, '/etc/shadow');
+    }
 }

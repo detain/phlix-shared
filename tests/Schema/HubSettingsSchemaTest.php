@@ -973,6 +973,50 @@ final class HubSettingsSchemaTest extends TestCase
     }
 
     /**
+     * M-SHARED-19: the *arr base URLs carry the X-Api-Key header, so their
+     * canonical contract (this schema) must restrict them to http(s) — the
+     * client ctor already refuses every other scheme at runtime — and the
+     * helpText must tell the admin what plain http costs.
+     */
+    public function test_arr_url_keys_declare_their_scheme_contract(): void
+    {
+        $properties = self::properties();
+
+        foreach (['server.arr.sonarr.url', 'server.arr.radarr.url'] as $key) {
+            $this->assertArrayHasKey($key, $properties);
+            $property = $properties[$key];
+
+            $pattern  = $property['pattern'] ?? null;
+            $default  = $property['default'] ?? null;
+            $helpText = $property['helpText'] ?? null;
+
+            $this->assertSame(
+                '^https?://',
+                $pattern,
+                sprintf('Property "%s" must declare the http(s)-only pattern.', $key)
+            );
+            $this->assertIsString($default, sprintf('Property "%s" default must be a string.', $key));
+            $this->assertSame(
+                1,
+                preg_match('#' . $pattern . '#', $default),
+                sprintf('Property "%s" default must satisfy its own pattern.', $key)
+            );
+
+            $this->assertIsString($helpText, sprintf('Property "%s" helpText must be a string.', $key));
+            $this->assertMatchesRegularExpression(
+                '/clear text/i',
+                $helpText,
+                sprintf('Property "%s" helpText must disclose that http sends the API key in the clear.', $key)
+            );
+            $this->assertStringContainsString(
+                'X-Api-Key',
+                $helpText,
+                sprintf('Property "%s" helpText must name the header that leaks.', $key)
+            );
+        }
+    }
+
+    /**
      * Liveness check for every documentation link in the hub schema.
      *
      * Excluded from the default suite (see `phpunit.xml`); run deliberately

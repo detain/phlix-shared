@@ -243,12 +243,29 @@ class TrashGuidesProvider
     /**
      * Fetches content from a URL using file_get_contents with stream context.
      *
+     * https-only by policy: the URL is config-supplied, and a poisoned config
+     * must not be able to point this fetch at local stream wrappers.
+     *
      * @param string $url The URL to fetch.
      * @return string The response body.
-     * @throws RuntimeException On network errors.
+     * @throws RuntimeException On a non-https URL, or on network errors.
      */
     private function fetchUrl(string $url): string
     {
+        // Defense-in-depth (M-SHARED-22): the URL arrives from config, whose
+        // default is pinned to raw.githubusercontent.com over https. A
+        // poisoned config file must not be able to turn this fetch into a
+        // local read (`file://`, `php://`, …) whose content lands in the
+        // *arr supply chain — https only, checked before any stream call.
+        if (!str_starts_with($url, 'https://')) {
+            /** @var string|null $scheme */
+            $scheme = parse_url($url, PHP_URL_SCHEME);
+            throw new RuntimeException(
+                'TRaSH-Guides fetch refused: only https:// URLs are allowed (got scheme "'
+                . ($scheme ?? 'none') . '")'
+            );
+        }
+
         $context = stream_context_create([
             'http' => [
                 'method' => 'GET',
@@ -265,10 +282,9 @@ class TrashGuidesProvider
         $body = @file_get_contents($url, false, $context);
 
         if ($body === false) {
-            $error = error_get_last();
-            throw new RuntimeException(
-                'Failed to fetch TRaSH-Guides data: ' . ($error['message'] ?? 'Unknown error')
-            );
+            // The raw PHP wrapper message can embed internal detail; keep the
+            // failure fact, drop the leak (M-SHARED-22).
+            throw new RuntimeException('Failed to fetch TRaSH-Guides data from: ' . $url);
         }
 
         return $body;

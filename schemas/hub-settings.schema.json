@@ -272,10 +272,11 @@
         },
         "server.arr.sonarr.url": {
             "type": "string",
+            "pattern": "^https?://",
             "group": "server",
             "description": "Base URL of the Sonarr instance approvals are sent to.",
             "label": "Sonarr base URL",
-            "helpText": "Live at each approval. Admin-trust boundary: this URL is fetched server-side from the settings write surface (same trust class as other admin-controlled URLs); api_key never leaves the env.",
+            "helpText": "Live at each approval. Admin-trust boundary: this URL is fetched server-side from the settings write surface (same trust class as other admin-controlled URLs); api_key never leaves the env. Use https:// whenever the Sonarr instance is reachable over TLS: the API key travels in the X-Api-Key header, so a plain http:// URL sends it in clear text.",
             "helpLinks": [
                 {
                     "text": "Sonarr",
@@ -304,10 +305,11 @@
         },
         "server.arr.radarr.url": {
             "type": "string",
+            "pattern": "^https?://",
             "group": "server",
             "description": "Base URL of the Radarr instance approvals are sent to.",
             "label": "Radarr base URL",
-            "helpText": "Live at each approval. Admin-trust boundary: this URL is fetched server-side from the settings write surface (same trust class as other admin-controlled URLs); api_key never leaves the env.",
+            "helpText": "Live at each approval. Admin-trust boundary: this URL is fetched server-side from the settings write surface (same trust class as other admin-controlled URLs); api_key never leaves the env. Use https:// whenever the Radarr instance is reachable over TLS: the API key travels in the X-Api-Key header, so a plain http:// URL sends it in clear text.",
             "helpLinks": [
                 {
                     "text": "Radarr",

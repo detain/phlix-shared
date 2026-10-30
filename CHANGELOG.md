@@ -6,6 +6,38 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+Review-minors batch W-min117 (shared): URL-contract truth in the settings
+schemas, an https-only fetch guard, enum lookup O(1), and a value-object
+invariant. The two hub `server.arr.*.url` keys now declare the pattern
+`^https?://` in their canonical contract (the client constructor already
+refused every other scheme at runtime — the schema said "any string"), and
+their helpText discloses that plain http ships the X-Api-Key header in the
+clear. `trakt.redirect_uri` — the OAuth code-flow return target — now
+declares `format: "uri"` + `^https://` (free-string before; the placeholder
+default satisfies both). The hub-side effect of these schema edits rides the
+next tag-seam re-vendor wave like every shared-schema change.
+`TrashGuidesProvider::fetchUrl` grew an https-only scheme guard before any
+stream call (a poisoned config file previously turned the fetch into
+`file://`/`php://` reads whose JSON would flow into the *arr supply chain)
+and its failure message no longer embeds raw PHP wrapper error text (path
+leak); the all-https config defaults are unaffected, pinned by three new
+reflection tests. `RelayFrameType::fromValue()/isValid()` — on the hub↔server
+frame-decode hot path — replaced their `foreach (self::cases())` linear scans
+with the backed-enum `tryFrom()`; identical semantics, identical exception
+message, O(1). `AuthResult` sheds a doc typo (duplicated `);` made the
+failure example non-compilable) and now enforces `success ⇒ error === null`
+at construction (fail-fast; an estate-wide scan of all 2610 server/hub/
+shared/plugin files found zero legitimate constructions violating it). The
+review's stronger `success ⇒ userId !== null` clause is deliberately NOT
+enforced: phlix-server's Github, Ldap and Oidc providers legitimately return
+successes with `userId === null` until the account-linking flow maps them —
+the param docblock now states that truth instead of the old "null on failure"
+oversimplification. The third sub-point (deleting the `isSuccess()`/
+`isFailure()` aliases) is honestly blocked: both have live consumers
+(server's account-link and WebAuthn controllers), and the public-API
+shape-freeze law routes removals through an owner-scheduled consumer sweep;
+the methods stay, now documented as aliases of the canonical `$success`.
+
 Review-minors batch W-min116 (shared): Arr client error honesty, psalm-idiom
 alignment and one helpText truth. `AbstractArrClient` no longer swallows the
 detail it was handed: 4xx/5xx RuntimeExceptions now carry a capped (300-byte),

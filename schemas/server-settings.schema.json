@@ -944,6 +944,8 @@
         },
         "trakt.redirect_uri": {
             "type": "string",
+            "format": "uri",
+            "pattern": "^https://",
             "description": "OAuth2 redirect URI Trakt returns the user to after authorization. Must match the value registered on the Trakt application exactly.",
             "group": "scrobblers",
             "label": "Trakt redirect URI",

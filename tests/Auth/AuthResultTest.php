@@ -176,4 +176,48 @@ final class AuthResultTest extends TestCase
         $this->assertSame(true, $result->success);
         $this->assertSame('user-123', $result->userId);
     }
+
+    /**
+     * M-SHARED-29(b): a "success" that also carries an error is not a state
+     * any consumer can meaningfully handle — the constructor refuses it.
+     */
+    public function testSuccessWithErrorIsRejectedAtConstruction(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('success and error are mutually exclusive');
+
+        new AuthResult(success: true, userId: 'u-1', error: 'boom');
+    }
+
+    /**
+     * M-SHARED-29(b) scope pin: external-provider successes legitimately
+     * carry userId === null until the linking flow maps the account
+     * (phlix-server's Github/Ldap/Oidc providers do exactly this), so the
+     * invariant constrains only the success+error pair — never success
+     * without a local user id.
+     */
+    public function testSuccessWithoutUserIdRemainsLegal(): void
+    {
+        $result = new AuthResult(
+            success: true,
+            externalId: 'https://github.com/12345',
+            attributes: ['email' => 'alice@example.com'],
+        );
+
+        $this->assertTrue($result->isSuccess());
+        $this->assertNull($result->userId);
+        $this->assertSame('https://github.com/12345', $result->externalId);
+    }
+
+    /**
+     * The failure side stays untouched: failure with an error is the normal
+     * shape and must keep constructing.
+     */
+    public function testFailureWithErrorRemainsLegal(): void
+    {
+        $result = new AuthResult(success: false, error: 'token_expired');
+
+        $this->assertTrue($result->isFailure());
+        $this->assertSame('token_expired', $result->error);
+    }
 }
