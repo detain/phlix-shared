@@ -41,6 +41,29 @@ its lock is re-pinned past the next release.
 
 ### Changed
 
+- **W-min113 minors cluster (M-SHARED-05/43/52).** Server schema copy truth:
+  the five rate-limit `.max` helpTexts whose tail clause "which for token
+  renewals would sign out the whole install" was copy-paste fiction for their
+  surface (`register`, `webauthn_start`, `webauthn_finish`, `jwks`,
+  `ws_connect`) now state the real per-surface consequence — sign-up block,
+  passkey-challenge blockage (each half named), key-verification starvation
+  (the honest indirect sign-out path for `jwks`), realtime blackout without
+  sign-out; `refresh` keeps the original clause because for renewals it is
+  literally true. Seven GB spellings in the server schema became the US forms
+  the rest of the corpus uses (prioritise/analysed×2/organisations/honoured/
+  capitalisation/normalised → -ize/-yzed/-izations/-ored/-ization/-ized);
+  remaining GB forms in historical CHANGELOG entries and one test comment were
+  left untouched (published history verbatim; identifiers/comments out of the
+  cited seven). README: the `schemas/webhook-events.json` bullet no longer
+  implies currency — it now names the file as the wire-truth subset that the
+  server `WebhookEventCatalog` and the `phlix-ui` picker deliberately lead, and
+  registers the owed `user.*` widening in-package. Shape-freeze proof: key
+  lists identical (84 server / 18 hub), zero moves across
+  type/default/minimum/maximum/enum/restart/tier/group/secret/helpLinks — every
+  moved byte sits inside `description`/`helpText` strings; no test pinned any
+  replaced phrase (pre-flight grep across shared + server + hub suites: zero
+  verbatim hits).
+
 - `auth.signup_mode` helpText (server schema): appended one admin-facing
   sentence disclosing the accepted sign-up/sign-in boundary from the owner's
   A+C decision — this toggle governs account CREATION only, the

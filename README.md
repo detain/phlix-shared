@@ -108,8 +108,11 @@ for the files without a dedicated accessor, such as `manifest.schema.json`):
   `onWorkerStart`, and rebuilds DI containers) — required for any value captured at worker
   start, container build, or route build. The `restart: false` keys resolve through
   `SettingsRepository::getEffective()` at use time and are genuinely live.
-- `schemas/webhook-events.json` — data catalog of the supported webhook event types for the
-  admin SPA webhook picker. Distinct from the plugin PSR-14 events in `EventNameMap` (0.7.0+).
+- `schemas/webhook-events.json` — data catalog of the wire-truth webhook event types for the
+  admin SPA webhook picker. Note: this file is currently a subset — the server's
+  `Phlix\Webhooks\WebhookEventCatalog` and the `phlix-ui` picker deliberately lead it today
+  (the `user.*` events the server already emits are not yet named here; widening this catalog
+  is owed in this package). Distinct from the plugin PSR-14 events in `EventNameMap` (0.7.0+).
 - `schemas/library-query.schema.json` — JSON Schema (draft 2020-12) for the query parameters of
   the movie-list browse API (`GET /api/v1/media`); drives `ItemRepository::query()` and the
   admin SPA browse page (0.8.0+). Adds the `libraryId`/`parentId`/`topLevel` scoping parameters
