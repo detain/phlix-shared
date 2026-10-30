@@ -56,6 +56,30 @@ final class QuotaExceededTest extends TestCase
         $this->assertSame('2026-07-22T06:30:00+00:00', $e->getResetTimeUtc());
     }
 
+    public function test_normalises_non_utc_datetimeimmutable_reset_time_to_utc(): void
+    {
+        $reset = new DateTimeImmutable('2026-07-22T08:30:00+02:00');
+        $e = new QuotaExceeded('x', resetTimeUtc: $reset);
+
+        $this->assertSame('2026-07-22T06:30:00+00:00', $e->getResetTimeUtc());
+    }
+
+    public function test_normalises_system_timezone_datetimeimmutable_reset_time_to_utc(): void
+    {
+        $previous = date_default_timezone_get();
+        date_default_timezone_set('Europe/Berlin');
+
+        try {
+            // Same instant, expressed in a +02:00 local zone by the default TZ.
+            $reset = new DateTimeImmutable('2026-07-22T08:30:00');
+            $e = new QuotaExceeded('x', resetTimeUtc: $reset);
+
+            $this->assertSame('2026-07-22T06:30:00+00:00', $e->getResetTimeUtc());
+        } finally {
+            date_default_timezone_set($previous);
+        }
+    }
+
     public function test_preserves_code_and_previous(): void
     {
         $previous = new RuntimeException('root cause');

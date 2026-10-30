@@ -1,7 +1,7 @@
 <?php
 
 /**
- * is.
+ * Manifest.
  *
  * @copyright 2026 Joe Huss <detain@interserver.net>
  * @license   MIT

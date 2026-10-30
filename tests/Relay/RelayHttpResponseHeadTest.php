@@ -89,6 +89,57 @@ final class RelayHttpResponseHeadTest extends TestCase
         RelayHttpResponseHead::fromJson('{"status":200,"headers":{"Content-Type":123},"bodyLength":0}');
     }
 
+    public function test_from_json_rejects_status_below_range(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('100..999');
+        RelayHttpResponseHead::fromJson('{"status":99,"headers":{}}');
+    }
+
+    public function test_from_json_rejects_negative_status(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('100..999');
+        RelayHttpResponseHead::fromJson('{"status":-1,"headers":{}}');
+    }
+
+    public function test_from_json_rejects_status_above_range(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('100..999');
+        RelayHttpResponseHead::fromJson('{"status":1000,"headers":{}}');
+    }
+
+    public function test_from_json_rejects_negative_body_length(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('non-negative');
+        RelayHttpResponseHead::fromJson('{"status":200,"headers":{},"bodyLength":-1}');
+    }
+
+    /**
+     * @return array<string, array{string, int}>
+     */
+    public static function provide_in_range_head_jsons(): array
+    {
+        return [
+            'status 100 (lower bound)' => ['{"status":100,"headers":{},"bodyLength":0}', 100],
+            'status 599 (upper HTTP class)' => ['{"status":599,"headers":{},"bodyLength":0}', 599],
+            'status 999 (upper bound)' => ['{"status":999,"headers":{},"bodyLength":0}', 999],
+        ];
+    }
+
+    /**
+     * @dataProvider provide_in_range_head_jsons
+     */
+    public function test_from_json_accepts_status_range_boundaries(string $json, int $status): void
+    {
+        $decoded = RelayHttpResponseHead::fromJson($json);
+
+        $this->assertSame($status, $decoded->status);
+        $this->assertSame(0, $decoded->bodyLength);
+    }
+
     /**
      * Verify json_decode depth cap was raised.
      *

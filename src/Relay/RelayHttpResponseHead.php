@@ -37,6 +37,10 @@ use const JSON_THROW_ON_ERROR;
  * P1) or null when the producer is streaming a body of unknown length (P3); in
  * the streaming case the END chunk is the sole completion signal.
  *
+ * {@see self::fromJson()} rejects envelopes whose `status` falls outside
+ * 100..999 or whose `bodyLength` is negative, so readers may branch on these
+ * fields without adding their own range guards.
+ *
  * @package Phlix\Shared\Relay
  * @since 0.10.0
  */
@@ -86,7 +90,10 @@ final readonly class RelayHttpResponseHead
      *
      * @return self
      *
-     * @throws InvalidArgumentException When the JSON is malformed or a field is wrong-typed.
+     * @throws InvalidArgumentException When the JSON is malformed, a field is
+     *                                  wrong-typed, or a value is out of range
+     *                                  (`status` must fall in 100..999;
+     *                                  `bodyLength` must be non-negative or null).
      *
      * @since 0.10.0
      */
@@ -110,11 +117,19 @@ final readonly class RelayHttpResponseHead
         if (!is_int($status)) {
             throw new InvalidArgumentException('RelayHttpResponseHead: "status" must be an integer.');
         }
+        if ($status < 100 || $status > 999) {
+            throw new InvalidArgumentException(
+                'RelayHttpResponseHead: "status" must be an HTTP status code (100..999).'
+            );
+        }
         if (!is_array($rawHeaders)) {
             throw new InvalidArgumentException('RelayHttpResponseHead: "headers" must be an object.');
         }
         if ($bodyLength !== null && !is_int($bodyLength)) {
             throw new InvalidArgumentException('RelayHttpResponseHead: "bodyLength" must be an integer or null.');
+        }
+        if ($bodyLength !== null && $bodyLength < 0) {
+            throw new InvalidArgumentException('RelayHttpResponseHead: "bodyLength" must be non-negative or null.');
         }
 
         $headers = [];

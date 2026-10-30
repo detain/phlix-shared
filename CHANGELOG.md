@@ -121,6 +121,39 @@ its lock is re-pinned past the next release.
   trailer/episode-still descriptions in `media-item.schema.json` — matching
   the nine other TMDb usages across the package (M-SHARED-51).
 
+### Fixed
+
+- **W-min112 minors cluster (M-SHARED-02/04/21/28/30/31/45/54).**
+  `RelayHttpResponseHead::fromJson()` now enforces the contract its docblock
+  always stated: the parser rejects `status` outside 100..999 and negative
+  `bodyLength` (type checks unchanged; the public constructor stays permissive —
+  the wire parser is the enforcement point, so hub readers may branch on these
+  fields without their own range guards). Consumer churn proven zero before
+  shipping: every server/hub construction site passes real HTTP status codes and
+  non-negative lengths. `QuotaExceeded` now converts a `DateTimeImmutable`
+  reset time to UTC before ATOM-formatting, so the stored/returned string keeps
+  its promised "ISO-8601 UTC" form whatever offset the provider reported (a
+  `+02:00` input previously leaked its offset into server-side `reset_time_utc`
+  persistence). Prose truthing: `Version.php` rewritten to present tense with
+  the v0.1.0 placeholder era collapsed to history, dropping the phantom
+  `PHLIX_EXPANSION_PLAN.md` citation (the file lives in no estate tree —
+  verified); `ManifestType` now cites this package's
+  `schemas/manifest.schema.json` as the canonical origin of its eleven values
+  (the server path it named no longer exists; server `ManifestSchema` marks the
+  shared copy Canonical) and keeps the `plugin.json` sentence; seven truncated
+  file-header titles restored to the package's class-name-title convention,
+  including the generic auth `ProviderInterface` mislabeled "Oidc Provider.";
+  the missing conjunction in `RelayHttpRequestCodec::chunkBodyIterator()`'s
+  summary line fixed; `AGENTS.md`'s stale "eight classes ... perform real
+  HTTP/cURL calls" roster replaced with the truthful `src/Arr/` tree breakdown
+  (which members do I/O, which are the interface/wiring/DTO/helper parts of the
+  seam). Test surface: +9 tests (four parser-rejection cases, three range
+  boundaries, two UTC normalizations), red-then-green measured. The related
+  `plan §3.5` citation inside the published `[0.52.0]` CHANGELOG entry was left
+  verbatim per the estate history-verbatim policy (precedent M-SHARED-48/49:
+  corrections fold forward, published history does not mutate). No public API
+  shape changed; no wire or error codes; no schema keys moved.
+
 ### Docs
 
 - Two CHANGELOG-format disclosures, folded as a note rather than rewriting published history

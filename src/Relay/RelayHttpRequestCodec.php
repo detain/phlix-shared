@@ -130,7 +130,7 @@ final class RelayHttpRequestCodec
     }
 
     /**
-     * Split a full body into BODY chunk payloads yields them lazily.
+     * Split a full body into BODY chunk payloads and yield them lazily.
      *
      * Memory-efficient alternative to {@see self::chunkBody()} for streaming
      * very large bodies. Yields encoded BODY chunk payloads one at a time.

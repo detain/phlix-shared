@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Oidc Provider.
+ * Provider Interface.
  *
  * @copyright 2026 Joe Huss <detain@interserver.net>
  * @license   MIT

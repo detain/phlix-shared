@@ -14,10 +14,11 @@ namespace Phlix\Shared\Plugin;
 /**
  * Enumeration of supported plugin categories.
  *
- * Each case maps to one of the eleven plugin types listed in
- * `PHLIX_EXPANSION_PLAN.md` §5. The string `value` is the kebab-case form
- * that appears in `plugin.json` and in `docs/plugins/manifest.schema.json`
- * shipped with `phlix-server`.
+ * The eleven cases mirror the `type` enum of
+ * `schemas/manifest.schema.json` bundled with this package — the
+ * canonical validator schema for plugin manifests since 0.6.0. The
+ * string `value` is the kebab-case form that appears in each plugin's
+ * `plugin.json`.
  *
  * @package Phlix\Shared\Plugin
  * @since 0.2.0

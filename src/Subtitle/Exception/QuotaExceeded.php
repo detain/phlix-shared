@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace Phlix\Shared\Subtitle\Exception;
 
 use DateTimeImmutable;
+use DateTimeZone;
 use RuntimeException;
 use Throwable;
 
@@ -49,8 +50,9 @@ final class QuotaExceeded extends RuntimeException
      *                                                          Usually 0 when the quota is exhausted; null when
      *                                                          the provider does not report it.
      * @param DateTimeImmutable|string|null $resetTimeUtc      When the quota resets. Accepts a
-     *                                                          {@see DateTimeImmutable} (normalised to an
-     *                                                          ISO-8601 string) or a pre-formatted string, or
+     *                                                          {@see DateTimeImmutable} (converted to UTC and
+     *                                                          normalised to an ISO-8601 string) or a
+     *                                                          pre-formatted string, or
      *                                                          null when the provider does not report it.
      * @param int                          $code               Exception code (default 0).
      * @param Throwable|null               $previous           Underlying cause, if any.
@@ -66,7 +68,7 @@ final class QuotaExceeded extends RuntimeException
 
         $this->downloadsRemaining = $downloadsRemaining;
         $this->resetTimeUtc = $resetTimeUtc instanceof DateTimeImmutable
-            ? $resetTimeUtc->format(DateTimeImmutable::ATOM)
+            ? $resetTimeUtc->setTimezone(new DateTimeZone('UTC'))->format(DateTimeImmutable::ATOM)
             : $resetTimeUtc;
     }
 

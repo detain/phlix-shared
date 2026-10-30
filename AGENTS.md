@@ -15,11 +15,17 @@ interfaces and value objects**. Keep it that way.
   green from day 1. No baselines.
 - **Zero I/O.** No filesystem reads, no network, no DB, no logging
   side-effects. Interfaces and DTOs only.
-  > **Exception — `Arr/` namespace.** The eight classes under `src/Arr/`
-  > (`ArrClientInterface`, `ArrClientFactory`, `SonarrClient`,
-  > `RadarrClient`, `ProwlarrClient`, `BazarrClient`, `SyncResult`,
-  > `TrashGuidesProvider`) perform real HTTP/cURL calls. This is the sole
-  > I/O exception to the zero-I/O policy. Both `phlix-server` and the
+  > **Exception — `Arr/` namespace.** The `src/Arr/` tree (ten files plus
+  > its `Transport/` seam) is exempt from the zero-I/O charter:
+  > `AbstractArrClient` and its four concrete clients (`SonarrClient`,
+  > `RadarrClient`, `ProwlarrClient`, `BazarrClient`) — driven by
+  > `CurlArrTransport` when no transport is injected — perform real
+  > HTTP/cURL calls, and `TrashGuidesProvider` performs real network
+  > fetches. The tree's remaining members (`ArrClientInterface`,
+  > `Transport/ArrTransportInterface`, `ArrClientFactory`, `SyncResult`,
+  > `SecretRedactor`) are its interface, wiring, DTO, and helper parts and
+  > perform no I/O themselves. This is the sole I/O exception to the
+  > zero-I/O policy. Both `phlix-server` and the
   > `phlix-hub` daemon need Sonarr/Radarr/Prowlarr/Bazarr integration; keeping
   > it in `phlix-shared` avoids duplicating HTTP wiring across repos. A future
   > refactor may extract these into a dedicated `phlix-arr-client` package.
