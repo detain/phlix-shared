@@ -1,10 +1,12 @@
 /vendor/
-/composer.lock
+# /composer.lock is deliberately NOT ignored: the tracked lock is the corpus
+# the S440 security-audit gate audits (scripts/security-audit-check.php reads
+# the committed lock; its CI job asserts the whole-file audit posture). Do not
+# `git rm --cached` it.
 /.phpunit.cache/
 /coverage-report/
 /coverage.xml
 /build/
-.caliber/
 .caliber/
 # Ignore all Claude CLI personal files and state
 .claude/

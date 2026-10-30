@@ -6,6 +6,59 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+Docs/CI/dist-surface only (W-min114 minors cluster); zero runtime PHP surface
+changed. The `.gitattributes` + `composer.json` `archive` pair changes only the
+*distributed* tree, and even that rides to consumers at the NEXT tag seam —
+`phlix-server` still pins `^0.51.0` (lock at 01bd2a9) and `phlix-hub` pins
+`^0.52.0` (lock at febd8af), and no tag is created here (owner-gated).
+Consumer greps before the trim: the only vendored phlix-shared paths any
+consumer reads are `schemas/*.json` (server `PasswordPolicyTest`,
+`AdminSettingsRealSchemaPutTest`; hub `HubSettingsBoundsAndMetaTest`) — all
+kept; zero references to `vendor/detain/phlix-shared/{tests,scripts,...}` in
+either consumer's suite, and the plugins catalog gate fetches the manifest
+schema over raw.githubusercontent, which `export-ignore` does not affect.
+
+### Added
+
+- `.gitattributes` + a `composer.json` `archive.exclude` allow-list pair
+  (M-SHARED-37): the distributed archive ships only `src/`, `schemas/`,
+  `LICENSE` and `composer.json`; `tests/`, `scripts/`, `.github/`, the tool
+  configs, `composer.lock` and the agent/docs corpus are `export-ignore`d.
+  `schemas/` ships deliberately — `SchemaPaths` resolves those files at
+  consumer runtime (which is why no blanket exclusion existed). Deliberately
+  export-ignore-only: no text/eol attributes (the estate keeps LF-authored
+  trees; `* text=auto` would silently rewrite working trees at checkout).
+- `.github/workflows/ci.yml`: the phpcs, phpstan, psalm and phpunit jobs run a
+  `["8.3", "8.4"]` PHP matrix with `fail-fast: false`, replacing the
+  single-8.3 assumption that left only half of `composer.json`'s `php: ^8.3`
+  promise gated (M-SHARED-35). `composer-validate` and `composer-audit` stay
+  8.3-only by design: they operate on version-independent lock corpora. All
+  four matrix gates measured green on PHP 8.4.27 at 528fb42 before the matrix
+  landed; the audit-gate guard tests parse none of the edited lines (and
+  `composer-audit` remains the last job, its run line untouched).
+
+### Changed
+
+- `AGENTS.md` (M-SHARED-07/12/47): the Layout map regenerated against the
+  actual tree — all twelve `src/` members listed with truthful one-liners,
+  and `Arr/` finally labeled as what it is (the *arr HTTP clients and the
+  sole zero-I/O exception, not "typed array helpers"); the dead v0.1.0
+  "intended, fills in across v0.2.x" scaffolding is gone, and the file's
+  header charter now carries the Arr carve-out pointer so the page no longer
+  contradicts its own exception block. The exception block's "ten files plus
+  its `Transport/` seam" count was already truthful from W-min112 at cecf274
+  (stale-verified, not re-cured).
+- `README.md` (M-SHARED-10/14): the header now says the zero-I/O charter
+  honestly — "by charter", with the `Arr\*` exception named — and the
+  Requirements section records the tested ceiling ("CI-verified on PHP 8.3
+  and 8.4 ... declared compatible below PHP 9.0") plus the Arr/ext-curl
+  caveat on the "safely required by any PHP 8.3+ codebase" sentence.
+- `.gitignore` (M-SHARED-11): the `/composer.lock` line is dropped with an
+  explanatory comment — the tracked lock is the S440 security-audit gate's
+  audited corpus, and ignoring it was an invitation for a well-meaning
+  cleanup lane to `git rm --cached` the gate's data. The accidentally
+  duplicated `.caliber/` entry is deduped.
+
 Schema-and-tests only; zero runtime PHP surface changed. Both changes ride to
 consumers at the NEXT tag seam only — `phlix-server` still pins `^0.51.0`
 (lock at 01bd2a9) and `phlix-hub` pins `^0.52.0` (lock at febd8af), and no tag

@@ -1,0 +1,23 @@
+# Distribution surface. Everything a consumer does not need is excluded from
+# the git archives (GitHub zipballs — the dist Composer serves for both the
+# Packagist and the github:#tag pin paths). src/, schemas/, LICENSE and
+# composer.json ship; schemas/ MUST ship because
+# Phlix\Shared\Schema\SchemaPaths resolves those files at consumer runtime.
+# Deliberately export-ignore-only: no text/eol normalization attributes — the
+# estate keeps LF-authored trees and a blanket `* text=auto` would silently
+# rewrite working trees at checkout.
+/tests             export-ignore
+/scripts           export-ignore
+/.github           export-ignore
+.gitignore         export-ignore
+.editorconfig      export-ignore
+composer.lock      export-ignore
+AGENTS.md          export-ignore
+CALIBER_LEARNINGS.md export-ignore
+CHANGELOG.md       export-ignore
+README.md          export-ignore
+phpunit.xml        export-ignore
+phpstan.neon.dist  export-ignore
+psalm.xml          export-ignore
+phpcs.xml.dist     export-ignore
+phpcs-tests.xml    export-ignore

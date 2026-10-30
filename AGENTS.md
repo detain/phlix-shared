@@ -1,7 +1,9 @@
 # AGENTS.md — detain/phlix-shared
 
 Agent brief for the `phlix-shared` package. This package is **pure
-interfaces and value objects**. Keep it that way.
+interfaces and value objects** by charter; the one sanctioned exception is
+the `Arr/` namespace's *arr HTTP clients (see the **Zero I/O** rule below).
+Keep everything else that way.
 
 ## Conventions
 
@@ -59,23 +61,26 @@ For async HTTP patterns, see `phlix-server`'s `MetadataHttpClient`,
 `Hub\HttpClient`, and `S3Client` which demonstrate the workerman/http-client
 cooperative wait pattern with callback-based requests.
 
-## Layout (intended, fills in across v0.2.x)
+## Layout
 
 ```
 src/
-  Plugin/    # Phlix\Shared\Plugin\* — lifecycle, manifest, types
-  Events/    # Phlix\Shared\Events\* — event name constants & DTOs
+  Arr/       # Phlix\Shared\Arr\* — *arr HTTP clients + Transport/ seam
+             #   (the sole zero-I/O exception; see the rule above)
   Auth/      # Phlix\Shared\Auth\* — token, identity, claim types
+  Events/    # Phlix\Shared\Events\* — event name constants & DTOs
   Hub/       # Phlix\Shared\Hub\* — phlix ↔ phlix-hub protocol types
+  Metadata/  # Phlix\Shared\Metadata\* — metadata-source plugin contract
+  Plugin/    # Phlix\Shared\Plugin\* — lifecycle, manifest, types
+  Relay/     # Phlix\Shared\Relay\* — channel-mux + HTTP-over-relay frames
+  Schema/    # Phlix\Shared\Schema\* — SchemaPaths for the bundled schemas/
+  Security/  # Phlix\Shared\Security\* — Hmac sign/verify primitive
   Subtitle/  # Phlix\Shared\Subtitle\* — subtitle source contract + DTOs
-  Arr/       # Phlix\Shared\Arr\* — typed array helpers (PHPStan-friendly)
+  Support/   # Phlix\Shared\Support\* — PayloadAssert trait for wire DTOs
   Version.php
 tests/
   (mirror of src/ — PHPUnit 10)
 ```
-
-In v0.1.0 only `src/Version.php` and `tests/VersionTest.php` exist.
-Subdirectories materialise as B.3 lands real interfaces.
 
 ## Layout rationale
 

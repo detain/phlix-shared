@@ -11,7 +11,9 @@
 Shared interfaces, DTOs, event names, and protocol types used by both
 [`detain/phlix-server`](https://github.com/detain/phlix-server) (the media server)
 and [`detain/phlix-hub`](https://github.com/detain/phlix-hub) (the multi-server hub).
-Composer-installable, PHP 8.3+, zero I/O — pure interfaces and value objects only.
+Composer-installable, PHP 8.3+, zero I/O by charter — pure interfaces and
+value objects, with one sanctioned exception: the `Arr\*` namespace ships
+real (blocking cURL) *arr HTTP clients; see [`AGENTS.md`](AGENTS.md).
 
 ## Status
 
@@ -127,13 +129,17 @@ The PSR-14 dispatcher wiring (Tukio) and the schema validators stay in
 
 ## Requirements
 
-- PHP `^8.3`
+- PHP `^8.3` — CI-verified on PHP 8.3 and 8.4 (phpcs, phpstan, psalm and
+  phpunit each run both legs); declared compatible below PHP 9.0.
 - Composer 2.x
 - `psr/container ^2.0`
 - `psr/event-dispatcher ^1.0`
 
 The package has zero framework dependencies — no Workerman, no Monolog,
-no Smarty. It is intended to be safely required by any PHP 8.3+ codebase.
+no Smarty. It is intended to be safely required by any PHP 8.3+ codebase,
+with one caveat: the `Arr\*` HTTP clients are real network code (their
+default transport needs `ext-curl`, or inject an `ArrTransportInterface`;
+see [`AGENTS.md`](AGENTS.md)).
 
 ## Installation
 

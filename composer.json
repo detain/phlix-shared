@@ -31,6 +31,25 @@
             "Phlix\\Shared\\Tests\\": "tests/"
         }
     },
+    "archive": {
+        "exclude": [
+            "/tests",
+            "/scripts",
+            "/.github",
+            "/.gitignore",
+            "/.editorconfig",
+            "/composer.lock",
+            "/AGENTS.md",
+            "/CALIBER_LEARNINGS.md",
+            "/CHANGELOG.md",
+            "/README.md",
+            "/phpunit.xml",
+            "/phpstan.neon.dist",
+            "/psalm.xml",
+            "/phpcs.xml.dist",
+            "/phpcs-tests.xml"
+        ]
+    },
     "minimum-stability": "stable",
     "config": {
         "optimize-autoloader": true,
