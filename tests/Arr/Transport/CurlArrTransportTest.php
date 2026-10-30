@@ -124,4 +124,86 @@ class CurlArrTransportTest extends TestCase
             );
         }
     }
+
+    /**
+     * The SHARED-HANDLE LAW (class docblock) is a declaration-level property:
+     * the handle is `private static`, and NO per-instance handle exists. This
+     * pins the shape — converting to a per-instance handle (dropping the
+     * process-wide connection reuse) must be a deliberate, law-updating move,
+     * not an accident this suite would silently tolerate.
+     */
+    public function test_the_shared_handle_is_process_wide_by_declaration(): void
+    {
+        $class = new \ReflectionClass(CurlArrTransport::class);
+        $property = $class->getProperty('handle');
+
+        $this->assertTrue($property->isStatic(), 'handle must be static (one per process).');
+        $this->assertTrue($property->isPrivate(), 'handle must stay private.');
+        $this->assertStringContainsString(
+            'CurlHandle',
+            (string) $property->getType(),
+            'handle type must remain ?CurlHandle.'
+        );
+
+        $nonStatic = [];
+        foreach ($class->getProperties() as $candidate) {
+            if (!$candidate->isStatic()) {
+                $nonStatic[] = $candidate->getName();
+            }
+        }
+        $this->assertNotContains(
+            'handle',
+            $nonStatic,
+            'No instance-level handle may coexist with the static sharing law.'
+        );
+    }
+
+    /**
+     * Functional proof of the same law: after a fresh (null) start, two
+     * separate transport instances land their transfers on the SAME handle
+     * object — instance B reuses (via curl_reset) what instance A created.
+     * Uses a file:// URL, which the protocol pin rejects after the handle is
+     * acquired, so no network or listening socket is involved.
+     */
+    public function test_two_instances_share_one_curl_handle(): void
+    {
+        $property = new \ReflectionProperty(CurlArrTransport::class, 'handle');
+        $property->setValue(null, null); // deterministic start: force creation on call A
+
+        $a = new CurlArrTransport(1, 1);
+        $b = new CurlArrTransport(1, 1);
+
+        try {
+            try {
+                $a->request('GET', 'file:///etc/shadow', [], null);
+                $this->fail('file:// must be rejected by the protocol pin.');
+            } catch (RuntimeException $e) {
+                // The only legitimate outcome: transport-level cURL rejection.
+                $this->assertStringStartsWith('cURL error', $e->getMessage());
+            }
+            /** @var mixed $handleA */
+            $handleA = $property->getValue(null);
+            $this->assertInstanceOf(\CurlHandle::class, $handleA);
+
+            try {
+                $b->request('GET', 'file:///etc/shadow', [], null);
+                $this->fail('file:// must be rejected by the protocol pin.');
+            } catch (RuntimeException $e) {
+                $this->assertStringStartsWith('cURL error', $e->getMessage());
+            }
+            /** @var mixed $handleB */
+            $handleB = $property->getValue(null);
+
+            $this->assertInstanceOf(\CurlHandle::class, $handleB);
+            $this->assertSame(
+                spl_object_id($handleA),
+                spl_object_id($handleB),
+                'Both instances must run on the one shared static handle.'
+            );
+        } finally {
+            // Leave no cross-test residue: the class keeps the handle for the
+            // process by design, but this test created it deliberately early.
+            $property->setValue(null, null);
+        }
+    }
 }

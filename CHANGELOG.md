@@ -6,6 +6,19 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+Review-majors batch (shared M-09): `CurlArrTransport`'s process-wide cURL
+handle — one `private static ?\CurlHandle` serving every instance, serialized
+through `curl_reset()`, never closed — was said nowhere in the class prose and
+pinned by no test. The class header now states the SHARED-HANDLE LAW with its
+consequences (two instances are option sets, not sockets; unsafe for
+concurrent transfers except where the runtime serializes them or hooks nothing,
+per the hub's S425 posture), and two tests defend it: a structural pin on the
+declaration (static, private, nullable-CurlHandle, no per-instance twin) and a
+no-network functional proof that two fresh instances land on the same handle
+object. The shape is documented, not changed: per-instance handles would drop
+the connection reuse consumers get today, a consumer-visible trade the review
+listed only as an alternative.
+
 Review-majors batch (shared M-07): the charter prose stops claiming
 CurlArrTransport is the package's only network code. `TrashGuidesProvider`
 performs its own blocking `@file_get_contents` fetches outside the transport

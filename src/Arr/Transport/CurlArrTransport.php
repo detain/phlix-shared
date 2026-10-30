@@ -28,12 +28,27 @@ use RuntimeException;
  * blocking call behind the injected seam is what lets the shared library honour its
  * "zero I/O" charter.
  *
+ * SHARED-HANDLE LAW — every instance's transfer runs on ONE process-wide
+ * `private static ?\CurlHandle` (`self::$handle`), created lazily and
+ * serialized between calls by `curl_reset()` at the start of each `request()`.
+ * The handle is never `curl_close()`d: keeping it for the process lifetime is
+ * the point (connection reuse is the only benefit this class offers), and it is
+ * reclaimed at process exit. Consequences stated plainly: two instances are
+ * two sets of options, not two sockets — and on a runtime that hooks
+ * `curl_exec` into coroutines, concurrent transfers through this class
+ * interleave on the single handle, so this transport is safe under cooperative
+ * runtimes only while the consumer serializes its *arr calls (phlix-hub's
+ * S425 position) or hooks nothing. Making the handle per-instance would trade
+ * away that connection reuse consumer-visibly, so the shape is kept and the
+ * law is pinned structurally and functionally in `CurlArrTransportTest`.
+ *
  * @package Phlix\Shared\Arr\Transport
  * @since 0.11.0
  */
 final class CurlArrTransport implements ArrTransportInterface
 {
-    /** @var \CurlHandle|null Reusable cURL handle (PHP 8.0+) */
+    /** @var \CurlHandle|null Reusable cURL handle (PHP 8.0+) — process-wide by
+     *    design: see the SHARED-HANDLE LAW in the class docblock. */
     private static ?\CurlHandle $handle = null;
 
     /**
