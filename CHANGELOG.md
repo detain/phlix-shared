@@ -6,6 +6,21 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+Review-majors batch (shared M-07): the charter prose stops claiming
+CurlArrTransport is the package's only network code. `TrashGuidesProvider`
+performs its own blocking `@file_get_contents` fetches outside the transport
+seam — reachable from resident workers via phlix-server's direct construction —
+so composer's description, `ArrTransportInterface`'s docblock, and the class's
+own header now say exactly that. The class header additionally documents four
+verified limitations instead of leaving them as review findings: the three
+static caches sharing one last-write-wins timestamp (~2x worst-case staleness
+on the 24 h TTL), `clearCache()`'s process-wide reach across all instances,
+the `config/trash_guides.php` override resolving inside the vendor package and
+being unreachable for consumers, and `getVersion()`'s duplicate full decode of
+the custom-formats document. The structural cures (transport injection into
+the provider, per-key timestamps) move fetch timing/visibility for a
+server-constructed class and are deferred as a coordinated consumer cascade.
+
 Review-majors batch (shared M-06/M-08, the two lenses on one defect): the relay
 streaming DTOs now carry the security law where consumers must read it.
 `RelayHttpRequestHead::fromJson()` validates shape only — no method allowlist,

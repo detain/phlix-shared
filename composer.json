@@ -1,6 +1,6 @@
 {
     "name": "detain/phlix-shared",
-    "description": "Shared interfaces, DTOs, event names, and protocol types used by both phlix-server and phlix-hub. Composer-installable, PHP 8.3+, zero I/O by charter — the only bundled network code is the blocking CurlArrTransport (CLI/test default); event-loop consumers should inject an async ArrTransportInterface unless their runtime hooks curl (phlix-hub's S425 position).",
+    "description": "Shared interfaces, DTOs, event names, and protocol types used by both phlix-server and phlix-hub. Composer-installable, PHP 8.3+, zero I/O by charter — bundled I/O is confined to the Arr/ namespace: the blocking CurlArrTransport default (CLI/test posture) and TrashGuidesProvider's own blocking stream fetches (no transport seam there); event-loop consumers should inject an async ArrTransportInterface unless their runtime hooks curl (phlix-hub's S425 position).",
     "type": "library",
     "license": "MIT",
     "require": {

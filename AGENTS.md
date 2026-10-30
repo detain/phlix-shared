@@ -33,8 +33,9 @@ Keep everything else that way.
   > refactor may extract these into a dedicated `phlix-arr-client` package.
   > Note: `TrashGuidesProvider` additionally performs a filesystem
   > `include`/read (it looks for an optional `config/trash_guides.php`
-  > override), so this exception also covers local file reads — not just
-  > HTTP/cURL.
+  > override — resolving inside this package's own root, hence only reachable
+  > by editing the vendor tree; consumers get the hardcoded fallback URLs), so
+  > this exception also covers local file reads — not just HTTP/cURL.
   > See the full developer guide
   > [`arr-clients.md`](../phlix-docs/docs/dev/arr-clients.md)
   > (also published at

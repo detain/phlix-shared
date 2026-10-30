@@ -18,6 +18,33 @@ use RuntimeException;
 /**
  * Fetches and parses TRaSH-Guides quality profiles and custom formats JSON.
  *
+ * REAL NETWORK CODE, OUTSIDE THE TRANSPORT SEAM: `fetchUrl()` performs its own
+ * blocking `@file_get_contents()` stream fetch (30 s timeout) — it does NOT go
+ * through {@see \Phlix\Shared\Arr\Transport\ArrTransportInterface}, so there is
+ * nothing to inject; in resident workers (phlix-server constructs this class
+ * directly and `CustomFormatSyncer` consumes it) the fetch blocks the worker.
+ * Routing these fetches through an injectable transport is the honest fix but
+ * is a coordinated consumer-side cascade, deferred as an owner/tag-wave item.
+ *
+ * KNOWN LIMITATIONS (documented behavior, each verified against the code):
+ * - The three static caches (`$qualityProfilesCache`, `$customFormatsCache`,
+ *   `$versionCache`) share ONE `$cacheTimestamp` that every populator resets,
+ *   so refreshing item B extends item A's apparent age — worst-case staleness
+ *   is ~2x the advertised 24 h TTL, and any item fetched while a sibling
+ *   refreshes never expires on its own schedule.
+ * - The caches are `static` (process-wide): `clearCache()` on one instance
+ *   flushes every other instance's cached view; per-instance isolation is
+ *   NOT provided.
+ * - `loadConfig()` looks for `config/trash_guides.php` relative to THIS
+ *   package's own root — i.e. `vendor/detain/phlix-shared/config/` in consumer
+ *   context, which ships no `config/` directory. The override is therefore
+ *   unreachable for consumers: the hardcoded fallback URLs are effectively
+ *   constants unless the vendor tree itself is edited.
+ * - `getVersion()` fetches and fully decodes the entire custom-formats JSON
+ *   to read one field, without populating `$customFormatsCache` — a duplicate
+ *   eager decode of a ~100k-entry document per cold version read in a
+ *   resident process.
+ *
  * ## Subclassing and the path to `final`
  *
  * Not `final` because `phlix-server`'s Arr test seam extends it to stub the
@@ -184,7 +211,12 @@ class TrashGuidesProvider
     }
 
     /**
-     * Clears the internal cache, forcing the next request to fetch fresh data.
+     * Clears the cache, forcing the next request to fetch fresh data.
+     *
+     * Note the process-wide reach: the backing caches are `static`, so this
+     * flushes the cached view for EVERY TrashGuidesProvider instance in the
+     * process, not just the receiver's (it also resets the receiver's own
+     * parsed copies).
      *
      * @return void
      */

@@ -17,9 +17,12 @@ namespace Phlix\Shared\Arr\Transport;
  * {@see \Phlix\Shared\Arr\AbstractArrClient} performs all of its HTTP I/O through
  * this interface, so the actual wire mechanism is a pluggable, injectable concern
  * rather than a hard-coded blocking call. This keeps the package honest about its
- * "zero I/O" charter: the only bundled implementation that touches the network is
- * {@see CurlArrTransport}, intended for CLI/test use and for consumers whose
- * runtime hooks curl (see the event-loop note below).
+ * "zero I/O" charter: network code is confined to the `Arr/` exception — within
+ * this seam the only bundled implementation is {@see CurlArrTransport}, intended
+ * for CLI/test use and for consumers whose runtime hooks curl (see the
+ * event-loop note below) — and, stated plainly, `TrashGuidesProvider` performs
+ * its own blocking stream fetches that do NOT route through this interface (no
+ * transport seam there today; see that class's documented limitations).
  *
  * **Event-loop consumers (Workerman/Webman) should inject an async, non-blocking
  * transport** (e.g. a `workerman/http-client`-backed implementation living in the
