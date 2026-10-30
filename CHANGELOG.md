@@ -80,6 +80,46 @@ its lock is re-pinned past the next release.
   the real resolution scheme instead of implying every file has an accessor: a dedicated
   `SchemaPaths` accessor where one exists, else `SchemaPaths::dir()` joined with the file name
   — `manifest.schema.json` has none (M-SHARED-06).
+- `JwtClaims::isNotYetValid()`'s consumer map was corrected to disk truth:
+  phlix-hub adopted the predicate itself (`validateToken()` calls
+  `$claims->isNotYetValid()` at `src/Auth/JwtHandler.php:223` since its
+  ^0.52.0 re-vendor), while phlix-server still guards `nbf` inline in
+  `IdTokenValidator` pending its own re-pin — the docblock's "both consumers
+  guard inline" claim is no longer half-true (M-SHARED-03).
+- The advertised-but-unenforced constant vocabularies were re-voiced as
+  what they are: conventions, not gates. `JwtClaims` gained a class-docblock
+  section stating that the constructor and both parse paths validate presence
+  and PHP types only for `iss`/`aud`/`type` (accepting well-typed legacy or
+  third-party values by design), with the two `@param` lines following suit;
+  `ServerInfoDto` got the same disclosure for `status` — its `fromPayload()`
+  decodes stored rows rather than throwing on unknown-but-string values
+  (M-SHARED-24, M-SHARED-32). Enforcing `in_array` gates on classes server
+  and hub already consume is behavior change reserved for a coordinated
+  breaking release, so the doc-branch of the review's two offered fixes is
+  the shipped one.
+- Finality posture in `Phlix\Shared\Arr` was settled per class (M-SHARED-34):
+  `SyncResult` and `ArrClientFactory` are now `final` — an estate-wide probe
+  (server, hub, every plugin and theme repo, and this package's own suite)
+  found zero extension or subclass-mock sites for them — while the four
+  `*Client` classes and `TrashGuidesProvider` keep their `class` keyword and
+  gained Manifest-style "Subclassing and the path to `final`" docblocks
+  naming the exact test seams that hold them open (this package's
+  `Mockable*` doubles, phlix-server's `CustomFormatSyncerTest` for
+  RadarrClient/TrashGuidesProvider, plus the anonymous-class probes in
+  `AbstractArrClientTest`). No method signature, return type, or behavior
+  changed; the flips cannot break any consumer that type-hints, instantiates,
+  or calls these classes today.
+- `schemas/server-settings.schema.json`: the three remaining `restart: true`
+  keys whose admin text never mentioned the restart requirement
+  (`hwaccel.enabled`, `hwaccel.prefer_hardware`,
+  `transcoding.preferred_accelerator`) now carry the family sentence used by
+  their siblings — verbatim for the first two, and with the accelerator-
+  accurate "why" (per-worker probe at start) for the third (M-SHARED-42).
+  Metadata-only; no type/default/bounds/enum moved.
+- Brand spelling: three "TMDB" occurrences became the official "TMDb" —
+  `metadata.min_match_confidence`'s description in the server schema and the
+  trailer/episode-still descriptions in `media-item.schema.json` — matching
+  the nine other TMDb usages across the package (M-SHARED-51).
 
 ### Docs
 

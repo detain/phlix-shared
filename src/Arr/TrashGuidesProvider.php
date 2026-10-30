@@ -18,6 +18,14 @@ use RuntimeException;
 /**
  * Fetches and parses TRaSH-Guides quality profiles and custom formats JSON.
  *
+ * ## Subclassing and the path to `final`
+ *
+ * Not `final` because `phlix-server`'s Arr test seam extends it to stub the
+ * fetch layer (`tests/Unit/Server/Arr/CustomFormatSyncerTest`'s
+ * `MockableTrashGuidesProvider`). Outside that double treat this class as
+ * effectively final; flipping `final` is a BREAKING change to coordinate
+ * with phlix-server at a release seam.
+ *
  * @package Phlix\Shared\Arr
  * @since 0.4.0
  */

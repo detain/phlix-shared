@@ -25,7 +25,7 @@ use Psr\Log\LoggerInterface;
  * @package Phlix\Shared\Arr
  * @since 0.4.0
  */
-class ArrClientFactory
+final class ArrClientFactory
 {
     /**
      * @param array{

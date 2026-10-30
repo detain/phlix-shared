@@ -16,6 +16,15 @@ use RuntimeException;
 /**
  * Bazarr API client for subtitle management.
  *
+ * ## Subclassing and the path to `final`
+ *
+ * Not `final` only because test doubles extend it
+ * (`tests/Arr/BazarrClientTest.php::MockableBazarrClient`). The supported
+ * seams are the transport injection (see
+ * {@see Transport\ArrTransportInterface}); outside those doubles treat this
+ * class as effectively final. Flipping `final` is a BREAKING change to
+ * coordinate at a release seam once the doubles move behind a seam.
+ *
  * @package Phlix\Shared\Arr
  * @since 0.4.0
  */

@@ -57,6 +57,16 @@ use Phlix\Shared\Support\PayloadAssert;
  * omitted keys, so the object round-trip is lossless. See the round-trip tests
  * in `JwtClaimsTest` for both the all-fields and minimal-claims cases.
  *
+ * ## The `ISS_*` / `AUD_*` / `TYPE_*` constants are conventions, not gates
+ *
+ * The constructor and both parse paths validate field PRESENCE and PHP TYPES
+ * only: any non-empty string is accepted for `iss`, `aud` and `type`. The
+ * constants name the values the estate's issuers emit today; legacy and
+ * third-party issuers can carry well-typed other values, and the tolerant
+ * parse path is deliberate — an `in_array` gate here would change behavior
+ * for a class `phlix-server` and `phlix-hub` already consume, so tightening
+ * is reserved for a coordinated breaking release, not a patch.
+ *
  * @package Phlix\Shared\Auth
  * @since 0.2.0
  */
@@ -74,12 +84,12 @@ final class JwtClaims
 
     /**
      * @param string         $iss   Issuer. `phlix` for server-minted, `phlix-hub` for hub-minted.
-     * @param string         $aud   Audience. One of self::AUD_*.
+     * @param string         $aud   Audience. Conventionally one of self::AUD_* (not enforced — see class docblock).
      * @param string         $sub   Subject — user UUID.
      * @param int            $iat   Issued-at, UNIX seconds.
      * @param int            $exp   Expires-at, UNIX seconds.
      * @param int|null       $nbf   Not-before, UNIX seconds. Null when unset.
-     * @param string         $type  Token kind. One of self::TYPE_*.
+     * @param string         $type  Token kind. Conventionally one of self::TYPE_* (not enforced — see class docblock).
      * @param string|null    $jti   Refresh-only token identifier. Null on access tokens.
      * @param list<string>   $scope Permissions list (e.g. `["library:read","playback:write"]`). Empty when unscoped.
      * @param string|null    $serverId Optional server UUID for hub-minted client tokens. Null on server-minted.
@@ -285,18 +295,17 @@ final class JwtClaims
      * A token with no `nbf` claim is always valid from the moment it is
      * issued, so this returns false for it (early exit).
      *
-     * Both known estate consumers guard `nbf` inline today; this helper
-     * exists so they can share one canonical predicate when they next
-     * re-pin. Their leeway policies differ and are deliberate:
-     * - the hub validates its own HS256 tokens with ZERO leeway —
-     *   `phlix-hub/src/Auth/JwtHandler.php:223` (`$claims->nbf > time()`
-     *   inside `validateToken()`; the minting side never sets `nbf`, so any
-     *   future-dated `nbf` is forgery or clock drift, and strictness is the
-     *   safe default);
-     * - the server's OIDC ID-token check tolerates 60 seconds of provider
-     *   clock skew — `phlix-server/src/Plugins/Oidc/IdTokenValidator.php:204-208`
-     *   (`$nbf > time() + 60`), matching the OIDC practice of allowing
-     *   bounded skew against third-party issuers.
+     * The hub consumes this predicate directly: `validateToken()` calls
+     * `$claims->isNotYetValid()` with ZERO leeway
+     * (`phlix-hub/src/Auth/JwtHandler.php:223`; the minting side never sets
+     * `nbf`, so any future-dated `nbf` is forgery or clock drift, and
+     * strictness is the safe default). The server does not use this helper
+     * yet — its OIDC ID-token check guards `nbf` inline pending its next
+     * re-pin, with a deliberately different leeway policy: it tolerates 60
+     * seconds of provider clock skew —
+     * `phlix-server/src/Plugins/Oidc/IdTokenValidator.php:204-208`
+     * (`$nbf > time() + 60`), matching the OIDC practice of allowing
+     * bounded skew against third-party issuers.
      *
      * Callers minting-and-verifying in-process pass no `$leeway`; callers
      * verifying externally-issued tokens pass their configured skew.

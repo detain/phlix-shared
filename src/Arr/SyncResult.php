@@ -16,10 +16,14 @@ use DateTimeImmutable;
 /**
  * Value object representing the result of a TRaSH-Guides sync operation.
  *
+ * `final`: package posture is final-by-default with one reasoned extension
+ * seam per family (see {@see \Phlix\Shared\Plugin\Manifest}'s "Subclassing
+ * and the path to `final`"). Nothing in the estate subclasses this value.
+ *
  * @package Phlix\Shared\Arr
  * @since 0.4.0
  */
-class SyncResult
+final class SyncResult
 {
     /**
      * Creates a new SyncResult instance.

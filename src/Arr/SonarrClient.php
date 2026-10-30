@@ -16,6 +16,15 @@ use RuntimeException;
 /**
  * Sonarr v3 API client for TV series management.
  *
+ * ## Subclassing and the path to `final`
+ *
+ * Not `final` only because test doubles extend it
+ * (`tests/Arr/SonarrClientTest.php::MockableSonarrClient`). The supported
+ * seams are {@see ArrClientInterface} and the {@see Transport\ArrTransportInterface}
+ * injection; outside those doubles treat this class as effectively final.
+ * Flipping `final` is a BREAKING change to coordinate at a release seam once
+ * the doubles move behind the interface or transport.
+ *
  * @package Phlix\Shared\Arr
  * @since 0.4.0
  */

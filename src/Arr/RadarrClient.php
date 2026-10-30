@@ -16,6 +16,17 @@ use RuntimeException;
 /**
  * Radarr v3 API client for movie management.
  *
+ * ## Subclassing and the path to `final`
+ *
+ * Not `final` because test doubles extend it on both sides of the wire:
+ * `tests/Arr/RadarrClientTest.php::MockableRadarrClient` and
+ * `phlix-server/tests/Unit/Server/Arr/CustomFormatSyncerTest` (plus
+ * anonymous `new class extends RadarrClient` probes in
+ * `AbstractArrClientTest`). The supported seams are {@see ArrClientInterface}
+ * and the {@see Transport\ArrTransportInterface}; outside those doubles treat
+ * this class as effectively final. Flipping `final` is a BREAKING change to
+ * coordinate with phlix-server at a release seam.
+ *
  * @package Phlix\Shared\Arr
  * @since 0.4.0
  */

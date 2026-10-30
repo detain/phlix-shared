@@ -11,7 +11,7 @@
             "description": "Master switch for hardware-accelerated transcoding.",
             "group": "transcoding",
             "label": "Enable hardware acceleration",
-            "helpText": "When enabled, the server will use your GPU (NVENC, QSV, VCE, or VideoToolbox) to accelerate transcoding instead of relying solely on CPU-based software encoding. This dramatically reduces CPU load and power consumption for concurrent streams, but requires a compatible GPU and appropriate driver support. If your hardware does not support acceleration, the server falls back to software encoding automatically.",
+            "helpText": "When enabled, the server will use your GPU (NVENC, QSV, VCE, or VideoToolbox) to accelerate transcoding instead of relying solely on CPU-based software encoding. This dramatically reduces CPU load and power consumption for concurrent streams, but requires a compatible GPU and appropriate driver support. If your hardware does not support acceleration, the server falls back to software encoding automatically. Changes take effect after a server restart: the merged transcoding config is built once per worker and handed to the ffmpeg runner.",
             "helpLinks": [
                 {
                     "text": "NVENC (NVIDIA)",
@@ -31,7 +31,7 @@
             "description": "Prefer hardware encoders/decoders over software when both are available.",
             "group": "transcoding",
             "label": "Prefer hardware encoders/decoders",
-            "helpText": "When both a hardware encoder/decoder and a software fallback are available for a given codec, this option causes the server to always choose the hardware path first. Disable this to prefer software encoding, which may offer better quality at the cost of higher CPU usage. Useful if you want to reserve GPU bandwidth for specific streams or if you encounter compatibility issues with hardware decoding.",
+            "helpText": "When both a hardware encoder/decoder and a software fallback are available for a given codec, this option causes the server to always choose the hardware path first. Disable this to prefer software encoding, which may offer better quality at the cost of higher CPU usage. Useful if you want to reserve GPU bandwidth for specific streams or if you encounter compatibility issues with hardware decoding. Changes take effect after a server restart: the merged transcoding config is built once per worker and handed to the ffmpeg runner.",
             "helpLinks": [
                 {
                     "text": "Hardware encoding vs software encoding",
@@ -47,7 +47,7 @@
             "group": "transcoding",
             "description": "Preferred FFmpeg hardware-acceleration method for transcoding. The values are FFmpeg hwaccel names (not encoder names) and must be one of the keys FfmpegRunner probes into its accelerator map. An empty string means auto-detect: FfmpegRunner treats an empty preference as 'not set' and picks the first probed accelerator that supports the requested codec.",
             "label": "Preferred hardware accelerator",
-            "helpText": "Select which hardware-acceleration method to prioritise for transcoding. The server probes the available methods at startup and falls back to software encoding when the selected one is unavailable or cannot handle the codec. CUDA is the NVIDIA path (it drives the NVENC encoders), QSV is Intel Quick Sync, VA-API covers AMD and Intel on Linux, VideoToolbox is macOS, and AMF is AMD on Windows. Leave this on Auto-detect unless you have a specific reason to pin one method.",
+            "helpText": "Select which hardware-acceleration method to prioritise for transcoding. The server probes the available methods at startup and falls back to software encoding when the selected one is unavailable or cannot handle the codec. CUDA is the NVIDIA path (it drives the NVENC encoders), QSV is Intel Quick Sync, VA-API covers AMD and Intel on Linux, VideoToolbox is macOS, and AMF is AMD on Windows. Leave this on Auto-detect unless you have a specific reason to pin one method. Changes take effect after a server restart: the accelerator probe and the merged transcoding config are performed once per worker when it starts.",
             "helpLinks": [
                 {
                     "text": "NVENC (NVIDIA)",
@@ -1563,7 +1563,7 @@
         },
         "metadata.min_match_confidence": {
             "type": "number",
-            "description": "Minimum confidence (0..1) a TMDB title match must reach before it is accepted during metadata resolution: 0.7 x normalised-title similarity + 0.3 x release-year agreement, a candidate with no year caps at 0.7. 0 (the shipped default) disables the gate and reproduces pre-key behavior exactly — the first search result was always taken. Checked live on each lookup; no restart.",
+            "description": "Minimum confidence (0..1) a TMDb title match must reach before it is accepted during metadata resolution: 0.7 x normalised-title similarity + 0.3 x release-year agreement, a candidate with no year caps at 0.7. 0 (the shipped default) disables the gate and reproduces pre-key behavior exactly — the first search result was always taken. Checked live on each lookup; no restart.",
             "group": "metadata",
             "label": "Minimum metadata match confidence",
             "helpText": "Guards against mis-tagging: an auto-lookup that accepts whatever the provider's first hit is can attach the wrong movie — same title, wrong year, or a remake. Raising this threshold makes the resolver refuse weak first hits and fall through to the next candidate or local match instead, at the cost of some items being left unmatched for a human to fix. 0 turns the check off (today's behavior). Reasonable tightening starts around 0.5: a title with an almost-exact name match scores near 0.7 even with the wrong year, while a correct title-and-year match scores 1.0. Values above about 0.7 will reject every candidate whose year is missing or different, which for scene-named files from older libraries is common — use them only while babysitting a re-match.",

@@ -18,6 +18,13 @@ use Phlix\Shared\Support\PayloadAssert;
  * Hub-side projection of an enrolled server, returned from
  * `GET /api/v1/users/{id}/servers` (Phase C.4 dashboard).
  *
+ * The `STATUS_*` constants are conventions, not gates: `fromPayload()`
+ * validates presence and PHP types only, so an unknown-but-string `status`
+ * from a stored row decodes instead of throwing — read sites compare
+ * against the constants. An `in_array` gate would change behavior for a
+ * class the hub consumes today and is reserved for a coordinated breaking
+ * release.
+ *
  * @package Phlix\Shared\Hub
  * @since 0.2.0
  */
@@ -36,7 +43,7 @@ final class ServerInfoDto
      * @param string         $serverName         From the original ClaimRequest.
      * @param string         $version            Server semver, refreshed on heartbeat.
      * @param int|null       $lastSeenAt         UNIX seconds. Null when never reached out.
-     * @param string         $status             One of self::STATUS_*.
+     * @param string         $status             Conventionally one of self::STATUS_*; not gated (see class docblock).
      * @param list<string>   $hostnameCandidates Last known reachable hostnames.
      * @param bool           $relayActive        Whether a WSS reverse tunnel is currently open (Phase C.6).
      * @param int|null       $libraryCount       Number of libraries the server last reported via heartbeat

@@ -119,7 +119,7 @@
         },
         "trailer_url": {
             "type": ["string", "null"],
-            "description": "Detail-only. Fully-qualified URL to the item's primary trailer (e.g. a YouTube watch URL), captured at scan time from TMDB `videos`. Absent from list responses; null when no trailer is available.",
+            "description": "Detail-only. Fully-qualified URL to the item's primary trailer (e.g. a YouTube watch URL), captured at scan time from TMDb `videos`. Absent from list responses; null when no trailer is available.",
             "format": "uri"
         },
         "trailer_key": {
@@ -139,7 +139,7 @@
         },
         "still_url": {
             "type": ["string", "null"],
-            "description": "Detail-only, episodes only. URL to the episode's still frame (a landscape thumbnail). Absent on non-episode items and list responses; null when TMDB has no still for the episode.",
+            "description": "Detail-only, episodes only. URL to the episode's still frame (a landscape thumbnail). Absent on non-episode items and list responses; null when TMDb has no still for the episode.",
             "format": "uri"
         }
     },
