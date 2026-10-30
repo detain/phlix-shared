@@ -6,6 +6,29 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+Review-minors batch W-min116 (shared): Arr client error honesty, psalm-idiom
+alignment and one helpText truth. `AbstractArrClient` no longer swallows the
+detail it was handed: 4xx/5xx RuntimeExceptions now carry a capped (300-byte),
+single-line excerpt of the response body — the *arr APIs put the actionable
+message there and callers used to see only "HTTP 500" — and a 3xx is finally
+an error instead of a silent empty success (no bundled transport follows
+redirects, so a 301 previously decoded as "no data"). The constructor's
+`$httpWarningLogged` flag was dead theater (the constructor runs exactly once
+per instance): removed; behavior byte-identical, pinned by the existing
+once-per-instance tests. `RadarrClient`'s two `@psalm-suppress MixedAssignment`
+lazy suppresses were replaced by the package's own `/** @var mixed */` +
+explicit-narrowing idiom (the one also used by `JwtClaims`, `AuthResult`,
+`RelayHttpRequest`); psalm stays clean with zero suppresses in that path.
+The newsletter `helpText` no longer points at a phantom "configured day"
+control: the weekday is fixed in the server's config file, only the hour is
+admin-adjustable, and the text now says so. One item honestly blocked:
+M-SHARED-38 (`runProcess()`'s sequential stdout/stderr pipe reads — a
+theoretical 64 KiB deadlock) could be cured here in isolation, but this
+script is the S440 estate family whose ~30 copies are byte-identical and
+guard-test-pinned; an unsynchronised single-repo edit would break the
+family-zero-diff invariant. The cure belongs to an owner-scheduled family
+propagation wave.
+
 Review-minors batch W-min115 (shared): transport-law wording, doc discovery,
 docblock hygiene and CI action pinning. One behavior-adjacent disclosure: the
 `Arr` transport law was stated as an absolute "event-loop consumers MUST

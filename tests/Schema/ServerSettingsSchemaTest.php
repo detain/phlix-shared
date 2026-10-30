@@ -1424,6 +1424,37 @@ final class ServerSettingsSchemaTest extends TestCase
     }
 
     /**
+     * M-SHARED-50: the newsletter digest day is fixed (config file), only the
+     * hour is admin-adjustable. The helpText must not point at a phantom day
+     * control, and no day key may appear in the admin surface.
+     */
+    public function test_newsletter_enabled_help_discloses_the_fixed_weekday(): void
+    {
+        $properties = self::properties();
+
+        foreach (array_keys($properties) as $key) {
+            $this->assertStringNotContainsString(
+                'send_day',
+                $key,
+                'A send-day key would make the helpText true again — update the helpText instead of deleting this pin.'
+            );
+        }
+
+        $helpText = $properties['newsletter.enabled']['helpText'] ?? null;
+        $this->assertIsString($helpText);
+        $this->assertMatchesRegularExpression(
+            '/fixed weekday configured in the server/i',
+            $helpText,
+            'The admin needs to learn from the helpText that the weekday lives in the server config file.'
+        );
+        $this->assertStringNotContainsString(
+            'the configured day',
+            $helpText,
+            'The pre-fix wording implied a configurable day that does not exist in this schema.'
+        );
+    }
+
+    /**
      * Liveness check for every documentation link in the schema.
      *
      * Excluded from the default suite (see `phpunit.xml`) because it performs

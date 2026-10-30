@@ -48,7 +48,6 @@ abstract class AbstractArrClient
     protected ?LoggerInterface $logger;
     protected int $timeout;
     protected ArrTransportInterface $transport;
-    private bool $httpWarningLogged = false;
 
     /**
      * Creates a new *arr client.
@@ -83,8 +82,9 @@ abstract class AbstractArrClient
         $this->timeout = $timeout;
         $this->transport = $transport ?? new CurlArrTransport($timeout);
 
-        if ($scheme === 'http' && !$this->httpWarningLogged) {
-            $this->httpWarningLogged = true;
+        // The constructor runs exactly once per instance, so no "logged"
+        // flag is needed: one HTTP baseUrl means exactly one warning.
+        if ($scheme === 'http') {
             $this->logger?->warning(
                 $this->vendorName() . ' baseUrl uses HTTP — X-Api-Key is sent in clear text'
             );
@@ -183,7 +183,22 @@ abstract class AbstractArrClient
         }
 
         if ($httpCode >= 400) {
-            throw new RuntimeException($vendor . ' API error: HTTP ' . $httpCode);
+            // The *arr APIs carry the actionable message in the 4xx/5xx
+            // JSON body — dropping it left callers with "HTTP 500" and
+            // nothing to act on. Append a capped, single-line excerpt.
+            throw new RuntimeException(
+                $vendor . ' API error: HTTP ' . $httpCode . $this->detailFromBody($responseBody)
+            );
+        }
+
+        // Neither bundled transport follows redirects (CurlArrTransport never
+        // sets CURLOPT_FOLLOWLOCATION), and a 3xx is never a success: a 301
+        // with an empty body used to fall through to the empty-body return
+        // and decode as "no data" — surface it as the error it is.
+        if ($httpCode >= 300) {
+            throw new RuntimeException(
+                $vendor . ' API redirect not followed (HTTP ' . $httpCode . '): ' . $path
+            );
         }
 
         if ($responseBody === '') {
@@ -196,6 +211,27 @@ abstract class AbstractArrClient
         }
 
         return $decoded;
+    }
+
+    /**
+     * Compact single-line excerpt of an error response body for messages.
+     *
+     * Capped at 300 bytes with whitespace collapsed so a full HTML error
+     * page can never bloat a log line; an empty body contributes nothing.
+     */
+    private function detailFromBody(string $body): string
+    {
+        $trimmed = trim($body);
+        if ($trimmed === '') {
+            return '';
+        }
+
+        $oneLine = (string) preg_replace('/\s+/', ' ', $trimmed);
+        if (strlen($oneLine) > 300) {
+            $oneLine = substr($oneLine, 0, 300) . '...';
+        }
+
+        return ' — ' . $oneLine;
     }
 
     /**

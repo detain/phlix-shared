@@ -102,7 +102,7 @@ class RadarrClient extends AbstractArrClient implements ArrClientInterface
     public function createCustomFormat(array $payload): int
     {
         $response = $this->post('/api/v3/customformat', $payload);
-        /** @psalm-suppress MixedAssignment $response is array<mixed, mixed> from JSON */
+        /** @var mixed $id */
         $id = $response['id'] ?? null;
 
         return is_numeric($id) ? (int) $id : 0;
@@ -142,7 +142,7 @@ class RadarrClient extends AbstractArrClient implements ArrClientInterface
     public function createQualityProfile(array $payload): int
     {
         $response = $this->post('/api/v3/qualityprofile', $payload);
-        /** @psalm-suppress MixedAssignment $response is array<mixed, mixed> from JSON */
+        /** @var mixed $id */
         $id = $response['id'] ?? null;
 
         return is_numeric($id) ? (int) $id : 0;

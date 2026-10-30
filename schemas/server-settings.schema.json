@@ -801,7 +801,7 @@
             "description": "Master switch for the weekly newsletter digest.",
             "group": "newsletter",
             "label": "Enable newsletter digest",
-            "helpText": "When enabled, Phlix will compile and send a weekly digest email to all users summarizing recently added or updated content in the library. The digest is sent on the configured day at the hour specified by the 'send hour' setting. Users can opt out individually from their account settings. Disable this to hide the newsletter feature entirely and prevent any digest emails from being sent. Changes take effect after a server restart: the newsletter timer is registered once when the worker starts.",
+            "helpText": "When enabled, Phlix will compile and send a weekly digest email to all users summarizing recently added or updated content in the library. The digest is sent on a fixed weekday configured in the server's config file (only the hour is adjustable here, via the 'send hour' setting). Users can opt out individually from their account settings. Disable this to hide the newsletter feature entirely and prevent any digest emails from being sent. Changes take effect after a server restart: the newsletter timer is registered once when the worker starts.",
             "helpLinks": [
                 {
                     "text": "Email newsletter",
