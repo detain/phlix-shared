@@ -249,9 +249,26 @@ enum RelayFrameType: int
      */
     public static function fromValue(int $value): self
     {
-        return self::tryFrom($value) ?? throw new InvalidArgumentException(
-            sprintf('Invalid relay frame type value: 0x%02X', $value),
-        );
+        return self::tryFrom($value) ?? throw new InvalidArgumentException(sprintf(
+            'Invalid relay frame type value: 0x%02X, expected one of: %s',
+            $value,
+            self::expectedValueList(),
+        ));
+    }
+
+    /**
+     * The accepted values as `0xNN` literals, comma-joined.
+     *
+     * M-SHARED-16: a misuse throw must teach the valid set, not merely name
+     * the offender. Derived from `cases()`, so the list can never rot behind
+     * the enum it describes.
+     */
+    private static function expectedValueList(): string
+    {
+        return implode(', ', array_map(
+            static fn (self $case): string => sprintf('0x%02X', $case->value),
+            self::cases(),
+        ));
     }
 
     /**

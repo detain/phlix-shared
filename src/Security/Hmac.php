@@ -17,6 +17,10 @@ namespace Phlix\Shared\Security;
  * Provides timing-safe comparison for verifying HMAC-SHA256 signatures
  * in the `sha256:<hex>` format used by Phlix manifest files.
  *
+ * Single contract: {@see self::verify()} is the canonical entry point and
+ * {@see self::verifySha256Hex()} is a deprecated alias delegating to it
+ * verbatim — one comparison, no duplicated logic that could diverge.
+ *
  * @package Phlix\Shared\Security
  * @since 0.10.0
  */
@@ -25,8 +29,11 @@ final class Hmac
     /**
      * Verify an HMAC-SHA256 signature against a payload.
      *
-     * Compares the provided signature with a computed HMAC-SHA256 over the
-     * payload using timing-safe string comparison to prevent timing attacks.
+     * The canonical contract of this class: compares the provided signature
+     * with a computed HMAC-SHA256 over the payload using one timing-safe
+     * `hash_equals` over the full `sha256:`-prefixed string. A wrong prefix or
+     * length fails inside `hash_equals` — no pre-check can add safety here,
+     * and earlier ones were decoration.
      *
      * @param string $payload The data that was signed.
      * @param string $signature The signature to verify (expecting `sha256:<hex>` format).
@@ -66,8 +73,12 @@ final class Hmac
     /**
      * Verify an HMAC-SHA256 signature in `sha256:<hex>` format.
      *
-     * Convenience method that accepts the `sha256:<hex>` formatted signature
-     * directly, extracting the hex portion for comparison.
+     * @deprecated Use {@see self::verify()} — the single canonical contract of
+     *             this class. This alias existed as a duplicate implementation
+     *             of the exact same comparison (its prefix pre-check was
+     *             decoration: `hash_equals` already rejects a wrong prefix);
+     *             it is now a verbatim delegation, kept for source
+     *             compatibility, and emits no runtime notice.
      *
      * @param string $payload The data that was signed.
      * @param string $signature The signature in `sha256:<hex>` format.
@@ -79,12 +90,6 @@ final class Hmac
      */
     public static function verifySha256Hex(string $payload, string $signature, string $secret): bool
     {
-        if (!str_starts_with($signature, 'sha256:')) {
-            return false;
-        }
-
-        $expectedHash = 'sha256:' . hash_hmac('sha256', $payload, $secret);
-
-        return hash_equals($expectedHash, $signature);
+        return self::verify($payload, $signature, $secret);
     }
 }

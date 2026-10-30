@@ -62,9 +62,24 @@ final class RelayFrameTypeTest extends TestCase
 
     public function test_from_value_throws_on_invalid_value(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Invalid relay frame type value: 0x00');
-        RelayFrameType::fromValue(0x00);
+        try {
+            RelayFrameType::fromValue(0x00);
+        } catch (InvalidArgumentException $exception) {
+            // M-SHARED-16: the throw must teach the accepted set. The literal list
+            // is pinned for the 18 current cases (0x01–0x12); adding or removing a
+            // case must rotate it — a silent drift here is the defect this pin kills.
+            $this->assertSame(
+                'Invalid relay frame type value: 0x00, expected one of: ' . implode(', ', array_map(
+                    static fn (RelayFrameType $case): string => sprintf('0x%02X', $case->value),
+                    RelayFrameType::cases(),
+                )),
+                $exception->getMessage(),
+            );
+
+            return;
+        }
+
+        $this->fail('fromValue() must reject 0x00 with an InvalidArgumentException.');
     }
 
     public function test_is_valid_returns_true_for_valid_values(): void

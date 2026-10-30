@@ -745,19 +745,19 @@
         },
         "subtitles.default_language": {
             "type": "string",
-            "description": "Preferred subtitle language (ISO 639 code) selected by default for new playback sessions.",
+            "description": "Preferred subtitle language (ISO 639-1 code, or a BCP-47 tag) selected by default for new playback sessions.",
             "group": "subtitles",
             "label": "Default subtitle language",
-            "helpText": "When a new playback session starts and the user's preferred language has not been set, Phlix will automatically select this subtitle language if a matching track is available. Use a standard ISO 639-2 or ISO 639-1 language code such as 'eng', 'spa', 'fre', 'ger', or 'jpn'. This is only the default — users can override it in their personal settings per session.",
+            "helpText": "When a new playback session starts and the user's preferred language has not been set, Phlix will automatically select this subtitle language if a matching track is available. Use an ISO 639-1 code — two letters, such as 'en', 'fr', 'de', 'es', or 'ja': phlix-server treats this field as ISO 639-1 end to end and its own fallback default is 'en'. A region-qualified BCP-47 tag such as 'pt-BR' is accepted and consulted under its primary subtag ('pt'), case-insensitively. Three-letter spellings (e.g. 'eng') match only media whose metadata literally carries that spelling, so they miss two-letter-tagged tracks. This is only the default — users can override it in their personal settings per session.",
             "helpLinks": [
                 {
-                    "text": "ISO 639 language codes",
-                    "url": "https://en.wikipedia.org/wiki/ISO_639"
+                    "text": "ISO 639-1 language codes",
+                    "url": "https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes"
                 }
             ],
             "tier": "standard",
             "restart": false,
-            "default": "eng"
+            "default": "en"
         },
         "subtitles.provider_priority": {
             "type": "array",

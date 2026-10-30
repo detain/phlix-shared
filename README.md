@@ -76,6 +76,10 @@ for the files without a dedicated accessor, such as `manifest.schema.json`):
   Extended with optional UI-metadata keywords (`label`, `helpText`, `helpLinks`, `tier`,
   `enumLabels`, `optionHelp`, `secret`, `restart`) so the admin settings UI can render
   per-option help text and split Standard vs Advanced options (0.22.0+).
+  Their normative semantics — requiredness, shape, and the verified consumer effect of
+  each keyword — are specified in-repo by the keyword-semantics table at the top of
+  `tests/Schema/SettingsSchemaAssertions.php`, whose assertions are that table's
+  executable enforcement; no external plan document is needed to author or review a key.
 
   **Key-naming contract (0.25.0+).** Every property key must be a dotted path that
   `Phlix\Admin\SettingsRepository::getDefault()` can resolve: a LEADING RUN of segments

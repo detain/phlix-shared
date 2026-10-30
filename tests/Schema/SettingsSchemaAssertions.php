@@ -4,10 +4,22 @@
  * Shared assertions for the settings-schema property shape.
  *
  * Both `server-settings.schema.json` and `hub-settings.schema.json` use the
- * same extended property vocabulary (`label`, `helpText`, `helpLinks`, `tier`,
- * `secret`, `restart`, `enumLabels`, `optionHelp`) described in the settings
- * plan. These assertions encode the invariants that vocabulary must satisfy so
- * a schema edit cannot silently ship a property the admin UI renders wrongly.
+ * same extended property vocabulary. This header is its in-repo single source
+ * of truth: the keyword-semantics table below states requiredness, shape, and
+ * the verified consumer effect of each keyword, and the assertions in this
+ * trait are the executable enforcement of the shape column — so a schema edit
+ * cannot silently ship a property the admin UI renders wrongly.
+ *
+ * | keyword       | required?                     | shape                                                          | consumer effect (disk-verified) |
+ * |---------------|-------------------------------|----------------------------------------------------------------|---------------------------------|
+ * | label         | optional                      | non-empty string                                               | the field caption in the admin settings SPA (falls back to the key) |
+ * | helpText      | optional                      | non-empty string                                               | inline per-field help copy |
+ * | helpLinks     | optional — omit, never `[]`   | JSON list of `{text, url}`; `url` valid unique `https://`       | rendered as links in the help popover |
+ * | tier          | REQUIRED                      | `'standard'` or `'advanced'`                                   | gates the Standard/Advanced UI toggle; omission silently renders as "standard", which is why it is asserted, not defaulted |
+ * | secret        | optional                      | real boolean                                                   | `true` = the stored value is served masked and re-submitting the unchanged sentinel is a no-op (credential redaction law); false/omitted = readable like any other value |
+ * | restart       | optional                      | real boolean                                                   | `true` = the value is captured at worker start / container build / route build and needs the admin Restart control; false/omitted = it resolves live per use |
+ * | enumLabels    | required whenever `enum` is   | JSON object keyed by EXACTLY the enum members                   | the per-option human labels in select controls |
+ * | optionHelp    | required whenever `enum` is   | JSON object keyed by EXACTLY the enum members                   | per-option help strings; coverage is asserted in both directions (no missing, no stale) |
  *
  * Deliberately NOT asserted here: whether a key resolves to a non-null default
  * in phlix-server's / phlix-hub's `config/` tree. That is a cross-repo
@@ -170,10 +182,11 @@ trait SettingsSchemaAssertions
     /**
      * Assert enum properties carry complete `enumLabels` and `optionHelp` maps.
      *
-     * The plan requires per-value help on every enum option: an option with no
-     * label renders as a raw token, and an option with no help is undocumented.
-     * Coverage must be EXACT in both directions — a stale entry for a removed
-     * option is as much a defect as a missing one.
+     * The keyword table in this file's header requires per-value help on
+     * every enum option: an option with no label renders as a raw token, and
+     * an option with no help is undocumented. Coverage must be EXACT in both
+     * directions — a stale entry for a removed option is as much a defect as
+     * a missing one.
      *
      * @param string               $key      Dotted setting key (for messages).
      * @param array<string, mixed> $property Decoded property definition.

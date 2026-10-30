@@ -700,7 +700,7 @@ final class ServerSettingsSchemaTest extends TestCase
             'transcoding.segment_format' => ['type' => 'string', 'default' => 'fmp4', 'minimum' => null, 'maximum' => null, 'enum' => ["mpegts","fmp4"], 'restart' => false, 'secret' => false],
             'artwork.download_enabled' => ['type' => 'boolean', 'default' => true, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
             'scanner.ignore_patterns' => ['type' => 'array', 'default' => [".part",".tmp",".download",".!ut","_unpack"], 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
-            'subtitles.default_language' => ['type' => 'string', 'default' => 'eng', 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
+            'subtitles.default_language' => ['type' => 'string', 'default' => 'en', 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
             'subtitles.provider_priority' => ['type' => 'array', 'default' => ["opensubtitles"], 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
             'trickplay.enabled' => ['type' => 'boolean', 'default' => true, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
             'newsletter.enabled' => ['type' => 'boolean', 'default' => false, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => true, 'secret' => false],
@@ -1505,5 +1505,39 @@ final class ServerSettingsSchemaTest extends TestCase
         }
 
         $this->assertSame([], $dead, "Dead helpLinks URLs:\n" . implode("\n", $dead));
+    }
+
+    /**
+     * M-SHARED-53: the accepted-set wording must teach the vocabulary the
+     * consumer actually runs. phlix-server's WebPortalRouter documents
+     * `subtitles.default_language` as ISO 639-1 end to end (its config default
+     * was corrected from 'eng' to 'en', CHANGELOG 0.28.0-era note), and the
+     * player normalizes preference codes to the case-insensitive primary
+     * subtag. The old help cited ISO 639-2, demonstrated ONLY three-letter
+     * examples (including the deprecated 'fre'/'ger' spellings), and shipped a
+     * default in the form the corrected consumer vocabulary rejects.
+     */
+    public function test_subtitles_default_language_states_the_iso_639_1_vocabulary(): void
+    {
+        $property = self::properties()['subtitles.default_language'];
+
+        $description = $property['description'] ?? null;
+        $helpText = $property['helpText'] ?? null;
+        $this->assertIsString($description);
+        $this->assertIsString($helpText);
+
+        $this->assertMatchesRegularExpression('/ISO 639-1(?![-\d])/', $description);
+        $this->assertMatchesRegularExpression('/ISO 639-1(?![-\d])/', $helpText);
+        $this->assertStringNotContainsString('639-2', $helpText);
+        $this->assertStringNotContainsString("'fre'", $helpText);
+        $this->assertStringNotContainsString("'ger'", $helpText);
+        $this->assertStringContainsString("'en'", $helpText);
+        $this->assertStringContainsString("'fr'", $helpText);
+        $this->assertStringContainsString("'de'", $helpText);
+        $this->assertSame(
+            'en',
+            $property['default'] ?? null,
+            'The schema default must equal the server\'s corrected config default.'
+        );
     }
 }

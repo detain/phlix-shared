@@ -6,6 +6,28 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+Review-minors batch W-min118 (shared — the final shared-minors batch): schema-vocabulary
+truth, a teaching enum throw, and one contract for the HMAC verifier.
+`subtitles.default_language` now states the vocabulary its server consumer actually
+runs — ISO 639-1 ('en', 'fr', 'de', 'es', 'ja'; region-qualified BCP-47 tags such as
+'pt-BR' are consulted under their primary subtag) — replacing the old "ISO 639-2 or
+ISO 639-1" claim whose every example was three-letter and two of which ('fre', 'ger')
+are deprecated spellings, and aligning the schema default from 'eng' to 'en': the
+0.28.0-era key audit corrected phlix-server's config fallback to 'en' and the schema
+had simply never caught up. `RelayFrameType::fromValue()` now teaches the accepted set
+— the misuse throw carries ", expected one of: 0x01, 0x02, …" derived from `cases()`,
+pinned by an exact-message test that rotates with the enum. `Hmac` collapses to one
+contract: `verify()` is canonical and the functionally identical `verifySha256Hex()`
+becomes a deprecated verbatim delegation (its prefix pre-check was decoration —
+`hash_equals` already rejects a wrong prefix); a pinned known-answer vector now
+anchors `compute()`, where the suite previously only round-tripped it. The
+settings-schema keyword vocabulary is specified in-repo: a normative
+keyword-semantics table (requiredness, shape, verified consumer effect) heads
+`tests/Schema/SettingsSchemaAssertions.php` and the README points at it, replacing
+the pointer to an external settings plan no clone can open. The admin-UI effect of
+these schema content edits rides the next tag-seam re-vendor wave like every
+shared-schema change.
+
 Review-minors batch W-min117 (shared): URL-contract truth in the settings
 schemas, an https-only fetch guard, enum lookup O(1), and a value-object
 invariant. The two hub `server.arr.*.url` keys now declare the pattern
