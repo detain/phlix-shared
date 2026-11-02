@@ -4,7 +4,30 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.53.0] - 2026-11-02
+
+Minor: 22 commits over v0.52.0 — the review-minors batches W-min110..118,
+the shared review-majors M-02..M-09, the 1b8e837 per-key schema value-pin
+tables, and the docs/CI/dev-tooling batches (PHP 8.3+8.4 gate matrix,
+SHA-pinned actions, archive export-ignore pair, add-a-key runbook). Four
+consumer-visible behavior changes ride the tag seam: unfollowed 3xx *arr
+responses now throw instead of decoding as silent empty success, and
+4xx/5xx RuntimeExceptions carry a capped (300-byte) single-line excerpt
+of the response body (`AbstractArrClient::detailFromBody()`);
+`TrashGuidesProvider::fetchUrl` refuses non-https schemes before any
+stream call (SSRF hardening against a poisoned config file) and its
+failure message no longer embeds raw PHP wrapper error text;
+`AuthResult` enforces `success ⇒ error === null` at construction
+(fail-fast; the estate scan found zero legitimate violating
+constructions); `SyncResult` and `ArrClientFactory` are `final` (estate
+probe: zero extension or subclass-mock sites). `RelayFrameType`'s decode
+hot path moved from linear `cases()` scans to O(1) backed-enum
+`tryFrom()` lookups — identical semantics, identical exception message.
+The schema key surface is held: 84 server / 18 hub properties, zero
+moves across type/default/bounds/enum — helpText and description prose
+only, and the per-key value-pin tables added in this window now lock
+that surface against silent drift. Bump class: the new throws are
+consumer-visible, so minor rather than patch (planner OC-2, ratified).
 
 Review-majors batch (shared M-09): `CurlArrTransport`'s process-wide cURL
 handle — one `private static ?\CurlHandle` serving every instance, serialized
