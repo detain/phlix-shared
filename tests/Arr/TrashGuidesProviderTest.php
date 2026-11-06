@@ -13,6 +13,7 @@ namespace Phlix\Shared\Tests\Arr;
 
 use PHPUnit\Framework\TestCase;
 use Phlix\Shared\Arr\TrashGuidesProvider;
+use Phlix\Shared\Tests\Support\Arr\TrashGuidesTlsMaterial;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -617,7 +618,10 @@ class TrashGuidesProviderTest extends TestCase
      * per-hop https re-validation cannot be evaded by a relative Location,
      * a protocol-relative hop, or a header stack whose LAST response is
      * final. Downgrade targets (http://) ARE returned by this helper; the
-     * refusal is fetchUrl's https gate, exercised hop by hop there.
+     * refusal is fetchUrl's https gate, and the hop-by-hop drive-through is
+     * pinned end-to-end by testFetchUrlRefusesRedirectDowngradeBeforeDialingIt
+     * (real loopback TLS walk, LW-061 minor cure — until that test existed,
+     * the per-hop refusal was intent, not exercised fact).
      */
     public function testRedirectTargetFromHeadersResolvesEveryLocationForm(): void
     {
@@ -735,6 +739,243 @@ class TrashGuidesProviderTest extends TestCase
             );
         } finally {
             self::assertTrue(stream_wrapper_restore('https'));
+        }
+    }
+
+    /**
+     * LW-061 minor cure (review w04L3): the per-hop https re-check must fire
+     * at an ACTUAL redirect hop, before the downgraded target is dialed.
+     * The pure-helper test only proves redirectTargetFromHeaders RETURNS the
+     * downgrade; the three gate tests dial the initial URL only, so bypassing
+     * the re-check (`$current = $target;`) used to survive the suite.
+     *
+     * Harness: a scripted loopback TLS server answers hop 1 with a 301 whose
+     * Location leaves the https policy; fetchUrl must throw the hop-scoped
+     * refusal and the server's connection log must show the initial dial and
+     * nothing else. The http:// target points at port 1 (closed, privileged,
+     * never dialed by correct code) so a mutant's illegal dial fails fast
+     * with a DIFFERENT message instead of reaching any network.
+     */
+    public function testFetchUrlRefusesRedirectDowngradeBeforeDialingIt(): void
+    {
+        /** @var array<string, array{0: string, 1: string}> $downgrades */
+        $downgrades = [
+            'http-scheme downgrade' => ['http://127.0.0.1:1/evil.json', '"http"'],
+            'file-scheme foreign hop' => ['file:///etc/passwd', '"file"'],
+        ];
+
+        foreach ($downgrades as $label => $leg) {
+            [$target, $schemeText] = $leg;
+            $outcome = $this->runFetchThroughRedirectServer(
+                '/a.json',
+                ['/a.json' => ['status' => 301, 'location' => $target]],
+                4
+            );
+
+            $exception = $outcome['exception'] ?? null;
+            $this->assertInstanceOf(
+                \RuntimeException::class,
+                $exception,
+                "[$label] fetchUrl must refuse the downgraded hop; returned="
+                    . var_export($outcome['returned'] ?? null, true)
+            );
+            $this->assertSame(
+                'Failed to fetch TRaSH-Guides data from: ' . $outcome['url']
+                    . ' (redirect hop 1: TRaSH-Guides fetch refused:'
+                    . ' only https:// URLs are allowed (got scheme ' . $schemeText . '))',
+                $exception->getMessage(),
+                "[$label] the refusal must name the hop and the refused scheme"
+            );
+            $previous = $exception->getPrevious();
+            $this->assertInstanceOf(
+                \RuntimeException::class,
+                $previous,
+                "[$label] the hop refusal chains the gate's own exception"
+            );
+            $this->assertSame(
+                'TRaSH-Guides fetch refused: only https:// URLs are allowed (got scheme ' . $schemeText . ')',
+                $previous->getMessage()
+            );
+            $this->assertSame(
+                ['/a.json 301'],
+                $outcome['served'],
+                "[$label] the refused target must never be dialed"
+            );
+        }
+    }
+
+    /**
+     * LW-061 minor cure (review w04L3): the hop budget must THROW at the
+     * exhausted hop — replacing the in-loop check with `if (false)` used to
+     * survive the suite, because no test drove fetchUrl six hops deep.
+     *
+     * Seven scripted hops h0→h1→…→h6 (h6 final 200): correct code dials
+     * h0..h5, trips `exceeded 5 redirect hops` before h6, chains no previous
+     * (the budget throw is the origin), and the served log shows exactly the
+     * six dials. A mutant with the check disabled dials h6 and RETURNS the
+     * body — caught red by the exception assertion itself.
+     */
+    public function testFetchUrlTripsTheHopBudgetBeforeDialingTheSixthRedirect(): void
+    {
+        /** @var array<string, array{status: int, location?: string, body?: string}> $routes */
+        $routes = [];
+        for ($i = 0; $i <= 5; $i++) {
+            $routes['/h' . $i . '.json'] = [
+                'status' => 301,
+                'location' => 'https://127.0.0.1:{port}/h' . ($i + 1) . '.json',
+            ];
+        }
+        $routes['/h6.json'] = ['status' => 200, 'body' => '{"final":true}'];
+
+        $outcome = $this->runFetchThroughRedirectServer('/h0.json', $routes, 8);
+
+        $exception = $outcome['exception'] ?? null;
+        $this->assertInstanceOf(
+            \RuntimeException::class,
+            $exception,
+            'the sixth redirect must trip MAX_REDIRECT_HOPS; returned='
+                . var_export($outcome['returned'] ?? null, true)
+        );
+        $this->assertSame(
+            'Failed to fetch TRaSH-Guides data from: ' . $outcome['url'] . ' (exceeded 5 redirect hops)',
+            $exception->getMessage()
+        );
+        $this->assertNull($exception->getPrevious(), 'the budget throw is the origin — nothing to chain');
+        $this->assertSame(
+            ['/h0.json 301', '/h1.json 301', '/h2.json 301', '/h3.json 301', '/h4.json 301', '/h5.json 301'],
+            $outcome['served'],
+            'exactly six dials: the seventh target must never be dialed'
+        );
+    }
+
+    /**
+     * Hermetic loopback harness for the two LW-061 drive-through tests.
+     *
+     * Starts the scripted TLS child (tests/Support/Arr/
+     * trash_guides_redirect_server.php) on a reserved ephemeral 127.0.0.1
+     * port, points OpenSSL's default trust at the throwaway test CA via the
+     * SSL_CERT_FILE env (fetchUrl builds its own stream context, so context
+     * options are unreachable and ini openssl.cafile is not INI-settable —
+     * both measured 2026-11-07), drives the REAL fetchUrl through it, and
+     * returns the outcome plus the server's strict dial witness. The child
+     * is terminated and the env restored in every exit path; no DNS, no
+     * fixed port, no external network is ever touched.
+     *
+     * `{port}` inside scripted Locations is substituted with the real port.
+     *
+     * @param array<string, array{status: int, location?: string, body?: string}> $routes
+     * @param int $maxConns Connection ceiling the child will service.
+     *
+     * @return array{url: string, served: list<string>, exception?: \RuntimeException, returned?: string}
+     */
+    private function runFetchThroughRedirectServer(string $initialPath, array $routes, int $maxConns): array
+    {
+        $dir = sys_get_temp_dir() . '/tg-e2e-' . bin2hex(random_bytes(6));
+        if (!mkdir($dir, 0700) && !is_dir($dir)) {
+            $this->fail("could not create the scratch dir $dir");
+        }
+
+        $previousCertFile = getenv('SSL_CERT_FILE');
+        /** @var resource|false $process */
+        $process = false;
+        /** @var array<int, mixed> $pipes */
+        $pipes = [];
+
+        try {
+            $material = TrashGuidesTlsMaterial::generate($dir);
+            $port = TrashGuidesTlsMaterial::reservePort();
+
+            $scriptPath = $dir . '/script.json';
+            $logPath = $dir . '/served.log';
+            $baked = [];
+            foreach ($routes as $path => $route) {
+                if (isset($route['location'])) {
+                    $route['location'] = str_replace('{port}', (string) $port, $route['location']);
+                }
+                $baked[$path] = $route;
+            }
+            if (
+                file_put_contents($scriptPath, json_encode(['routes' => $baked], JSON_THROW_ON_ERROR)) === false
+                || file_put_contents($logPath, '') === false
+            ) {
+                $this->fail("could not seed the scratch dir $dir");
+            }
+
+            putenv('SSL_CERT_FILE=' . $material['ca']);
+
+            $process = proc_open(
+                [
+                    PHP_BINARY,
+                    dirname(__DIR__) . '/Support/Arr/trash_guides_redirect_server.php',
+                    (string) $port,
+                    $scriptPath,
+                    $logPath,
+                    $material['server'],
+                    (string) $maxConns,
+                ],
+                [
+                    0 => ['file', '/dev/null', 'r'],
+                    1 => ['pipe', 'w'],
+                    2 => ['pipe', 'w'],
+                ],
+                $pipes
+            );
+            if (!is_resource($process)) {
+                $this->fail('could not start the loopback TLS server child');
+            }
+
+            $ready = is_resource($pipes[1] ?? null) ? fgets($pipes[1]) : false;
+            if ($ready !== "READY\n") {
+                $stderr = is_resource($pipes[2] ?? null) ? (string) stream_get_contents($pipes[2]) : '';
+                $this->fail('TLS server child never reported READY; stderr: ' . $stderr);
+            }
+
+            $url = 'https://127.0.0.1:' . $port . $initialPath;
+            $provider = new TrashGuidesProvider();
+            $fetchUrl = new \ReflectionMethod(TrashGuidesProvider::class, 'fetchUrl');
+            $fetchUrl->setAccessible(true);
+
+            /** @var array{url: string, served: list<string>, exception?: \RuntimeException, returned?: string} $outcome */
+            $outcome = ['url' => $url, 'served' => []];
+            try {
+                /** @var string $body */
+                $body = $fetchUrl->invoke($provider, $url);
+                $outcome['returned'] = $body;
+            } catch (\RuntimeException $exception) {
+                $outcome['exception'] = $exception;
+            }
+
+            $rawLog = file_get_contents($logPath);
+            $served = [];
+            foreach (explode("\n", $rawLog === false ? '' : $rawLog) as $line) {
+                if (preg_match('#^SERVED (\S+ (\d{3}))$#', $line, $match) === 1) {
+                    $served[] = $match[1];
+                }
+            }
+            $outcome['served'] = $served;
+
+            return $outcome;
+        } finally {
+            if ($previousCertFile === false) {
+                putenv('SSL_CERT_FILE');
+            } else {
+                putenv('SSL_CERT_FILE=' . $previousCertFile);
+            }
+            if (is_resource($process)) {
+                foreach ($pipes as $pipe) {
+                    if (is_resource($pipe)) {
+                        fclose($pipe);
+                    }
+                }
+                proc_terminate($process);
+                proc_close($process);
+            }
+            foreach (['script.json', 'served.log', 'ca.pem', 'server.pem'] as $artifact) {
+                if (is_file($dir . '/' . $artifact)) {
+                    unlink($dir . '/' . $artifact);
+                }
+            }
+            @rmdir($dir);
         }
     }
 }

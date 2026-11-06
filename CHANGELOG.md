@@ -6,6 +6,31 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+LW-061 drive-through test cure (the w04L3 review's sole minor; lane w05-L2;
+tests only, zero src diff): fetchUrl's per-hop refusal and hop-budget throw
+now have end-to-end teeth. The two mutations that survived the previous suite
+(in-loop budget check replaced by `if (false)`; per-hop re-check bypassed to a
+bare `$current = $target;`) each redden EXACTLY one of the two new tests —
+measured red-first in a sandbox at the otherwise-unmutated tip (1 failure /
+1 green per mutant) — and the unmutated tree stays green. The fake `https`
+stream wrapper the review suggested as the vehicle is measured infeasible on
+PHP 8.3.6: userland wrappers cannot write the caller-scope
+`$http_response_header` symbol (a pre-seeded SENTINEL survives the fake read;
+property and arbitrary-protocol variants probed alike), and that symbol is
+fetchUrl's only hop-stack channel — so the two new tests drive the genuine
+internal wrapper against a scripted loopback TLS child (throwaway CA generated
+in-process with ext-openssl, leaf SAN `IP:127.0.0.1`; the trust channel is the
+`SSL_CERT_FILE` env — `ini_set('openssl.cafile')` is not INI-permissive, both
+measured 2026-11-07; env and child restored on every exit path, no DNS, no
+fixed port, no external network). New pins: a 301 whose Location downgrades to
+http:// or hops to file:// is refused BEFORE the dial, asserted by byte-exact
+hop-scoped message plus chained-previous identity AND by the server's strict
+connection log (the illegal target is witnessed never dialed); a six-hop 301
+chain trips `(exceeded 5 redirect hops)` with a null previous and the seventh
+target likewise never dialed. The pure-helper test's "exercised hop by hop
+there" docblock now states test fact, pointing at the new E2E by name.
+Suite 1585/134876 → 1587/134890 (+2 tests, +14 assertions, exact).
+
 Manifest/relay/Arr hardening batch (review round 2026-11-04, lane w04-L3;
 LW-060, LW-061, LW-062, LW-063, LW-079-b): `Manifest::fromArray()` admits a
 settings entry into the typed `settings` view only when it carries a string
