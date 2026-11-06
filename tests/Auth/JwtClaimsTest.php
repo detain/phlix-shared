@@ -249,4 +249,91 @@ final class JwtClaimsTest extends TestCase
 
         $this->assertEquals($claims, JwtClaims::fromPayload($claims->toPayload()));
     }
+
+    // --- LW-059 [review shared__srphp #5]: empty-string claims are absence ---
+
+    public function test_fromPayload_empty_iss_throws(): void
+    {
+        // Red-first at the parent commit: requireString accepted '' happily,
+        // contradicting the class header's "any non-empty string" law.
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('JWT claim "iss" must be a non-empty string.');
+
+        JwtClaims::fromPayload([
+            'iss' => '', 'sub' => 'u', 'iat' => 1, 'exp' => 2, 'type' => 'access',
+        ]);
+    }
+
+    public function test_fromPayload_empty_sub_throws(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('JWT claim "sub" must be a non-empty string.');
+
+        JwtClaims::fromPayload([
+            'iss' => 'phlix', 'sub' => '', 'iat' => 1, 'exp' => 2, 'type' => 'access',
+        ]);
+    }
+
+    public function test_fromPayload_empty_type_throws(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('JWT claim "type" must be a non-empty string.');
+
+        JwtClaims::fromPayload([
+            'iss' => 'phlix', 'sub' => 'u', 'iat' => 1, 'exp' => 2, 'type' => '',
+        ]);
+    }
+
+    public function test_fromPayload_present_empty_aud_throws(): void
+    {
+        // The legacy tolerance is for a MISSING `aud`; an explicitly empty one
+        // is a malformed token, not a v0.10.x payload. Red-first at the parent
+        // commit: '' passed the is_string gate and was kept.
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('JWT claim "aud" must be a non-empty string.');
+
+        JwtClaims::fromPayload([
+            'iss' => 'phlix', 'aud' => '', 'sub' => 'u', 'iat' => 1, 'exp' => 2, 'type' => 'access',
+        ]);
+    }
+
+    public function test_fromPayloadStrict_empty_aud_throws(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('JWT claim "aud" must be a non-empty string.');
+
+        JwtClaims::fromPayloadStrict([
+            'iss' => 'phlix', 'aud' => '', 'sub' => 'u', 'iat' => 1, 'exp' => 2, 'type' => 'access',
+        ]);
+    }
+
+    public function test_empty_aud_roundtrip_is_now_fail_loud(): void
+    {
+        // Round-trip semantics with empty `aud` pinned: the constructor stays
+        // a typed holder (minting side is trusted), so a directly-built
+        // empty-aud object still serializes aud verbatim — but feeding that
+        // payload back through fromPayload() now FAILS LOUD instead of
+        // silently reconstructing an equal object. Empty-string claims must
+        // not survive a wire round-trip. Red-first at the parent commit,
+        // which round-tripped it silently.
+        $claims = new JwtClaims(
+            iss: 'phlix',
+            aud: '',
+            sub: 'u',
+            iat: 1,
+            exp: 2,
+            nbf: null,
+            type: 'access',
+            jti: null,
+            scope: [],
+            serverId: null,
+        );
+
+        $this->assertSame('', $claims->toPayload()['aud']);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('JWT claim "aud" must be a non-empty string.');
+
+        JwtClaims::fromPayload($claims->toPayload());
+    }
 }

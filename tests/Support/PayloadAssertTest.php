@@ -35,6 +35,14 @@ trait PayloadAssertTraitStub
     /**
      * @param array<string, mixed> $payload
      */
+    protected static function requireNonEmptyStringStub(array $payload, string $key): string
+    {
+        return self::requireNonEmptyString($payload, $key, self::CONTEXT);
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
     protected static function requireIntStub(array $payload, string $key): int
     {
         return self::requireInt($payload, $key, self::CONTEXT);
@@ -102,6 +110,41 @@ final class PayloadAssertTest extends TestCase
         $this->expectExceptionMessage('StubClass "key" must be a string.');
 
         $this->requireStringStub(['key' => 123], 'key');
+    }
+
+    // --- LW-059 [review shared__srphp #5]: requireNonEmptyString -----------
+
+    public function test_require_non_empty_string_returns_value(): void
+    {
+        $result = $this->requireNonEmptyStringStub(['key' => 'value'], 'key');
+
+        $this->assertSame('value', $result);
+    }
+
+    public function test_require_non_empty_string_throws_on_missing_key(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('StubClass "missing" is required.');
+
+        $this->requireNonEmptyStringStub([], 'missing');
+    }
+
+    public function test_require_non_empty_string_throws_on_non_string_value(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('StubClass "key" must be a string.');
+
+        $this->requireNonEmptyStringStub(['key' => 42], 'key');
+    }
+
+    public function test_require_non_empty_string_throws_on_empty_string(): void
+    {
+        // The whole point over requireString: an empty identifier is absence
+        // in all but name (sibling law: Hub\LibraryRef).
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('StubClass "key" must be a non-empty string.');
+
+        $this->requireNonEmptyStringStub(['key' => ''], 'key');
     }
 
     public function test_require_int_returns_int_value(): void

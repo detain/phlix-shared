@@ -59,13 +59,18 @@ use Phlix\Shared\Support\PayloadAssert;
  *
  * ## The `ISS_*` / `AUD_*` / `TYPE_*` constants are conventions, not gates
  *
- * The constructor and both parse paths validate field PRESENCE and PHP TYPES
- * only: any non-empty string is accepted for `iss`, `aud` and `type`. The
- * constants name the values the estate's issuers emit today; legacy and
- * third-party issuers can carry well-typed other values, and the tolerant
- * parse path is deliberate — an `in_array` gate here would change behavior
- * for a class `phlix-server` and `phlix-hub` already consume, so tightening
- * is reserved for a coordinated breaking release, not a patch.
+ * The parse paths validate field PRESENCE, PHP TYPE and NON-EMPTINESS:
+ * any non-empty string is accepted for `iss`, `sub`, `aud` and `type`, and
+ * an empty one is a malformed token (LW-059 — the code now matches the
+ * "non-empty" this header has always claimed). The constructor stays a
+ * typed holder without content checks: the minting side is trusted code,
+ * and wiring content gates into it would change behavior for the direct
+ * constructors `phlix-hub` uses today. Constants name the values the
+ * estate's issuers emit; legacy and third-party issuers can carry
+ * well-typed other values, and the tolerant parse path is deliberate —
+ * an `in_array` gate here would change behavior for a class
+ * `phlix-server` and `phlix-hub` already consume, so tightening the VALUE
+ * set is reserved for a coordinated breaking release, not a patch.
  *
  * @package Phlix\Shared\Auth
  * @since 0.2.0
@@ -115,13 +120,14 @@ final class JwtClaims
      * `serverId`) and of a missing `aud` (defaulted to {@see self::AUD_SERVER}
      * for legacy tokens — see the class docblock). Throws
      * {@see InvalidArgumentException} when any of the RFC 7519 required fields
-     * is missing or has the wrong type.
+     * is missing, has the wrong type, or is empty.
      *
      * Performs **no** signature verification — see the class docblock.
      *
      * @param array<string, mixed> $payload Decoded token payload.
      *
-     * @throws InvalidArgumentException When a required field is missing or wrong-typed.
+     * @throws InvalidArgumentException When a required field is missing,
+     *                                  wrong-typed, or empty (LW-059).
      */
     public static function fromPayload(array $payload): self
     {
@@ -129,11 +135,16 @@ final class JwtClaims
         // for tokens emitted by the legacy `JwtHandler` that pre-date
         // the field. This keeps `fromPayload()` tolerant of v0.10.x
         // payloads but still surfaces wrong-typed values. Migrate to
-        // fromPayloadStrict() once every issuer emits `aud`.
+        // fromPayloadStrict() once every issuer emits `aud`. The
+        // tolerance is for a MISSING claim only: an explicitly empty
+        // `aud` is a malformed token, not a legacy one (LW-059).
         $aud = self::AUD_SERVER;
         if (array_key_exists('aud', $payload)) {
             if (!is_string($payload['aud'])) {
                 throw new InvalidArgumentException('JWT claim "aud" must be a string.');
+            }
+            if ($payload['aud'] === '') {
+                throw new InvalidArgumentException('JWT claim "aud" must be a non-empty string.');
             }
             $aud = $payload['aud'];
         }
@@ -155,11 +166,12 @@ final class JwtClaims
      * @param array<string, mixed> $payload Decoded token payload.
      *
      * @throws InvalidArgumentException When a required field (including `aud`)
-     *                                  is missing or wrong-typed.
+     *                                  is missing, wrong-typed, or empty
+     *                                  (LW-059).
      */
     public static function fromPayloadStrict(array $payload): self
     {
-        $aud = self::requireString($payload, 'aud', 'JWT claim');
+        $aud = self::requireNonEmptyString($payload, 'aud', 'JWT claim');
 
         return self::build($payload, $aud);
     }
@@ -167,17 +179,22 @@ final class JwtClaims
     /**
      * Build the DTO from a payload using a pre-resolved `aud`.
      *
+     * `iss`, `sub` and `type` must be non-empty strings: an empty identifier
+     * is absence in all but name (LW-059, review shared__srphp #5); missing
+     * or wrong-typed values keep their pre-LW-059 messages verbatim.
+     *
      * @param array<string, mixed> $payload Decoded token payload.
      *
-     * @throws InvalidArgumentException When a required field is missing or wrong-typed.
+     * @throws InvalidArgumentException When a required field is missing,
+     *                                  wrong-typed, or empty.
      */
     private static function build(array $payload, string $aud): self
     {
-        $iss = self::requireString($payload, 'iss', 'JWT claim');
-        $sub = self::requireString($payload, 'sub', 'JWT claim');
+        $iss = self::requireNonEmptyString($payload, 'iss', 'JWT claim');
+        $sub = self::requireNonEmptyString($payload, 'sub', 'JWT claim');
         $iat = self::requireInt($payload, 'iat', 'JWT claim');
         $exp = self::requireInt($payload, 'exp', 'JWT claim');
-        $type = self::requireString($payload, 'type', 'JWT claim');
+        $type = self::requireNonEmptyString($payload, 'type', 'JWT claim');
 
         $nbf = null;
         if (array_key_exists('nbf', $payload) && $payload['nbf'] !== null) {

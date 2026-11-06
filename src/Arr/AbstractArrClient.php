@@ -46,7 +46,6 @@ abstract class AbstractArrClient
     protected string $baseUrl;
     protected string $apiKey;
     protected ?LoggerInterface $logger;
-    protected int $timeout;
     protected ArrTransportInterface $transport;
 
     /**
@@ -57,12 +56,16 @@ abstract class AbstractArrClient
      *     or LF — such a key would inject a malformed X-Api-Key header, so it
      *     is rejected at construction with a RuntimeException.
      * @param LoggerInterface|null $logger Optional logger instance.
-     * @param int $timeout Request timeout in seconds (default 30).
+     * @param int $timeout Request timeout in seconds (default 30). The value is
+     *     forwarded to the default transport only; injected transports own
+     *     their own timing (there used to be a write-once `$this->timeout`
+     *     copy nothing ever read — review shared__srphp #7 dropped it).
      * @param ArrTransportInterface|null $transport Optional HTTP transport. When null,
      *     the blocking {@see CurlArrTransport} is used — appropriate for CLI/tests and
      *     for runtimes that hook curl (phlix-hub's S425 position); cooperative
      *     event-loop consumers (Workerman/Webman) should inject an async,
-     *     non-blocking transport.
+     *     non-blocking transport. Building that default requires ext-curl;
+     *     a runtime without it fails loud at construction (review shared__srphp #6).
      */
     public function __construct(
         string $baseUrl,
@@ -91,8 +94,7 @@ abstract class AbstractArrClient
         $this->baseUrl = rtrim($baseUrl, '/');
         $this->apiKey = $apiKey;
         $this->logger = $logger;
-        $this->timeout = $timeout;
-        $this->transport = $transport ?? new CurlArrTransport($timeout);
+        $this->transport = $transport ?? self::defaultTransport($timeout);
 
         // The constructor runs exactly once per instance, so no "logged"
         // flag is needed: one HTTP baseUrl means exactly one warning.
@@ -104,6 +106,38 @@ abstract class AbstractArrClient
     }
 
     /**
+     * Capability probe for the bundled default transport (review shared__srphp #6).
+     *
+     * ext-curl is only a require-dev/suggest of this package, so a runtime
+     * without it used to die on an undefined-function error inside the
+     * transport on the first default-transport construction. Overridable seam
+     * so tests can exercise the fail-loud arm without uninstalling curl.
+     */
+    protected static function hasCurlSupport(): bool
+    {
+        return function_exists('curl_init');
+    }
+
+    /**
+     * Builds the bundled default transport, failing loud — with a name — when
+     * the runtime cannot support it. Injection is the documented escape hatch:
+     * a consumer without curl injects its own {@see ArrTransportInterface}.
+     *
+     * @param int $timeout Request timeout in seconds, forwarded to the default.
+     */
+    private static function defaultTransport(int $timeout): ArrTransportInterface
+    {
+        if (!static::hasCurlSupport()) {
+            throw new RuntimeException(
+                'The bundled default *arr transport requires the PHP curl extension (ext-curl): '
+                . 'install it or inject an ArrTransportInterface implementation.'
+            );
+        }
+
+        return new CurlArrTransport($timeout);
+    }
+
+    /**
      * Vendor name used in error messages (e.g. "Radarr", "Sonarr").
      */
     abstract protected function vendorName(): string;
@@ -112,7 +146,11 @@ abstract class AbstractArrClient
      * Performs a GET request.
      *
      * @param string $path Request path.
-     * @return array<mixed, mixed> Decoded JSON response.
+     * @return array<array-key, mixed> Decoded JSON response: object shapes
+     *     carry string keys, list endpoints carry sequential int keys; values
+     *     stay mixed because json_decode can produce any JSON type. Concrete
+     *     clients declare the narrowed endpoint shape on their public methods
+     *     (e.g. {@see RadarrClient::getMovies()}).
      * @throws RuntimeException On network or HTTP errors.
      */
     protected function get(string $path): array
@@ -125,7 +163,8 @@ abstract class AbstractArrClient
      *
      * @param string $path Request path.
      * @param array<string, mixed> $body JSON-serializable body.
-     * @return array<mixed, mixed> Decoded JSON response.
+     * @return array<array-key, mixed> Decoded JSON response — see
+     *     {@see self::get()} for the key/value law.
      * @throws RuntimeException On network or HTTP errors.
      */
     protected function post(string $path, array $body): array
@@ -138,7 +177,8 @@ abstract class AbstractArrClient
      *
      * @param string $path Request path.
      * @param array<string, mixed> $body JSON-serializable body.
-     * @return array<mixed, mixed> Decoded JSON response.
+     * @return array<array-key, mixed> Decoded JSON response — see
+     *     {@see self::get()} for the key/value law.
      * @throws RuntimeException On network or HTTP errors.
      */
     protected function put(string $path, array $body): array
@@ -150,7 +190,8 @@ abstract class AbstractArrClient
      * Performs a DELETE request.
      *
      * @param string $path Request path.
-     * @return array<mixed, mixed> Decoded JSON response.
+     * @return array<array-key, mixed> Decoded JSON response — see
+     *     {@see self::get()} for the key/value law.
      * @throws RuntimeException On network or HTTP errors.
      */
     protected function delete(string $path): array
@@ -168,7 +209,12 @@ abstract class AbstractArrClient
      * @param string $method One of GET/POST/PUT/DELETE.
      * @param string $path Request path.
      * @param array<string, mixed>|null $body JSON-serializable body for POST/PUT; null otherwise.
-     * @return array<mixed, mixed> Decoded JSON response.
+     * @return array<array-key, mixed> Decoded JSON response: object shapes carry
+     *     string keys, list endpoints carry sequential int keys, and values stay
+     *     mixed because json_decode can produce any JSON type. This is the honest
+     *     floor of the seam (review shared__srphp #2): concrete clients declare the
+     *     narrowed per-endpoint shape on their public methods, and consumers must
+     *     treat this level as untyped until they do.
      * @throws RuntimeException On network or HTTP errors.
      */
     private function request(string $method, string $path, ?array $body): array
@@ -198,8 +244,15 @@ abstract class AbstractArrClient
             // The *arr APIs carry the actionable message in the 4xx/5xx
             // JSON body — dropping it left callers with "HTTP 500" and
             // nothing to act on. Append a capped, single-line excerpt.
+            // Redact BEFORE trimming/capping (review shared__secaudit #2):
+            // the vendor body can echo the caller's API key back, and only
+            // two client methods re-wrapped errors with SecretRedactor —
+            // every other method raised this raw message, keys included,
+            // and a key cut mid-value by the cap would still have leaked
+            // its head.
             throw new RuntimeException(
-                $vendor . ' API error: HTTP ' . $httpCode . $this->detailFromBody($responseBody)
+                $vendor . ' API error: HTTP ' . $httpCode
+                . $this->detailFromBody(SecretRedactor::redact($responseBody, $this->apiKey))
             );
         }
 

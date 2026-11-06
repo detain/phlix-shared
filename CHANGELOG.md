@@ -6,6 +6,42 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+Arr client and JWT claims batch (review round 2026-11-04, lane w03-L4;
+LW-054, LW-056, LW-057, LW-058, LW-059): `AbstractArrClient::request()`
+redacts the caller's API key from the >=400 error message at its creation
+site — before the trim/collapse/cap — so a vendor body that echoes the key
+can never leak it, whole or truncated, and only the two re-wrappers needed
+the per-method SecretRedactor dance (shared__secaudit #2). The base
+constructor now fails loud, naming ext-curl, when it must build the bundled
+default transport on a runtime without the extension (the package has only
+ever required it as dev/suggest; previously the first such construction died
+on an undefined-function error inside the transport — shared__srphp #6), and
+the write-once-never-read `$timeout` property is dropped — the value reaches
+the transport through the constructor argument alone (shared__srphp #7).
+`RadarrClient::createCustomFormat()/createQualityProfile()` replace the
+`is_numeric ? (int) : 0` arm: a create response without an integer id now
+throws instead of returning the 0-sentinel, and a json float (12.9) fails
+loud where it used to truncate to 12 (shared__srphp #3).
+`AbstractArrClient::get/post/put/delete/request` docblocks narrow from
+`array<mixed,mixed>` to the honest floor `array<array-key,mixed>` — list
+endpoints genuinely carry int keys, so the register's
+"minimum `array<string,mixed>`" would have been a lie at the seam
+(shared__srphp #2). New `PayloadAssert::requireNonEmptyString()` (missing /
+wrong-typed messages verbatim from `requireString`, one new empty-string arm)
+gates `JwtClaims`' parse paths: `iss`, `sub` and `type` must be non-empty, an
+explicitly empty `aud` is malformed rather than defaulted (the legacy shim
+stays for a MISSING `aud`), and the class header's long-standing "any
+non-empty string" law now matches the code (shared__srphp #5). Every new law
+ships with tests measured failing at the parent commit 887dee8 (20 reds,
+exact-reason each: leaked key heads, constructed-anyway, silent 0/12 ids,
+accepted empty claims). Forward correction, sibling-lane figures (reviewer
+finding, w02-L5): the two sections below record per-batch assertion deltas of
++45/+45 chained across two harness postures; the same-harness truth is +86
+(head-gate batch) and +4 (README currency batch) — 134748 was the
+guard-skipped figure. Historical lines stay verbatim; terminal 1557 tests /
+134793 assertions is unaffected. Suite: 1557 tests / 134793 assertions →
+1577 / 134834 (+20 tests / +41 assertions, both measured).
+
 README currency batch (review round 2026-11-04, lane w02-L5; LW-014,
 LW-020): `VersionTest` now pins the README against drift — the version
 stamp must equal `Version::VERSION` and the `composer require` constraint

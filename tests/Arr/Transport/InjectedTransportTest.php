@@ -158,6 +158,54 @@ class InjectedTransportTest extends TestCase
     }
 
     /**
+     * LW-054 [review shared__secaudit #2]: the >=400 message must never carry
+     * the caller's API key, even when the vendor error body echoes it back.
+     * Redaction belongs at the creation site in request() — only
+     * triggerDownload/testConnection re-wrapped with SecretRedactor, so every
+     * other client method raised the raw (leaking) message. Red-first at the
+     * parent commit: the key rode out verbatim here.
+     */
+    public function testHttpErrorMessageRedactsApiKeyWithoutCatchSite(): void
+    {
+        $key  = 'leak-check-key-9f3a';
+        $fake = new FakeArrTransport(500, '{"detail":"no access with key ' . $key . ' granted"}');
+
+        $client = new RadarrClient(self::UNROUTABLE_BASE_URL, $key, null, 30, $fake);
+
+        try {
+            $client->getMovies();
+            $this->fail('Expected RuntimeException for HTTP 500.');
+        } catch (RuntimeException $e) {
+            $this->assertStringNotContainsString($key, $e->getMessage());
+            $this->assertStringContainsString('Radarr API error: HTTP 500', $e->getMessage());
+            $this->assertStringContainsString('no access with key *** granted', $e->getMessage());
+        }
+    }
+
+    /**
+     * LW-054: redaction runs BEFORE the 300-byte cap, so a key that would be
+     * cut mid-value by truncation cannot survive as a partial leak. Red-first
+     * at the parent: the raw body reached the cap unchanged and the visible
+     * head of the key shipped in the message.
+     */
+    public function testHttpErrorRedactionPrecedesExcerptCap(): void
+    {
+        $key  = 'headsecret-7b2c-deadbeef';
+        $fake = new FakeArrTransport(500, str_repeat('x', 280) . ' ' . $key . ' tail');
+
+        $client = new RadarrClient(self::UNROUTABLE_BASE_URL, $key, null, 30, $fake);
+
+        try {
+            $client->getMovies();
+            $this->fail('Expected RuntimeException for HTTP 500.');
+        } catch (RuntimeException $e) {
+            $this->assertStringNotContainsString($key, $e->getMessage());
+            $this->assertStringNotContainsString('headsecret', $e->getMessage());
+            $this->assertStringContainsString('***', $e->getMessage());
+        }
+    }
+
+    /**
      * M-SHARED-33: a 3xx is never success. A 301 with an empty body used to
      * fall through the status mapping and decode as "no data" ([]).
      */

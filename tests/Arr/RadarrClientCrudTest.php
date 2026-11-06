@@ -14,6 +14,7 @@ namespace Phlix\Shared\Tests\Arr;
 use PHPUnit\Framework\TestCase;
 use Phlix\Shared\Arr\RadarrClient;
 use Phlix\Shared\Arr\Transport\ArrTransportInterface;
+use RuntimeException;
 
 /**
  * Unit tests for RadarrClient CRUD operations that use PUT and DELETE.
@@ -158,8 +159,12 @@ class RadarrClientCrudTest extends TestCase
         $this->assertSame(42, $result);
     }
 
-    public function testCreateCustomFormatReturnsZeroWhenIdMissing(): void
+    public function testCreateCustomFormatThrowsWhenIdMissing(): void
     {
+        // LW-057 [review shared__srphp #3] flips the old 0-sentinel law: a
+        // create response that does not name its resource is a contract
+        // violation, and "id 0" looked like success. Red-first at the parent
+        // commit: this returned 0.
         $client = new RadarrClient(
             'http://localhost:7878',
             'test-api-key',
@@ -168,13 +173,16 @@ class RadarrClientCrudTest extends TestCase
             new CaptureTransport(200, '{"name":"Test"}') // no id
         );
 
-        $result = $client->createCustomFormat(['name' => 'Test']);
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Radarr customformat create response did not carry an integer id');
 
-        $this->assertSame(0, $result);
+        $client->createCustomFormat(['name' => 'Test']);
     }
 
-    public function testCreateCustomFormatReturnsZeroWhenIdNotNumeric(): void
+    public function testCreateCustomFormatThrowsWhenIdNotNumeric(): void
     {
+        // LW-057: non-numeric id is now a failure, not a 0-sentinel.
+        // Red-first at the parent commit: this returned 0.
         $client = new RadarrClient(
             'http://localhost:7878',
             'test-api-key',
@@ -183,9 +191,80 @@ class RadarrClientCrudTest extends TestCase
             new CaptureTransport(200, '{"id":"not-a-number"}')
         );
 
-        $result = $client->createCustomFormat(['name' => 'Test']);
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Radarr customformat create response did not carry an integer id');
 
-        $this->assertSame(0, $result);
+        $client->createCustomFormat(['name' => 'Test']);
+    }
+
+    public function testCreateCustomFormatThrowsWhenIdIsFloat(): void
+    {
+        // LW-057: json_decode yields float 12.9 for a decimal id; the old
+        // is_numeric arm truncated it silently to 12. Red-first at the parent
+        // commit: this returned 12.
+        $client = new RadarrClient(
+            'http://localhost:7878',
+            'test-api-key',
+            null,
+            30,
+            new CaptureTransport(200, '{"id":12.9}')
+        );
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Radarr customformat create response did not carry an integer id');
+
+        $client->createCustomFormat(['name' => 'Test']);
+    }
+
+    public function testCreateCustomFormatThrowsWhenIdIsDecimalString(): void
+    {
+        // LW-057: same truncation kill for the numeric-string shape
+        // ("12.9" passes is_numeric). Red-first at the parent commit: 12.
+        $client = new RadarrClient(
+            'http://localhost:7878',
+            'test-api-key',
+            null,
+            30,
+            new CaptureTransport(200, '{"id":"12.9"}')
+        );
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Radarr customformat create response did not carry an integer id');
+
+        $client->createCustomFormat(['name' => 'Test']);
+    }
+
+    public function testCreateCustomFormatAcceptsIntegerStringId(): void
+    {
+        // LW-057: integer-valued strings are the tolerated non-int shape —
+        // the *arr APIs emit ints, but "42" names the resource unambiguously.
+        $client = new RadarrClient(
+            'http://localhost:7878',
+            'test-api-key',
+            null,
+            30,
+            new CaptureTransport(200, '{"id":"42"}')
+        );
+
+        $this->assertSame(42, $client->createCustomFormat(['name' => 'Test']));
+    }
+
+    public function testCreateQualityProfileThrowsWhenIdMissing(): void
+    {
+        // LW-057: same law on the quality-profile endpoint. Red-first at the
+        // parent commit: this returned 0.
+        $client = new RadarrClient(
+            'http://localhost:7878',
+            'test-api-key',
+            null,
+            30,
+            new CaptureTransport(200, '{"name":"HD-1080p"}')
+        );
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Radarr qualityprofile create response did not carry an integer id');
+
+        $client->createQualityProfile(['name' => 'HD-1080p']);
     }
 }
 

@@ -102,10 +102,8 @@ class RadarrClient extends AbstractArrClient implements ArrClientInterface
     public function createCustomFormat(array $payload): int
     {
         $response = $this->post('/api/v3/customformat', $payload);
-        /** @var mixed $id */
-        $id = $response['id'] ?? null;
 
-        return is_numeric($id) ? (int) $id : 0;
+        return $this->requireCreatedId($response, 'customformat');
     }
 
     /**
@@ -142,10 +140,40 @@ class RadarrClient extends AbstractArrClient implements ArrClientInterface
     public function createQualityProfile(array $payload): int
     {
         $response = $this->post('/api/v3/qualityprofile', $payload);
+
+        return $this->requireCreatedId($response, 'qualityprofile');
+    }
+
+    /**
+     * Extracts the integer `id` a create response must carry.
+     *
+     * The old `is_numeric ? (int)$id : 0` arm failed two ways (review
+     * shared__srphp #3): an absent id returned the 0 sentinel, indistinguishable
+     * from a real creation, and a json_decode float (12.9) was silently
+     * truncated to 12. A create response that does not name its resource is a
+     * contract violation and now fails loud; integer-valued strings are the
+     * tolerated non-int shape because they name the resource unambiguously.
+     *
+     * @param array<array-key, mixed> $response Decoded create response.
+     * @param string $endpoint Endpoint name carried into the failure message.
+     * @throws RuntimeException When the response carries no integer id.
+     */
+    private function requireCreatedId(array $response, string $endpoint): int
+    {
         /** @var mixed $id */
         $id = $response['id'] ?? null;
 
-        return is_numeric($id) ? (int) $id : 0;
+        if (is_int($id)) {
+            return $id;
+        }
+
+        if (is_string($id) && preg_match('/^-?\d+$/', $id) === 1) {
+            return (int) $id;
+        }
+
+        throw new RuntimeException(
+            $this->vendorName() . ' ' . $endpoint . ' create response did not carry an integer id'
+        );
     }
 
     /**

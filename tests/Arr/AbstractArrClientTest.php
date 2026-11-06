@@ -12,8 +12,12 @@ declare(strict_types=1);
 namespace Phlix\Shared\Tests\Arr;
 
 use PHPUnit\Framework\TestCase;
+use Phlix\Shared\Arr\AbstractArrClient;
 use Phlix\Shared\Arr\RadarrClient;
+use Phlix\Shared\Tests\Arr\Transport\FakeArrTransport;
 use Psr\Log\LoggerInterface;
+use ReflectionClass;
+use ReflectionMethod;
 use RuntimeException;
 
 /**
@@ -185,5 +189,83 @@ class AbstractArrClientTest extends TestCase
         };
 
         $this->assertInstanceOf(RadarrClient::class, $client);
+    }
+
+    /**
+     * LW-056 [review shared__srphp #6]: ext-curl is only require-dev/suggest,
+     * yet the constructor built a CurlArrTransport unconditionally — on a curl-
+     * less runtime the first default-transport client died with a fatal
+     * undefined-function error from inside the transport. The named
+     * RuntimeException must fire at the seam that makes the choice. Red-first
+     * at the parent commit: the probe method does not exist, so this
+     * construction must have succeeded and the expectation below is red.
+     */
+    public function testMissingCurlSupportFailsLoudAtConstruction(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessageMatches('/requires the PHP curl extension \(ext-curl\)/');
+
+        new class ('http://localhost:7878', 'test-key') extends RadarrClient {
+            protected static function hasCurlSupport(): bool
+            {
+                return false;
+            }
+        };
+    }
+
+    /**
+     * LW-056: the fail-loud is about the BUNDLED default only — a consumer
+     * that injects its own transport must construct fine even where curl is
+     * missing (the documented escape hatch).
+     */
+    public function testInjectedTransportNeedsNoCurlSupport(): void
+    {
+        $client = new class (
+            'http://localhost:7878',
+            'test-key',
+            null,
+            30,
+            new FakeArrTransport()
+        ) extends RadarrClient {
+            protected static function hasCurlSupport(): bool
+            {
+                return false;
+            }
+        };
+
+        $this->assertInstanceOf(RadarrClient::class, $client);
+    }
+
+    /**
+     * LW-056: the capability probe is a real structural seam on the base
+     * class, and on this host (ext-curl loaded — the whole test suite relies
+     * on it via InjectedTransportTest::testDefaultTransportPerformsRealCurl)
+     * it answers true. Red-first at the parent commit: the method does not
+     * exist on AbstractArrClient.
+     */
+    public function testCurlSupportProbeExistsAndMatchesHostRuntime(): void
+    {
+        $this->assertTrue(
+            (new ReflectionMethod(AbstractArrClient::class, 'hasCurlSupport'))->isStatic(),
+            'hasCurlSupport() must be a static probe on the base class.'
+        );
+        $this->assertTrue(
+            (new ReflectionMethod(RadarrClient::class, 'hasCurlSupport'))->invoke(null),
+            'The host runs the suite with ext-curl loaded; the probe must say so.'
+        );
+    }
+
+    /**
+     * LW-056 [review shared__srphp #7]: the base class stored the timeout in
+     * a property no code ever read — the value reaches the transport via the
+     * constructor argument only. The inert copy is dropped; this pin reddens
+     * at the parent commit, where the property exists.
+     */
+    public function testBaseClassCarriesNoInertTimeoutProperty(): void
+    {
+        $this->assertFalse(
+            (new ReflectionClass(AbstractArrClient::class))->hasProperty('timeout'),
+            'AbstractArrClient::$timeout was write-once and never read — dropped.'
+        );
     }
 }

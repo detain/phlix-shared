@@ -40,6 +40,28 @@ trait PayloadAssert
     }
 
     /**
+     * String assertion that also rejects the empty value (review shared__srphp #5).
+     *
+     * For identifiers (JWT claims, library refs) an empty string is absence in
+     * all but name — `requireString` alone let `''` pass its way into DTOs.
+     * Sibling law: `Hub\LibraryRef::fromPayload()`. The missing/non-string
+     * messages are verbatim from {@see self::requireString()} so consumers
+     * matching on them keep working; only the empty-string arm is new.
+     *
+     * @param array<string, mixed> $payload
+     */
+    protected static function requireNonEmptyString(array $payload, string $key, string $context): string
+    {
+        $value = self::requireString($payload, $key, $context);
+
+        if ($value === '') {
+            throw new InvalidArgumentException(sprintf('%s "%s" must be a non-empty string.', $context, $key));
+        }
+
+        return $value;
+    }
+
+    /**
      * @param array<string, mixed> $payload
      */
     protected static function requireInt(array $payload, string $key, string $context): int
