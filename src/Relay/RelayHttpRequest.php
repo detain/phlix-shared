@@ -46,16 +46,18 @@ use const JSON_THROW_ON_ERROR;
  * rather than truncate it.
  *
  * SECURITY: `HTTP_REQUEST` is a hub → server (untrusted-producer) frame.
- * The gate — `ALLOWED_METHODS`, the path traversal/encoding denylist, and the
- * `STRIPPED_HEADERS` trust set — is defined ONLY here and is inherited by
- * every consumer that deserializes via `fromJson()` (it ends in
- * `assertSafe()`). The public constructor is the TRUSTED-INPUT path: it runs
- * NO gate, so an envelope reassembled by hand (e.g. streaming HEAD+BODY
- * reconstruction) MUST have `assertSafe()` called on it before dispatch, and
- * `withoutForbiddenHeaders()` applied before forwarding upstream. The
- * streaming sibling `RelayHttpRequestHead` deliberately parses shape only and
- * defers this gate to that reconstitution; consumers of the head MUST NOT
- * trust its method/path/headers until it has been gated here — see that
+ * The gate — `ALLOWED_METHODS`, the path traversal/encoding denylist, the
+ * head-wide control-byte screen (`assertSafe()` covers method, path, query
+ * and every header name/value), and the `STRIPPED_HEADERS` trust set — is
+ * defined ONLY here and is inherited by every consumer that deserializes via
+ * `fromJson()` (it ends in `assertSafe()`). The public constructor is the
+ * TRUSTED-INPUT path: it runs NO gate, so an envelope reassembled by hand
+ * (e.g. streaming HEAD+BODY reconstruction) MUST have `assertSafe()` called
+ * on it before dispatch, and `withoutForbiddenHeaders()` applied before
+ * forwarding upstream. The streaming sibling `RelayHttpRequestHead`
+ * deliberately parses shape only and defers this gate to that
+ * reconstitution; consumers of the head MUST NOT trust its
+ * method/path/query/headers until it has been gated here — see that
  * class's SECURITY CONTRACT.
  *
  * @package Phlix\Shared\Relay
@@ -194,16 +196,17 @@ final readonly class RelayHttpRequest
     }
 
     /**
-     * Validate that the method and path of this (untrusted, hub-tunnelled)
-     * request are safe to forward. Throws on any violation; returns void on
-     * success. Called automatically at the end of {@see self::fromJson()} so
-     * every consumer that deserializes the wire envelope inherits the gate.
+     * Validate that the head of this (untrusted, hub-tunnelled) request is
+     * safe to forward: method, path, query and every header name and value.
+     * Throws on any violation; returns void on success. Called automatically
+     * at the end of {@see self::fromJson()} so every consumer that
+     * deserializes the wire envelope inherits the gate.
      *
-     * This validates METHOD and PATH only. It does NOT strip trust-bearing
-     * headers — that is the consumer's responsibility via
-     * {@see self::isForbiddenHeader()} / {@see self::withoutForbiddenHeaders()},
-     * because the consumer owns identity injection (e.g. the relay session's
-     * authenticated owner) and the DTO must not silently mutate the envelope.
+     * It does NOT strip trust-bearing headers — that is the consumer's
+     * responsibility via {@see self::isForbiddenHeader()} /
+     * {@see self::withoutForbiddenHeaders()}, because the consumer owns
+     * identity injection (e.g. the relay session's authenticated owner) and
+     * the DTO must not silently mutate the envelope.
      *
      * Path rules: must start with a single '/'; must not be protocol-relative
      * ('//…'); must not contain '..' (raw or percent-encoded), a NUL byte
@@ -213,7 +216,20 @@ final readonly class RelayHttpRequest
      *
      * Method rules: must match {@see self::ALLOWED_METHODS} case-insensitively.
      *
-     * @throws InvalidArgumentException When the method or path is unsafe.
+     * Query and header rules (head-wide screen added in the review round
+     * 2026-11-04 fix wave, LW-052): the query string and every header name
+     * and value must not contain any control character (ord < 0x20) or DEL
+     * (0x7F). This kills CR/LF header- and request-line injection, NUL
+     * truncation, and every other control byte an untrusted hub producer
+     * could smuggle into a reconstituted HTTP head — the screen the path loop
+     * has always applied, widened to the whole head. The same screen closes a
+     * trust-set bypass: a name like "X-Forwarded-For\r" would slip past the
+     * exact match in {@see self::isForbiddenHeader()}, and the value screen
+     * likewise covers multi-line values. The path keeps its own long-standing
+     * sub-0x20 screen verbatim.
+     *
+     * @throws InvalidArgumentException When the method, path, query or any
+     *                                  header name/value is unsafe.
      *
      * @since 0.11.0
      */
@@ -267,6 +283,41 @@ final readonly class RelayHttpRequest
                         'RelayHttpRequest: "path" must not contain control characters.',
                     );
                 }
+            }
+        }
+
+        // The rest of the head: the same per-byte screen the path loop above
+        // has always applied, widened (plus DEL) to the query and every
+        // header name and value, so the documented single gate covers the
+        // whole head on the untrusted wire (review shared__secaudit Major #1).
+        self::assertNoControlCharacters($this->query, 'query');
+
+        foreach ($this->headers as $name => $value) {
+            self::assertNoControlCharacters($name, 'header name');
+            self::assertNoControlCharacters($value, 'header value');
+        }
+    }
+
+    /**
+     * Reject any control byte (ord < 0x20) or DEL (0x7F) in a request-head
+     * field. CR or LF in a header or the query would let an untrusted hub
+     * producer inject lines into the HTTP head a consumer reconstitutes from
+     * this envelope.
+     *
+     * @param string $value Field value to screen.
+     * @param string $label Field name used in the failure message.
+     *
+     * @throws InvalidArgumentException When the value carries a screened byte.
+     */
+    private static function assertNoControlCharacters(string $value, string $label): void
+    {
+        $length = strlen($value);
+        for ($i = 0; $i < $length; $i++) {
+            $code = ord($value[$i]);
+            if ($code < 0x20 || $code === 0x7F) {
+                throw new InvalidArgumentException(
+                    'RelayHttpRequest: "' . $label . '" must not contain control characters.',
+                );
             }
         }
     }

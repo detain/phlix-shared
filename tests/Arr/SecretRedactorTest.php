@@ -77,4 +77,44 @@ class SecretRedactorTest extends TestCase
 
         $this->assertSame('API Key: *** and secretkey are different', $result);
     }
+
+    /**
+     * LW-055 [review shared__srphp Minor #4]: overlapping secrets must be
+     * replaced longest-first. Red-first at the parent commit: str_replace
+     * applied the secrets in argument order, so the short 'KEY' pass ran
+     * before 'SECRETKEY' and stranded the 'SECRET' residue of the longer
+     * secret in the message.
+     */
+    public function testRedactOrdersOverlappingSecretsLongestFirst(): void
+    {
+        $message = 'Error with key SECRETKEY and token abc123secret for KEY';
+        $result = SecretRedactor::redact($message, 'abc123secret', 'KEY', 'SECRETKEY');
+
+        $this->assertSame('Error with key *** and token *** for ***', $result);
+    }
+
+    /**
+     * LW-055: nested secret — the shorter secret is a strict prefix of the
+     * longer one, so argument order alone would shred the longer value.
+     */
+    public function testRedactLongestWinsWhenSecretsAreNested(): void
+    {
+        $message = 'url=/feed?apiKey=AAABBBCCC&alt=AAABBB';
+        $result = SecretRedactor::redact($message, 'AAABBB', 'AAABBBCCC');
+
+        $this->assertSame('url=/feed?apiKey=***&alt=***', $result);
+    }
+
+    /**
+     * LW-055: equal-length secrets keep working (PHP 8 sorts are stable —
+     * equal lengths preserve the caller's order; either replacement is a
+     * single '***' so the outcome is order-independent anyway).
+     */
+    public function testRedactHandlesEqualLengthSecrets(): void
+    {
+        $message = 'keys alpha and bravo both leak';
+        $result = SecretRedactor::redact($message, 'alpha', 'bravo');
+
+        $this->assertSame('keys *** and *** both leak', $result);
+    }
 }

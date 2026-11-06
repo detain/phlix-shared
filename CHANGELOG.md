@@ -6,6 +6,34 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+Shared head-gate and TTL batch (review round 2026-11-04, lane w02-L5;
+LW-052, LW-053, LW-055): `RelayHttpRequest::assertSafe()` now gates the
+whole request head — the control-character screen the path loop has always
+applied is extended, plus DEL (0x7F), to the query string and every header
+name and value, closing the CR/LF header- and request-line-injection gap on
+the untrusted hub → server wire (shared__secaudit Major #1); a padded
+forbidden-header name ("X-Forwarded-For\r") can no longer dodge the
+`isForbiddenHeader()` exact match either. The long-standing method/path law
+is untouched — the path keeps its own sub-0x20-only screen verbatim (pinned
+by test) — and `RelayHttpRequestHead`'s SECURITY CONTRACT now names the
+widened gate it defers to. `TrashGuidesProvider` runs the TTL check BEFORE
+the per-instance memo in all three getters (shared__srphp Major #1): the old
+order let a populated memo pin its generation past the 24 h TTL for the life
+of a resident worker; a lone instance now refetches on expiry, and the KNOWN
+LIMITATIONS block gained the precise residual (all instances share one
+timestamp, so a memo can ride a sibling's refresh until its own check sees a
+genuinely-expired timestamp). `SecretRedactor::redact()` applies secrets
+longest-first regardless of argument order (shared__srphp Minor #4): a
+secret containing another (`KEY` in `SECRETKEY`) used to strand the residue
+after the short pass shredded it. `AbstractArrClient::__construct()` rejects
+API keys carrying CR or LF at the seam that assembles `X-Api-Key` by raw
+concatenation (shared__srphp #16) — the failure is named here instead of
+surfacing in the transport. Every new law ships with tests measured failing
+at the parent commit 507e892 (33 reds, exact-reason each: pinned memo
+returned, "exception not thrown", leaked residues). Suite:
+1517 tests / 134703 assertions → 1557 / 134793 (+40 tests / +90 assertions,
+the adding-commit rotation of the same batch).
+
 Docs/prose currency batch (review round 2026-11-03, lane w01-L9): the README
 status and install stamps advance to v0.53.0 / `^0.53`; `README.md` is no
 longer export-ignored (it is the consumer contract for the bundled schemas and

@@ -53,7 +53,9 @@ abstract class AbstractArrClient
      * Creates a new *arr client.
      *
      * @param string $baseUrl Base URL of the *arr instance (e.g. `http://localhost:7878`).
-     * @param string $apiKey  API key for authentication.
+     * @param string $apiKey  API key for authentication. Must not contain CR
+     *     or LF — such a key would inject a malformed X-Api-Key header, so it
+     *     is rejected at construction with a RuntimeException.
      * @param LoggerInterface|null $logger Optional logger instance.
      * @param int $timeout Request timeout in seconds (default 30).
      * @param ArrTransportInterface|null $transport Optional HTTP transport. When null,
@@ -73,6 +75,16 @@ abstract class AbstractArrClient
         if ($scheme === null || ($scheme !== 'http' && $scheme !== 'https')) {
             throw new RuntimeException(
                 'Invalid baseUrl scheme "' . ($scheme ?? 'null') . '": must be http or https'
+            );
+        }
+
+        // The X-Api-Key header is assembled by raw concatenation, so a key
+        // carrying a line break would reach the transport as a malformed —
+        // or header-injecting — request line. Fail at this seam, naming it,
+        // instead of letting curl notice downstream (review shared__srphp #16).
+        if (str_contains($apiKey, "\r") || str_contains($apiKey, "\n")) {
+            throw new RuntimeException(
+                'API key must not contain CR or LF — it would inject a malformed X-Api-Key header.'
             );
         }
 

@@ -133,4 +133,57 @@ class AbstractArrClientTest extends TestCase
             }
         };
     }
+
+    /**
+     * LW-055 [review shared__srphp Info #16]: the X-Api-Key header is built
+     * by raw concatenation, so a key carrying CR or LF would reach the
+     * transport as a malformed (or injecting) header. The failure must be
+     * credited to this seam — rejected at construction, not downstream in
+     * curl. Red-first at the parent commit: these keys constructed fine and
+     * only the transport noticed.
+     *
+     * @return array<string, array{string}>
+     */
+    public static function apiKeyLineBreakProvider(): array
+    {
+        return [
+            'bare CR'   => ["key\rinjected"],
+            'bare LF'   => ["key\ninjected"],
+            'CRLF'      => ["key\r\nX-Injected: 1"],
+            'trailing CR' => ["key\r"],
+            'trailing LF' => ["key\n"],
+        ];
+    }
+
+    /**
+     * @dataProvider apiKeyLineBreakProvider
+     */
+    public function testApiKeyWithLineBreakIsRejectedAtConstruction(string $apiKey): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessageMatches('/API key must not contain CR or LF/');
+
+        new class ('https://localhost:7878', $apiKey) extends RadarrClient {
+            protected function vendorName(): string
+            {
+                return 'Test';
+            }
+        };
+    }
+
+    /**
+     * LW-055: real *arr keys are base64-ish and carry +, / and = — the
+     * screen rejects line breaks only, never legitimate key punctuation.
+     */
+    public function testApiKeyWithBase64PunctuationIsAccepted(): void
+    {
+        $client = new class ('https://localhost:7878', 'aB+c/d=e==1234567890') extends RadarrClient {
+            protected function vendorName(): string
+            {
+                return 'Test';
+            }
+        };
+
+        $this->assertInstanceOf(RadarrClient::class, $client);
+    }
 }

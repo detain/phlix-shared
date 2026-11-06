@@ -382,4 +382,193 @@ class TrashGuidesProviderTest extends TestCase
 
         $fetchUrl->invoke($provider, '/etc/shadow');
     }
+
+    /**
+     * LW-053 [review shared__srphp Major #1]: the instance memo must not
+     * bypass the TTL. Red-first at the parent commit: the memo check ran
+     * BEFORE ensureCacheValid(), so a populated memo was returned forever
+     * and the fetch leg never re-ran — this test's fail() line fires with
+     * the pinned generation instead.
+     *
+     * The refetch attempt is made deterministically offline by unregistering
+     * the https stream wrapper for the duration of the call: the observable
+     * is the RuntimeException from the fetch leg (proof the ladder re-ran),
+     * never a real socket. The aged timestamp IS the injected clock — the
+     * TTL comparison reads it against hrtime() on every call.
+     */
+    public function testQualityProfilesMemoRefetchesAfterTtlExpiry(): void
+    {
+        $provider = $this->primeAgedProvider('qualityProfiles');
+
+        $fetchAttempted = false;
+        self::assertTrue(stream_wrapper_unregister('https'));
+        try {
+            $provider->getQualityProfiles();
+        } catch (\RuntimeException $e) {
+            // The fetch leg re-ran and died on the deliberately unregistered
+            // wrapper — that is the post-fix behavior under test.
+            $this->assertStringContainsString('Failed to fetch TRaSH-Guides data', $e->getMessage());
+            $fetchAttempted = true;
+        } finally {
+            self::assertTrue(stream_wrapper_restore('https'));
+        }
+
+        self::assertTrue(
+            $fetchAttempted,
+            'TTL expiry must dislodge the instance memo and re-run the fetch (LW-053);'
+                . ' the pinned memo was returned instead.'
+        );
+
+        $this->assertMemoReleasedAndStaticsCleared($provider, 'qualityProfiles');
+    }
+
+    /**
+     * LW-053: same law on the custom-formats ladder.
+     */
+    public function testCustomFormatsMemoRefetchesAfterTtlExpiry(): void
+    {
+        $provider = $this->primeAgedProvider('customFormats');
+
+        $fetchAttempted = false;
+        self::assertTrue(stream_wrapper_unregister('https'));
+        try {
+            $provider->getCustomFormats();
+        } catch (\RuntimeException $e) {
+            $this->assertStringContainsString('Failed to fetch TRaSH-Guides data', $e->getMessage());
+            $fetchAttempted = true;
+        } finally {
+            self::assertTrue(stream_wrapper_restore('https'));
+        }
+
+        self::assertTrue(
+            $fetchAttempted,
+            'TTL expiry must dislodge the instance memo and re-run the fetch (LW-053);'
+                . ' the pinned memo was returned instead.'
+        );
+
+        $this->assertMemoReleasedAndStaticsCleared($provider, 'customFormats');
+    }
+
+    /**
+     * LW-053: same law on the version ladder (its fetch leg rides the
+     * custom-formats URL).
+     */
+    public function testVersionMemoRefetchesAfterTtlExpiry(): void
+    {
+        $provider = $this->primeAgedProvider('version');
+
+        $fetchAttempted = false;
+        self::assertTrue(stream_wrapper_unregister('https'));
+        try {
+            $provider->getVersion();
+        } catch (\RuntimeException $e) {
+            $this->assertStringContainsString('Failed to fetch TRaSH-Guides data', $e->getMessage());
+            $fetchAttempted = true;
+        } finally {
+            self::assertTrue(stream_wrapper_restore('https'));
+        }
+
+        self::assertTrue(
+            $fetchAttempted,
+            'TTL expiry must dislodge the instance memo and re-run the fetch (LW-053);'
+                . ' the pinned memo was returned instead.'
+        );
+
+        $this->assertMemoReleasedAndStaticsCleared($provider, 'version');
+    }
+
+    /**
+     * Fresh-clock counterpart pin: inside the TTL window the memo still
+     * short-circuits (no fetch is attempted — an unregistering harness would
+     * throw if it did, and the returned generation proves the hit).
+     */
+    public function testMemoStillServesInsideTtlWindow(): void
+    {
+        $provider   = new TrashGuidesProvider();
+        $reflection = new \ReflectionClass($provider);
+
+        $memo = $reflection->getProperty('qualityProfiles');
+        $memo->setAccessible(true);
+        $memo->setValue($provider, ['payload' => 'generation-1']);
+
+        $static = $reflection->getProperty('qualityProfilesCache');
+        $static->setAccessible(true);
+        $static->setValue(null, ['payload' => 'generation-1']);
+
+        $ts = $reflection->getProperty('cacheTimestamp');
+        $ts->setAccessible(true);
+        $ts->setValue(null, (int) (hrtime(true) / 1_000_000_000));
+
+        $this->assertSame(['payload' => 'generation-1'], $provider->getQualityProfiles());
+
+        $provider->clearCache();
+    }
+
+    /**
+     * Primes one full completed-fetch generation (statics + instance memo)
+     * aged one second PAST the 24 h TTL for one of the three ladders.
+     *
+     * @param 'qualityProfiles'|'customFormats'|'version' $ladder
+     */
+    private function primeAgedProvider(string $ladder): TrashGuidesProvider
+    {
+        $provider   = new TrashGuidesProvider();
+        $reflection = new \ReflectionClass($provider);
+
+        /** @var array<string|int>|string $generation */
+        $generation = ['payload' => 'generation-1-' . $ladder];
+        if ($ladder === 'version') {
+            $generation = 'generation-1-version';
+        }
+
+        $names = [
+            'qualityProfiles' => ['qualityProfilesCache', 'qualityProfiles'],
+            'customFormats' => ['customFormatsCache', 'customFormats'],
+            'version' => ['versionCache', 'version'],
+        ][$ladder];
+
+        $static = $reflection->getProperty($names[0]);
+        $static->setAccessible(true);
+        $static->setValue(null, $generation);
+
+        $memo = $reflection->getProperty($names[1]);
+        $memo->setAccessible(true);
+        $memo->setValue($provider, $generation);
+
+        $ts = $reflection->getProperty('cacheTimestamp');
+        $ts->setAccessible(true);
+        $ts->setValue(null, (int) (hrtime(true) / 1_000_000_000) - (86400 + 1));
+
+        return $provider;
+    }
+
+    /**
+     * After the expiry-driven refetch (which fails offline by design) the
+     * ladder must leave no residue: receiver memo released, process-wide
+     * statics flushed by the TTL reset.
+     *
+     * @param 'qualityProfiles'|'customFormats'|'version' $ladder
+     */
+    private function assertMemoReleasedAndStaticsCleared(TrashGuidesProvider $provider, string $ladder): void
+    {
+        $reflection = new \ReflectionClass($provider);
+
+        $names = [
+            'qualityProfiles' => ['qualityProfilesCache', 'qualityProfiles'],
+            'customFormats' => ['customFormatsCache', 'customFormats'],
+            'version' => ['versionCache', 'version'],
+        ][$ladder];
+
+        $static = $reflection->getProperty($names[0]);
+        $static->setAccessible(true);
+        $this->assertNull($static->getValue(), 'Expired generation must be flushed from the process-wide statics.');
+
+        $memo = $reflection->getProperty($names[1]);
+        $memo->setAccessible(true);
+        $this->assertNull($memo->getValue($provider), 'Expired generation must be released from the instance memo.');
+
+        $ts = $reflection->getProperty('cacheTimestamp');
+        $ts->setAccessible(true);
+        $this->assertNull($ts->getValue(), 'The TTL reset must clear the shared timestamp too.');
+    }
 }

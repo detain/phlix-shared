@@ -41,18 +41,22 @@ use const JSON_THROW_ON_ERROR;
  * SECURITY CONTRACT — `fromJson()` validates wire SHAPE only. The method is
  * checked non-empty, the path only starts with `/`, and every header pair
  * only has to be strings; there is NO method allowlist, NO traversal/encoding
- * denylist, and NO trust-header stripping here — `authorization`, `cookie`,
- * `x-forwarded-for` and `x-phlix-relay-user` all parse through as perfectly
- * valid strings. This deferral is deliberate: the gate for this frame belongs
- * to {@see RelayHttpRequest} (`ALLOWED_METHODS`, `assertSafe()`,
- * `STRIPPED_HEADERS`) and is applied when the consumer RECONSTITUTES the
- * accumulated HEAD+BODY stream into that envelope — the server-side pattern
- * (call `assertSafe()` and forward only `withoutForbiddenHeaders()` at END).
- * Consumers MUST NOT dispatch on, auth off, or trust any parsed field of a
- * head in isolation; producers SHOULD construct heads only from an already
- * gated `RelayHttpRequest`. A consumer that trusts this parser directly
- * inherits path traversal, method smuggling, and credential-header injection
- * from an untrusted hub → server wire.
+ * denylist, NO control-character screen (a header value or the query may
+ * carry CR/LF/NUL/DEL right through this parser), and NO trust-header
+ * stripping here — `authorization`, `cookie`, `x-forwarded-for` and
+ * `x-phlix-relay-user` all parse through as perfectly valid strings. This
+ * deferral is deliberate: the gate for this frame belongs to
+ * {@see RelayHttpRequest} (`ALLOWED_METHODS`, `assertSafe()`,
+ * `STRIPPED_HEADERS`) — `assertSafe()` covers the WHOLE head (method, path,
+ * query, and every header name and value) and is applied when the consumer
+ * RECONSTITUTES the accumulated HEAD+BODY stream into that envelope — the
+ * server-side pattern (call `assertSafe()` and forward only
+ * `withoutForbiddenHeaders()` at END). Consumers MUST NOT dispatch on, auth
+ * off, or trust any parsed field of a head in isolation; producers SHOULD
+ * construct heads only from an already gated `RelayHttpRequest`. A consumer
+ * that trusts this parser directly inherits path traversal, method
+ * smuggling, header/query control-byte injection, and credential-header
+ * injection from an untrusted hub → server wire.
  *
  * @package Phlix\Shared\Relay
  * @since 0.17.0

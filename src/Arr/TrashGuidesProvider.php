@@ -32,6 +32,15 @@ use RuntimeException;
  *   so refreshing item B extends item A's apparent age — worst-case staleness
  *   is ~2x the advertised 24 h TTL, and any item fetched while a sibling
  *   refreshes never expires on its own schedule.
+ * - The same shared timestamp reaches the per-instance memos: every getter
+ *   runs the TTL check BEFORE the memo hit (review shared__srphp Major #1,
+ *   cured 2026-11-06 — a lone instance now refetches once its 24 h is up),
+ *   but a sibling instance's refresh rewrites the shared timestamp, so an
+ *   idle instance's memo can outlive 24 h of wall time while other instances
+ *   keep the generation fresh. A memo is released when its own instance
+ *   observes the shared timestamp past TTL; `clearCache()` on ANOTHER
+ *   instance flushes the statics but cannot instantly dislodge this
+ *   instance's memo (it dislodges on the next genuinely-expired check).
  * - The caches are `static` (process-wide): `clearCache()` on one instance
  *   flushes every other instance's cached view; per-instance isolation is
  *   NOT provided.
@@ -101,11 +110,11 @@ class TrashGuidesProvider
      */
     public function getQualityProfiles(): array
     {
+        $this->ensureCacheValid();
+
         if ($this->qualityProfiles !== null) {
             return $this->qualityProfiles;
         }
-
-        $this->ensureCacheValid();
 
         if (self::$qualityProfilesCache !== null) {
             $this->qualityProfiles = self::$qualityProfilesCache;
@@ -139,11 +148,11 @@ class TrashGuidesProvider
      */
     public function getCustomFormats(): array
     {
+        $this->ensureCacheValid();
+
         if ($this->customFormats !== null) {
             return $this->customFormats;
         }
-
-        $this->ensureCacheValid();
 
         if (self::$customFormatsCache !== null) {
             $this->customFormats = self::$customFormatsCache;
@@ -177,11 +186,11 @@ class TrashGuidesProvider
      */
     public function getVersion(): string
     {
+        $this->ensureCacheValid();
+
         if ($this->version !== null) {
             return $this->version;
         }
-
-        $this->ensureCacheValid();
 
         if (self::$versionCache !== null) {
             $this->version = self::$versionCache;

@@ -269,4 +269,125 @@ final class RelayHttpRequestTest extends TestCase
     {
         $this->assertSame(512, RelayHttpRequest::MAX_JSON_DEPTH);
     }
+
+    /**
+     * LW-052 [review shared__secaudit Major #1]: the gate must cover the
+     * whole request head. Every control byte (ord < 0x20, killed the same
+     * way the path loop has always killed them) and DEL (0x7F) are refused
+     * in header names, header values and the query string.
+     *
+     * @return array<string, array{string}>
+     */
+    public static function controlByteProvider(): array
+    {
+        return [
+            'CR' => ["b\rc"],
+            'LF' => ["b\nc"],
+            'CRLF header injection' => ["ok\r\nX-Phlix-Relay-User: 42"],
+            'NUL' => ["b\0c"],
+            'SOH (0x01)' => ["b\x01c"],
+            'unit separator (0x1F)' => ["b\x1fc"],
+            'DEL (0x7F)' => ["b\x7fc"],
+        ];
+    }
+
+    /**
+     * Red-first at the parent commit: the value screen covered only the
+     * path, so these payloads cleared assertSafe() untouched.
+     *
+     * @dataProvider controlByteProvider
+     */
+    public function test_assert_safe_rejects_control_bytes_in_header_values(string $value): void
+    {
+        $req = new RelayHttpRequest('GET', '/x', '', ['Accept' => $value], '');
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('"header value" must not contain control characters');
+        $req->assertSafe();
+    }
+
+    /**
+     * @dataProvider controlByteProvider
+     */
+    public function test_assert_safe_rejects_control_bytes_in_header_names(string $name): void
+    {
+        $req = new RelayHttpRequest('GET', '/x', '', [$name => 'ok'], '');
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('"header name" must not contain control characters');
+        $req->assertSafe();
+    }
+
+    /**
+     * @dataProvider controlByteProvider
+     */
+    public function test_assert_safe_rejects_control_bytes_in_query(string $query): void
+    {
+        $req = new RelayHttpRequest('GET', '/x', $query, [], '');
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('"query" must not contain control characters');
+        $req->assertSafe();
+    }
+
+    /**
+     * The untrusted wire path: a hub-produced envelope carrying a CR/LF
+     * injection in a header value must be refused by fromJson() itself,
+     * without the consumer touching assertSafe() directly. The \r\n escape
+     * below is decoded by json_decode into real CR LF bytes.
+     */
+    public function test_from_json_rejects_crlf_injected_header_value(): void
+    {
+        $json = '{"method":"GET","path":"/x","headers":{"Accept":"a\r\nX-Phlix-Relay-User: 42"},"body":""}';
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('"header value" must not contain control characters');
+        RelayHttpRequest::fromJson($json);
+    }
+
+    /**
+     * The screen also closes the trust-set bypass: a padded control byte in
+     * a forbidden header name would dodge the exact-match in
+     * isForbiddenHeader() — the head-wide screen refuses it at the gate
+     * instead.
+     */
+    public function test_control_byte_cannot_dodge_the_forbidden_header_match(): void
+    {
+        $req = new RelayHttpRequest('GET', '/x', '', ["X-Forwarded-For\r" => '1.2.3.4'], '');
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('"header name" must not contain control characters');
+        $req->assertSafe();
+    }
+
+    /**
+     * Boundary pin for the new screen: every printable byte (0x20 space
+     * through 0x7E tilde) stays legal in the head — the screen kills
+     * control characters, not HTTP-visible text.
+     */
+    public function test_assert_safe_accepts_printable_bytes_in_head_fields(): void
+    {
+        $visible = '';
+        for ($byte = 0x20; $byte <= 0x7E; $byte++) {
+            $visible .= chr($byte);
+        }
+
+        $req = new RelayHttpRequest('GET', '/x', 'q=' . $visible, ['X-Visible' => $visible], '');
+        $req->assertSafe();
+        $this->addToAssertionCount(1);
+    }
+
+    /**
+     * The long-standing method/path law is byte-identical after the head
+     * was widened: the path keeps its own sub-0x20 screen only, so DEL in
+     * a path stays legal (it was never rejected before this fix, and
+     * consumers rely on that unchanged wording).
+     */
+    public function test_path_control_character_law_is_unchanged(): void
+    {
+        $reqWithDel = new RelayHttpRequest('GET', "/a\x7fb", '', [], '');
+        $reqWithDel->assertSafe();
+        $this->addToAssertionCount(1);
+
+        $reqWithLf = new RelayHttpRequest('GET', "/a\rb", '', [], '');
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('"path" must not contain control characters');
+        $reqWithLf->assertSafe();
+    }
 }
