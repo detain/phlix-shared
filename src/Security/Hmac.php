@@ -12,10 +12,17 @@ declare(strict_types=1);
 namespace Phlix\Shared\Security;
 
 /**
- * HMAC-SHA256 signature verification helper.
+ * HMAC-SHA256 signature computation and verification helper.
  *
- * Provides timing-safe comparison for verifying HMAC-SHA256 signatures
- * in the `sha256:<hex>` format used by Phlix manifest files.
+ * Timing-safe `sha256:<hex>` (colon-hex) keyed-HMAC seam. Honest consumer
+ * status: this class has NO production importer today — phlix-server signs
+ * webhooks with a raw `hash_hmac()` call, and its plugin-manifest checking
+ * is a trusted-digest allowlist, not a keyed HMAC verification. It exists
+ * as the single-source, timing-safe implementation of the `sha256:<hex>`
+ * convention so a future keyed consumer (relay token signing is the
+ * canonical candidate) adopts one audited primitive instead of
+ * hand-rolling a comparison. The exposed surface is `compute()` and
+ * `verify()` — there is no `sign()` method.
  *
  * Single contract: {@see self::verify()} is the canonical entry point and
  * {@see self::verifySha256Hex()} is a deprecated alias delegating to it
@@ -26,6 +33,13 @@ namespace Phlix\Shared\Security;
  */
 final class Hmac
 {
+    /**
+     * Prevent instantiation — this class is a static utility only.
+     */
+    private function __construct()
+    {
+    }
+
     /**
      * Verify an HMAC-SHA256 signature against a payload.
      *
@@ -53,8 +67,9 @@ final class Hmac
     /**
      * Compute the HMAC-SHA256 signature for a payload.
      *
-     * Returns the signature in `sha256:<hex>` format matching the manifest
-     * signature field format.
+     * Returns the signature in `sha256:<hex>` colon-hex format — the format
+     * convention this class implements (see the class header for honest
+     * consumer status).
      *
      * @param string $payload The data to sign.
      * @param string $secret The shared secret key.

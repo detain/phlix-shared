@@ -28,7 +28,7 @@ use Phlix\Shared\Support\PayloadAssert;
  * @package Phlix\Shared\Hub
  * @since 0.2.0
  */
-final class ServerInfoDto
+final readonly class ServerInfoDto
 {
     use PayloadAssert;
 
@@ -52,16 +52,16 @@ final class ServerInfoDto
      * @param string|null    $subdomain          Allocated DNS subdomain label (e.g. `foo` from `foo.phlix.media`).
      */
     public function __construct(
-        public readonly string $serverId,
-        public readonly string $userId,
-        public readonly string $serverName,
-        public readonly string $version,
-        public readonly ?int $lastSeenAt,
-        public readonly string $status,
-        public readonly array $hostnameCandidates,
-        public readonly bool $relayActive,
-        public readonly ?int $libraryCount = null,
-        public readonly ?string $subdomain = null,
+        public string $serverId,
+        public string $userId,
+        public string $serverName,
+        public string $version,
+        public ?int $lastSeenAt,
+        public string $status,
+        public array $hostnameCandidates,
+        public bool $relayActive,
+        public ?int $libraryCount = null,
+        public ?string $subdomain = null,
     ) {
     }
 

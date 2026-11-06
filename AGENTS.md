@@ -69,7 +69,7 @@ cooperative wait pattern with callback-based requests.
 
 ## Layout
 
-```
+```text
 src/
   Arr/       # Phlix\Shared\Arr\* — *arr HTTP clients + Transport/ seam
              #   (the sole zero-I/O exception; see the rule above)
@@ -80,7 +80,9 @@ src/
   Plugin/    # Phlix\Shared\Plugin\* — lifecycle, manifest, types
   Relay/     # Phlix\Shared\Relay\* — channel-mux + HTTP-over-relay frames
   Schema/    # Phlix\Shared\Schema\* — SchemaPaths for the bundled schemas/
-  Security/  # Phlix\Shared\Security\* — Hmac sign/verify primitive
+  Security/  # Phlix\Shared\Security\* — Hmac compute()/verify() primitive
+             #   (timing-safe sha256 colon-hex seam; no production consumer
+             #   today — see README)
   Subtitle/  # Phlix\Shared\Subtitle\* — subtitle source contract + DTOs
   Support/   # Phlix\Shared\Support\* — PayloadAssert trait for wire DTOs
   Version.php
@@ -90,11 +92,26 @@ tests/
 
 ## Layout rationale
 
-See `plans/expansion/b.1-shared-design.md` in
-[`detain/phlix`](https://github.com/detain/phlix) for the full WHAT
-MOVES WHERE table and the design rationale for the namespace split.
-Do not re-litigate that design here — propose changes in a new plan
-step against `detain/phlix` if needed.
+The split is charter-driven: each top-level namespace is exactly the
+contract one consumer surface needs, and nothing more. `Auth/`, `Hub/`
+and `Relay/` mirror the server↔hub wire (token/claim types, protocol
+DTOs, tunnel and HTTP-over-relay envelopes); `Plugin/` and `Events/`
+are the plugin-facing surface (lifecycle, manifest, PSR-14 event DTOs
+and the alias map); `Metadata/` and `Subtitle/` hold the two plugin
+source contracts the server's registries consume; `Arr/` is the sole
+sanctioned I/O exception (*arr clients behind the pluggable transport
+seam — see the rule above); `Schema/`, `Security/` and `Support/` are
+shared helpers (schema-path resolution, the HMAC seam, wire-DTO
+assertions); `Version.php` is the single version marker consumers pin.
+A new helper belongs in the namespace of the contract it serves — if it
+serves none of them, it likely belongs in the consumer's own repo.
+
+The historical WHAT MOVES WHERE table and full design rationale live in
+`plans/expansion/b.1-shared-design.md` in
+[`detain/phlix`](https://github.com/detain/phlix); that repo is not part
+of the estate checkouts, so the summary above is what a contributor can
+actually act on. Do not re-litigate that design here — propose changes
+in a new plan step against `detain/phlix` if needed.
 
 ## Before committing
 
@@ -109,8 +126,8 @@ step against `detain/phlix` if needed.
 
 If any tool emits warnings, fix the code — do not add to a baseline.
 
-⚠ **Never audit with a development-dependency exclusion.** Step 7 used to read
-`composer audit --no-dev`, and that flag hid CVE-2026-67434 (HIGH, OS command
+⚠ **Never audit with a development-dependency exclusion.** The audit step (item 8,
+`scripts/security-audit-check.php`) used to read `composer audit --no-dev`, and that flag hid CVE-2026-67434 (HIGH, OS command
 injection) in `squizlabs/php_codesniffer` from CI for as long as the advisory
 existed: `php_codesniffer` is a `require-dev` package, so the gate reported
 SUCCESS against a vulnerable lock. `scripts/security-audit-check.php` (S246)
@@ -122,8 +139,11 @@ reason, where the gate reports it as IGNORED — there is no baseline file.
 ## Versioning
 
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Bump the
-`Phlix\Shared\Version::VERSION` constant in lockstep with the git tag
-and the `CHANGELOG.md` heading.
+`Phlix\Shared\Version::VERSION` constant in lockstep with the git tag,
+the `CHANGELOG.md` heading, and the README status/install stamps (the
+`**v0.x.y**` line and the `composer require detain/phlix-shared:^0.x`
+example — the caret below 1.0 does not admit the next minor, so a stale
+install line silently pins consumers to the old release).
 
 <!-- caliber:managed:pre-commit -->
 ## Before Committing

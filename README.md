@@ -12,12 +12,14 @@ Shared interfaces, DTOs, event names, and protocol types used by both
 [`detain/phlix-server`](https://github.com/detain/phlix-server) (the media server)
 and [`detain/phlix-hub`](https://github.com/detain/phlix-hub) (the multi-server hub).
 Composer-installable, PHP 8.3+, zero I/O by charter — pure interfaces and
-value objects, with one sanctioned exception: the `Arr\*` namespace ships
-real (blocking cURL) *arr HTTP clients; see [`AGENTS.md`](AGENTS.md).
+value objects, with one sanctioned exception: bundled I/O is confined to the
+`Arr\*` namespace — the blocking cURL `CurlArrTransport` default of the *arr
+HTTP clients, plus `TrashGuidesProvider`'s own blocking stream fetches and its
+optional `config/trash_guides.php` local read; see [`AGENTS.md`](AGENTS.md).
 
 ## Status
 
-**v0.52.0** (`Phlix\Shared\Version::VERSION`). `schemas/server-settings.schema.json` carries 84 keys (51 `restart: true`, 33 `restart: false`); `schemas/hub-settings.schema.json` carries 18 keys in lockstep with `phlix-hub`'s `HubSettingsRepository::ALLOWED_KEYS`. Cumulative surface:
+**v0.53.0** (`Phlix\Shared\Version::VERSION`). `schemas/server-settings.schema.json` carries 84 keys (51 `restart: true`, 33 `restart: false`); `schemas/hub-settings.schema.json` carries 18 keys in lockstep with `phlix-hub`'s `HubSettingsRepository::ALLOWED_KEYS`. Cumulative surface:
 
 - `Phlix\Shared\Plugin\{LifecycleInterface, ConfigurableInterface, Manifest, ManifestType, ManifestValidationError, EventNameMap}`
 - `Phlix\Shared\Events\{AbstractEvent, Playback\*, Library\*, Auth\*}` — 12 event DTOs.
@@ -39,9 +41,16 @@ real (blocking cURL) *arr HTTP clients; see [`AGENTS.md`](AGENTS.md).
   *arr HTTP clients with their factory, shared base, sync value object, redactor and
   TrashGuides provider; `Arr\Transport\{ArrTransportInterface, CurlArrTransport}` is the pluggable
   wire layer underneath.
-- `Phlix\Shared\Security\Hmac` — constant-time HMAC sign/verify primitive (webhooks, relay tokens).
-- `Phlix\Shared\Support\PayloadAssert` — the presence/type assertion trait every wire DTO in
-  `Hub\`/`Auth\` parses through.
+- `Phlix\Shared\Security\Hmac` — the shared `compute()`/`verify()` seam for timing-safe
+  HMAC-SHA256 in the `sha256:<hex>` colon-hex format. Honest status: no production consumer
+  imports it today — server webhooks sign with raw `hash_hmac()` and plugin-manifest checks are
+  a trusted-digest allowlist, not a keyed HMAC — it is kept as the single-source keyed-signature
+  primitive for a future consumer (there is no `sign()` method).
+- `Phlix\Shared\Support\PayloadAssert` — the presence/type assertion trait used by the wire DTOs
+  that parse payloads through it: `ClaimRequest`, `ClaimResponse`, `ServerInfoDto`,
+  `HeartbeatDto` and `JwtClaims`. `Hub\LibraryRef` is the deliberate manual-validation exception
+  (its `fromPayload()` rejects empty strings inline); `Auth\UserInfo` is a constructor value
+  object that parses no payload at all.
 - `Phlix\Shared\Schema\SchemaPaths` — pure path resolver for the bundled `schemas/` files (0.7.0+).
 - `Phlix\Shared\Version` — the single `VERSION` constant consumers pin and report.
 
@@ -116,7 +125,7 @@ for the files without a dedicated accessor, such as `manifest.schema.json`):
   **`restart` flags (0.46.0–0.48.0 audit).** Every one of the then-72 keys was traced to
   its consumer (the audit window held 72 — v0.46.0 = v0.47.0 = v0.48.0 = v0.48.1; the 73rd,
   `transcoding.segment_format`, arrived with the 0.49.0 addition named just above); keys
-  added since each carry an explicit flag too. As of 0.52.0 the schema holds
+  added since each carry an explicit flag too. As of 0.53.0 the schema holds
   84 keys: 51 carry `restart: true` and 33 carry `restart: false`. `restart: true` means the
   admin **Restart server** control (a graceful SIGUSR2 reload that cycles workers, re-runs
   `onWorkerStart`, and rebuilds DI containers) — required for any value captured at worker
@@ -178,8 +187,11 @@ this runbook is those steps written down before you hit them:
    `tests/Schema/HubSettingsSchemaTest.php` (live via a hub checkout or the
    `PHLIX_HUB_REPO` pointer; CI runs the frozen mirror leg).
 7. **Verify + release.** `./vendor/bin/phpunit`, `phpstan analyze`, both phpcs
-   legs, `composer validate --strict` — all green in the same commit. Release is
-   lockstep: `Version::VERSION` = CHANGELOG heading = annotated git tag
+   legs, `./vendor/bin/psalm --no-progress`, `composer validate --strict` and
+   `php scripts/security-audit-check.php` — all green in the same commit. This
+   runbook lists the schema-relevant gates; the complete eight-command list is
+   in AGENTS.md "Before committing". Release is lockstep:
+   `Version::VERSION` = CHANGELOG heading = annotated git tag
    (AGENTS.md "Versioning"); consumers then bump their `^0.x` pin.
 
 ## Requirements
@@ -213,7 +225,7 @@ see [`AGENTS.md`](AGENTS.md)).
 `detain/phlix-shared` is published on Packagist:
 
 ```bash
-composer require detain/phlix-shared:^0.52
+composer require detain/phlix-shared:^0.53
 ```
 
 ## Related repositories

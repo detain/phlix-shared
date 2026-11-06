@@ -112,6 +112,11 @@ final class RelayHttpResponseCodec
      * Returns an empty list for an empty body (the HEAD + END alone convey a
      * zero-length body).
      *
+     * Materializes every encoded chunk at once. Streaming call sites should
+     * prefer {@see self::chunkBodyIterator()}, which yields one chunk at a
+     * time — this array form stays correct for small bodies and for callers
+     * that need the whole list (or its count) before sending.
+     *
      * @param string $body Full response body bytes.
      *
      * @return list<string> Encoded BODY chunk payloads, in order.

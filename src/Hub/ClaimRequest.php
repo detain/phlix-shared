@@ -23,7 +23,7 @@ use Phlix\Shared\Support\PayloadAssert;
  * @package Phlix\Shared\Hub
  * @since 0.2.0
  */
-final class ClaimRequest
+final readonly class ClaimRequest
 {
     use PayloadAssert;
 
@@ -38,11 +38,11 @@ final class ClaimRequest
      *                                                Accept-Phlix-Protocol header.
      */
     public function __construct(
-        public readonly string $serverName,
-        public readonly string $version,
-        public readonly array $publicKeysJwk,
-        public readonly array $hostnameCandidates,
-        public readonly string $protocolVersion,
+        public string $serverName,
+        public string $version,
+        public array $publicKeysJwk,
+        public array $hostnameCandidates,
+        public string $protocolVersion,
     ) {
     }
 

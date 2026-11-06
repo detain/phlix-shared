@@ -38,11 +38,11 @@ namespace Phlix\Shared\Auth;
 final readonly class UserInfo
 {
     /**
-     * @param string                $externalId    Provider-specific unique identifier.
-     * @param string|null          $email          User's email address (may be null for some providers).
-     * @param string|null          $displayName    Human-readable display name.
-     * @param string|null          $avatarUrl       URL to the user's avatar / profile picture.
-     * @param array<string, mixed>  $rawAttributes   All provider-returned claims as key-value pairs.
+     * @param string                $externalId     Provider-specific unique identifier.
+     * @param string|null           $email          User's email address (may be null for some providers).
+     * @param string|null           $displayName    Human-readable display name.
+     * @param string|null           $avatarUrl      URL to the user's avatar / profile picture.
+     * @param array<string, mixed>  $rawAttributes  All provider-returned claims as key-value pairs.
      */
     public function __construct(
         public string $externalId,

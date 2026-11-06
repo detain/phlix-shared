@@ -42,7 +42,6 @@
             "/AGENTS.md",
             "/CALIBER_LEARNINGS.md",
             "/CHANGELOG.md",
-            "/README.md",
             "/phpunit.xml",
             "/phpstan.neon.dist",
             "/psalm.xml",

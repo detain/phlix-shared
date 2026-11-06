@@ -4,6 +4,35 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Docs/prose currency batch (review round 2026-11-03, lane w01-L9): the README
+status and install stamps advance to v0.53.0 / `^0.53`; `README.md` is no
+longer export-ignored (it is the consumer contract for the bundled schemas and
+now ships in the archive); the `Hmac` prose — README, AGENTS layout tree and
+the class header — tells the truth about its consumers (there are none
+today; server webhooks sign with raw `hash_hmac()` and manifest checking is a
+trusted-digest allowlist) and names its real surface (`compute()`/`verify()`,
+no `sign()`); `EventNameMap` retires the dangling pointer to
+`phlix-server`'s `docs/dev/event-reference.md` — the `src/Events/` tree and
+this table are the canonical pair; the README I/O-charter intro matches the
+composer description (blocking `CurlArrTransport` plus
+`TrashGuidesProvider`'s stream/file fetches); the PayloadAssert bullet lists
+its five real users instead of claiming universal adoption; the README
+runbook gate list gains psalm and `scripts/security-audit-check.php` with a
+pointer to AGENTS.md's complete eight-command list; AGENTS.md gains a tagged
+layout fence, a reachable layout-rationale summary (the external
+`detain/phlix` plan doc is called out as history-only), the audit-warning
+step named by command instead of stale ordinal, and README stamps added to
+the Versioning lockstep sentence. Style sweep (no behavior change): private
+constructors on `Hmac`/`SecretRedactor` (matching `Version`/`SchemaPaths`/
+`EventNameMap`), `ClaimRequest`/`ClaimResponse`/`HeartbeatDto`/`ServerInfoDto`
+normalized to `final readonly class`, `chunkBody()` docblocks nudge streaming
+callers to `chunkBodyIterator()`, and `UserInfo`'s `@param` rows re-aligned.
+Counting-basis note for the entry below: "Minor: 22 commits over v0.52.0"
+counts the work commits in that range and excludes the `release:` bump commit
+itself (`git rev-list v0.52.0..v0.53.0` totals 23 including it).
+
 ## [0.53.0] - 2026-11-02
 
 Minor: 22 commits over v0.52.0 — the review-minors batches W-min110..118,

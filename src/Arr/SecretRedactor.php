@@ -23,6 +23,13 @@ namespace Phlix\Shared\Arr;
 final class SecretRedactor
 {
     /**
+     * Prevent instantiation — this class is a static utility only.
+     */
+    private function __construct()
+    {
+    }
+
+    /**
      * Replaces every occurrence of each secret in the message with `***`.
      *
      * @param string $message The message potentially containing secrets.

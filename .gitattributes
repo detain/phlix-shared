@@ -1,8 +1,12 @@
 # Distribution surface. Everything a consumer does not need is excluded from
 # the git archives (GitHub zipballs — the dist Composer serves for both the
-# Packagist and the github:#tag pin paths). src/, schemas/, LICENSE and
-# composer.json ship; schemas/ MUST ship because
+# Packagist and the github:#tag pin paths). src/, schemas/, LICENSE,
+# composer.json and README.md ship — README.md deliberately stays in the
+# archive as the consumer contract for the bundled schemas (the add-a-key
+# runbook should reach an installed consumer); schemas/ MUST ship because
 # Phlix\Shared\Schema\SchemaPaths resolves those files at consumer runtime.
+# Agent/contributor docs (AGENTS.md, CALIBER_LEARNINGS.md, CHANGELOG.md) are
+# stripped.
 # Deliberately export-ignore-only: no text/eol normalization attributes — the
 # estate keeps LF-authored trees and a blanket `* text=auto` would silently
 # rewrite working trees at checkout.
@@ -15,7 +19,6 @@ composer.lock      export-ignore
 AGENTS.md          export-ignore
 CALIBER_LEARNINGS.md export-ignore
 CHANGELOG.md       export-ignore
-README.md          export-ignore
 phpunit.xml        export-ignore
 phpstan.neon.dist  export-ignore
 psalm.xml          export-ignore

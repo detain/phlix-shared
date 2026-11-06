@@ -35,9 +35,12 @@ use Phlix\Shared\Events\Playback\PlaybackStopped;
  * plugin loader translates each manifest alias to its FQCN via this
  * map before attaching listeners.
  *
- * One entry per event class published by `phlix-shared` `src/Events/`.
- * The canonical list lives in `docs/dev/event-reference.md` shipped
- * with `phlix-server` — keep this table and the doc in sync.
+ * One entry per event class published by this package's `src/Events/`
+ * tree — the table above and that tree are the canonical pair (an
+ * earlier pointer here to `docs/dev/event-reference.md` shipped with
+ * `phlix-server` named a file that does not exist; retired 2026-11).
+ * When an event class is added or removed, update this table and
+ * `tests/Plugin/EventNameMapTest.php` in the same commit.
  *
  * @package Phlix\Shared\Plugin
  * @since 0.2.0

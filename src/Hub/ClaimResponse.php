@@ -22,7 +22,7 @@ use Phlix\Shared\Support\PayloadAssert;
  * @package Phlix\Shared\Hub
  * @since 0.2.0
  */
-final class ClaimResponse
+final readonly class ClaimResponse
 {
     use PayloadAssert;
 
@@ -33,10 +33,10 @@ final class ClaimResponse
      * @param string $hubBaseUrl  Where the server should send heartbeats once enrolled.
      */
     public function __construct(
-        public readonly string $claimCode,
-        public readonly int $expiresIn,
-        public readonly string $claimId,
-        public readonly string $hubBaseUrl,
+        public string $claimCode,
+        public int $expiresIn,
+        public string $claimId,
+        public string $hubBaseUrl,
     ) {
     }
 

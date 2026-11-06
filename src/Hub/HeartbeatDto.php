@@ -20,7 +20,7 @@ use Phlix\Shared\Support\PayloadAssert;
  * @package Phlix\Shared\Hub
  * @since 0.2.0
  */
-final class HeartbeatDto
+final readonly class HeartbeatDto
 {
     use PayloadAssert;
 
@@ -36,14 +36,14 @@ final class HeartbeatDto
      * @param list<LibraryRef> $libraries      Libraries on this server.
      */
     public function __construct(
-        public readonly string $serverId,
-        public readonly string $version,
-        public readonly int $timestamp,
-        public readonly int $uptimeSeconds,
-        public readonly int $activeSessions,
-        public readonly int $activeTranscodes,
-        public readonly array $hostnameCandidates,
-        public readonly array $libraries = [],
+        public string $serverId,
+        public string $version,
+        public int $timestamp,
+        public int $uptimeSeconds,
+        public int $activeSessions,
+        public int $activeTranscodes,
+        public array $hostnameCandidates,
+        public array $libraries = [],
     ) {
     }
 
