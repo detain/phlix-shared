@@ -6,6 +6,48 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+Manifest/relay/Arr hardening batch (review round 2026-11-04, lane w04-L3;
+LW-060, LW-061, LW-062, LW-063, LW-079-b): `Manifest::fromArray()` admits a
+settings entry into the typed `settings` view only when it carries a string
+`type` — the docblock's shape promise is now enforced at the parse boundary
+instead of merely asserted (disclosed behavior change: malformed entries
+previously passed through unverified; they now drop exactly like the
+non-array arm while `rawData` keeps the untouched payload for the consuming
+schema validator; shared__srphp). Both relay HTTP chunk codecs reject END
+payloads carrying trailing bytes — previously a producer framing bug was
+silently dropped; internal classes, no wire error codes touched, and the
+bare-tag `encodeEnd()` leg is untouched (LW-063). `TrashGuidesProvider`
+(LW-061): redirects are walked manually — `follow_location` is off and every
+3xx target is resolved (absolute-with-scheme, protocol-relative,
+root-relative, path-relative; the last status line decides, fragments
+stripped) and re-passes the M-SHARED-22 https gate before the hop is dialed
+(budget: the same five the `max_redirects` stream setting carried); the
+`@`-suppression on the stream read is retired — the wrapper warning now rides
+the thrown RuntimeException's previous chain while public messages keep their
+stable, leak-free form; and an included `config/trash_guides.php` that
+returns a non-array now fails loud at load time, naming the path and the
+actual type instead of propagating a phantom shape. Upstream forensics
+(executed 2026-11-06): the two fallback URLs name consolidated files that do
+not exist in `TRaSH-Guides/Guides` at any probed ref (current `master` HEAD,
+a mid-2025 tree, path-filtered commit history — `main` itself does not
+exist), so the default-config fetch legs fail closed today; the literals are
+carried UNMOVED (exact-pinned by the suite) and re-pointing them at the live
+per-file tree is a payload redesign that reaches the server-side
+`CustomFormatSyncer` contract — a cross-repo lane, reported, not guessed at
+here. New drift-guard test pins the `EventNameMap` class-header "one alias
+per event class" invariant by walking `src/Events/` and asserting
+set-equality with the map values (teeth proven against a planted unmapped
+class; LW-062). The `JwtClaims` header retires its unlanded Phase C.5 wiring
+claim (LW-079-b): the hub verifies through this DTO, the server's
+`JwtHandler::validateToken()` never migrated — the prose records the
+coexistence (LW-079-a stays open as a future server lane) instead of
+promising work. Eight new tests: seven measured failing at the parent commit
+5a72fc1 (exact-reason each; the fetch-chain red rides on the parent's
+`@`-suppressed previous === null), the eighth a prevention guard; full suite
+1577/134834 → 1585/134876. Parked with proof (owner-gated, zero diff):
+LW-095 — the two hub quota keys keep their `0 = unlimited` zero-defaults in
+`schemas/hub-settings.schema.json`.
+
 Arr client and JWT claims batch (review round 2026-11-04, lane w03-L4;
 LW-054, LW-056, LW-057, LW-058, LW-059): `AbstractArrClient::request()`
 redacts the caller's API key from the >=400 error message at its creation

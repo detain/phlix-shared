@@ -40,7 +40,8 @@ use Phlix\Shared\Events\Playback\PlaybackStopped;
  * earlier pointer here to `docs/dev/event-reference.md` shipped with
  * `phlix-server` named a file that does not exist; retired 2026-11).
  * When an event class is added or removed, update this table and
- * `tests/Plugin/EventNameMapTest.php` in the same commit.
+ * `tests/Plugin/EventNameMapTest.php` in the same commit — a drift-guard
+ * test (LW-062) walks the class tree and fails CI on any divergence.
  *
  * @package Phlix\Shared\Plugin
  * @since 0.2.0

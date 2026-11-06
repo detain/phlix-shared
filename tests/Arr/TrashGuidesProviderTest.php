@@ -571,4 +571,170 @@ class TrashGuidesProviderTest extends TestCase
         $ts->setAccessible(true);
         $this->assertNull($ts->getValue(), 'The TTL reset must clear the shared timestamp too.');
     }
+
+    /**
+     * LW-061: an included config file that does not return an array must fail
+     * loud at load time — naming the path and the actual type — instead of
+     * handing a phantom shape onward (a bare `return;` used to flow out of
+     * loadConfig as null through the @var assertion and die later, far from
+     * the cause).
+     */
+    public function testRequireConfigArrayAcceptsArraysAndRejectsOtherReturns(): void
+    {
+        $provider = new TrashGuidesProvider();
+        $reflection = new \ReflectionClass($provider);
+        if (!$reflection->hasMethod('requireConfigArray')) {
+            $this->fail('LW-061: TrashGuidesProvider::requireConfigArray() is missing.');
+        }
+        $method = $reflection->getMethod('requireConfigArray');
+        $method->setAccessible(true);
+
+        $ok = ['enabled' => true, 'custom_formats_url' => 'https://example.invalid/x.json'];
+        $this->assertSame($ok, $method->invoke($provider, $ok, '/tmp/trash_guides.php'));
+
+        try {
+            $method->invoke($provider, 'not-an-array', '/tmp/trash_guides.php');
+            $this->fail('A scalar include return must throw.');
+        } catch (\RuntimeException $e) {
+            $this->assertStringContainsString('/tmp/trash_guides.php', $e->getMessage());
+            $this->assertStringContainsString('must return an array', $e->getMessage());
+            $this->assertStringContainsString('string', $e->getMessage());
+        }
+
+        try {
+            $method->invoke($provider, null, '/tmp/ghost.php');
+            $this->fail('A null (bare `return;`) include return must throw.');
+        } catch (\RuntimeException $e) {
+            $this->assertStringContainsString('/tmp/ghost.php', $e->getMessage());
+            $this->assertStringContainsString('must return an array', $e->getMessage());
+            $this->assertStringContainsString('NULL', $e->getMessage());
+        }
+    }
+
+    /**
+     * LW-061: redirect targets are resolved here (pure, no I/O) and every
+     * form the spec allows must land on an absolute URL — so the caller's
+     * per-hop https re-validation cannot be evaded by a relative Location,
+     * a protocol-relative hop, or a header stack whose LAST response is
+     * final. Downgrade targets (http://) ARE returned by this helper; the
+     * refusal is fetchUrl's https gate, exercised hop by hop there.
+     */
+    public function testRedirectTargetFromHeadersResolvesEveryLocationForm(): void
+    {
+        $provider = new TrashGuidesProvider();
+        $reflection = new \ReflectionClass($provider);
+        if (!$reflection->hasMethod('redirectTargetFromHeaders')) {
+            $this->fail('LW-061: TrashGuidesProvider::redirectTargetFromHeaders() is missing.');
+        }
+        $method = $reflection->getMethod('redirectTargetFromHeaders');
+        $method->setAccessible(true);
+
+        $base = 'https://raw.example.invalid/docs/a.json';
+
+        $this->assertSame(
+            'https://cdn.example.invalid/b.json',
+            $method->invoke($provider, ['HTTP/1.1 301 Moved Permanently', 'Location: https://cdn.example.invalid/b.json#frag'], $base),
+            'Absolute Location wins; the fragment is stripped.'
+        );
+        $this->assertSame(
+            'https://cdn.example.invalid/b.json',
+            $method->invoke($provider, ['HTTP/1.1 302 Found', 'Location: //cdn.example.invalid/b.json'], $base),
+            'Protocol-relative follows the request scheme.'
+        );
+        $this->assertSame(
+            'https://raw.example.invalid/b.json',
+            $method->invoke($provider, ['HTTP/2 307 Temporary Redirect', 'Location: /b.json'], $base),
+            'Root-relative anchors on the authority.'
+        );
+        $this->assertSame(
+            'https://raw.example.invalid/docs/b.json',
+            $method->invoke($provider, ['HTTP/1.1 308 Permanent Redirect', 'Location: b.json'], $base),
+            'Path-relative resolves against the base directory.'
+        );
+        $this->assertSame(
+            'http://evil.example.invalid/b.json',
+            $method->invoke($provider, ['HTTP/1.1 301 Moved Permanently', 'Location: http://evil.example.invalid/b.json'], $base),
+            'A scheme-downgrade target is returned for fetchUrl to refuse.'
+        );
+
+        $this->assertNull(
+            $method->invoke($provider, ['HTTP/1.1 200 OK', 'Content-Type: application/json'], $base),
+            'A final 2xx is not a redirect.'
+        );
+        $this->assertNull(
+            $method->invoke($provider, ['HTTP/1.1 304 Not Modified'], $base),
+            '304 carries no usable target.'
+        );
+        $this->assertNull(
+            $method->invoke($provider, ['HTTP/1.1 301 Moved Permanently'], $base),
+            'A 3xx without Location ends the walk.'
+        );
+        $this->assertNull($method->invoke($provider, [], $base), 'No headers at all is final.');
+        $this->assertNull(
+            $method->invoke($provider, ['HTTP/1.1 404 Not Found', 'Location: /decoy.json'], $base),
+            'A 4xx is never followed, Location or not.'
+        );
+
+        $this->assertSame(
+            'https://final.example.invalid/z.json',
+            $method->invoke($provider, [
+                'HTTP/1.1 301 Moved Permanently',
+                'Location: /mid.json',
+                'HTTP/1.1 302 Found',
+                'Location: https://final.example.invalid/z.json',
+            ], $base),
+            'Header stacks: the LAST response decides.'
+        );
+        $this->assertNull(
+            $method->invoke($provider, [
+                'HTTP/1.1 301 Moved Permanently',
+                'Location: /mid.json',
+                'HTTP/1.1 404 Not Found',
+            ], $base),
+            'An earlier Location must not survive a later final response.'
+        );
+    }
+
+    /**
+     * LW-061: the manual hop budget matches the stream setting it replaces
+     * (max_redirects 5) so fetch breadth is behavior-identical.
+     */
+    public function testRedirectHopCapMatchesTheReplacedStreamSetting(): void
+    {
+        $reflection = new \ReflectionClass(TrashGuidesProvider::class);
+        if (!$reflection->hasConstant('MAX_REDIRECT_HOPS')) {
+            $this->fail('LW-061: TrashGuidesProvider::MAX_REDIRECT_HOPS is missing.');
+        }
+        $this->assertSame(5, $reflection->getConstant('MAX_REDIRECT_HOPS'));
+    }
+
+    /**
+     * LW-061: the wrapper failure fact must be CHAINED into the thrown
+     * RuntimeException (previous set), not @-suppressed away. The public
+     * message stays the stable 'Failed to fetch TRaSH-Guides data from:'
+     * form (M-SHARED-22 leak discipline preserved). The unregistered-https
+     * wrapper is the repo's offline deterministic harness for the fetch leg.
+     */
+    public function testFetchUrlFailureChainsTheCapturedWrapperError(): void
+    {
+        $provider = new TrashGuidesProvider();
+        $reflection = new \ReflectionClass($provider);
+        $fetchUrl = $reflection->getMethod('fetchUrl');
+        $fetchUrl->setAccessible(true);
+
+        self::assertTrue(stream_wrapper_unregister('https'));
+        try {
+            $fetchUrl->invoke($provider, 'https://raw.example.invalid/x.json');
+            $this->fail('The fetch must fail closed on the missing wrapper.');
+        } catch (\RuntimeException $e) {
+            $this->assertStringContainsString('Failed to fetch TRaSH-Guides data', $e->getMessage());
+            $this->assertInstanceOf(
+                \ErrorException::class,
+                $e->getPrevious(),
+                'LW-061: the captured wrapper warning must ride as the exception previous.'
+            );
+        } finally {
+            self::assertTrue(stream_wrapper_restore('https'));
+        }
+    }
 }

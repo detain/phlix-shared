@@ -26,6 +26,7 @@ use function substr;
  *   - tag {@see self::TAG_HEAD} (0x01): `data` is {@see RelayHttpResponseHead} JSON.
  *   - tag {@see self::TAG_BODY} (0x02): `data` is raw body bytes (<= {@see self::MAX_BODY_CHUNK}).
  *   - tag {@see self::TAG_END}  (0x03): `data` is empty; the response is complete.
+ *     A payload with bytes after the tag is malformed and rejected (LW-063).
  *
  * A producer emits exactly one HEAD, then zero or more BODY chunks, then one
  * END. The 1-byte tag keeps the wire fully compatible with the existing relay
@@ -161,7 +162,9 @@ final class RelayHttpResponseCodec
      *
      * @return RelayHttpResponseChunk
      *
-     * @throws InvalidArgumentException When the payload is empty or the tag is unknown.
+     * @throws InvalidArgumentException When the payload is empty, the tag is
+     *                                  unknown, or an END chunk carries
+     *                                  trailing bytes after the tag.
      *
      * @since 0.10.0
      */
@@ -185,11 +188,19 @@ final class RelayHttpResponseCodec
                 null,
                 $data,
             ),
-            self::TAG_END => new RelayHttpResponseChunk(
-                RelayHttpResponseChunk::KIND_END,
-                null,
-                '',
-            ),
+            // LW-063: END is the bare tag byte by contract — trailing bytes
+            // are producer framing bugs and must fail loud, never be dropped
+            // into silence where they would hide data loss.
+            self::TAG_END => strlen($payload) > 1
+                ? throw new InvalidArgumentException(sprintf(
+                    'RelayHttpResponseCodec: END chunk must be the bare tag byte; got %d trailing byte(s).',
+                    strlen($payload) - 1,
+                ))
+                : new RelayHttpResponseChunk(
+                    RelayHttpResponseChunk::KIND_END,
+                    null,
+                    '',
+                ),
             default => throw new InvalidArgumentException(
                 sprintf('RelayHttpResponseCodec: unknown chunk tag 0x%02X.', $tag),
             ),

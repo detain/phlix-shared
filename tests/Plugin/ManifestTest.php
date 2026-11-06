@@ -135,4 +135,26 @@ final class ManifestTest extends TestCase
         ]);
         $this->assertSame(['k1' => ['type' => 'string']], $manifest->settings);
     }
+
+    /**
+     * LW-060: the `settings` property docblock promises `type: string` per
+     * entry, so fromArray() must enforce exactly that at the parse boundary.
+     * An entry whose `type` is missing or not a string is malformed and is
+     * dropped from the typed view (the raw payload stays in rawData for the
+     * consuming validator's report) — it must not be admitted carrying the
+     * shape promise as an unverified assertion.
+     */
+    public function test_fromArray_ignores_settings_entries_without_string_type(): void
+    {
+        $manifest = Manifest::fromArray([
+            'settings' => [
+                'ok' => ['type' => 'string'],
+                'missing_type' => ['label' => 'no type key at all'],
+                'int_type' => ['type' => 42],
+                'null_type' => ['type' => null],
+                'array_type' => ['type' => ['nested']],
+            ],
+        ]);
+        $this->assertSame(['ok' => ['type' => 'string']], $manifest->settings);
+    }
 }

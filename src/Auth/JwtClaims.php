@@ -18,12 +18,17 @@ use Phlix\Shared\Support\PayloadAssert;
  * Immutable claim shape for Phlix JWTs (access and refresh).
  *
  * Captures the payload `Phlix\Auth\JwtHandler::createAccessToken()` and
- * `createRefreshToken()` produce today, plus the additional `aud` and
- * `scope` fields the hub will emit starting in Phase C.5.
+ * `createRefreshToken()` produce today, plus the `aud` and `scope` fields
+ * the hub emits alongside them.
  *
- * Phase C.5 wires `JwtHandler::validateToken()` to deserialize the
- * decoded payload into this DTO so server and hub share one definition
- * of "what's in a Phlix JWT".
+ * STATUS (amended 2026-11-06, LW-079-b — retiring an unlanded plan): the
+ * hub's verification path deserializes decoded payloads into this DTO. The
+ * matching server-side `JwtHandler::validateToken()` wiring was never
+ * landed, so it is NO LONGER PROMISED here: `phlix-server` keeps its own
+ * claim handling and the two definitions coexist until a future server
+ * lane (LW-079-a) migrates `validateToken()` onto this class — at which
+ * point server and hub will finally share one definition of "what's in a
+ * Phlix JWT".
  *
  * ## SECURITY: this class performs NO signature verification.
  *

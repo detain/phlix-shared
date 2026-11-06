@@ -89,4 +89,48 @@ final class EventNameMapTest extends TestCase
         sort($sorted);
         $this->assertSame($sorted, $keys, 'aliases() must be sorted by alias.');
     }
+
+    /**
+     * LW-062: drift guard for the class-header invariant "one entry per
+     * event class published by src/Events/". Walks the tree, maps each
+     * concrete class file to its PSR-4 FQCN, and pins set-equality against
+     * the map values. Adding an event class without a map entry (or vice
+     * versa) fails CI at the adding commit instead of silently shipping a
+     * manifest alias that can never dispatch.
+     */
+    public function test_the_alias_map_tracks_the_event_class_tree(): void
+    {
+        $srcRoot = dirname(__DIR__, 2) . '/src/Events';
+        $found = [];
+
+        $files = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($srcRoot, \FilesystemIterator::SKIP_DOTS)
+        );
+        foreach ($files as $file) {
+            if (!$file instanceof \SplFileInfo || !$file->isFile() || $file->getExtension() !== 'php') {
+                continue;
+            }
+            $relative = substr($file->getPathname(), strlen($srcRoot) + 1, -strlen('.php'));
+            $fqcn = 'Phlix\\Shared\\Events\\' . str_replace('/', '\\', $relative);
+            if ($fqcn === 'Phlix\\Shared\\Events\\AbstractEvent') {
+                continue; // abstract base — not dispatchable, not in the map by design
+            }
+            $this->assertTrue(
+                class_exists($fqcn),
+                "Event file {$relative}.php must define class {$fqcn} (PSR-4 layout)."
+            );
+            $found[] = $fqcn;
+        }
+
+        sort($found);
+        $mapped = array_values(EventNameMap::aliases());
+        sort($mapped);
+
+        $this->assertSame(
+            $found,
+            $mapped,
+            'EventNameMap must carry exactly one alias per concrete event class under'
+                . ' src/Events/ — update the table in the same commit as the class (LW-062).'
+        );
+    }
 }

@@ -177,4 +177,15 @@ final class RelayHttpResponseCodecTest extends TestCase
         }
         $this->assertSame($body, $reassembled);
     }
+
+    /**
+     * LW-063: mirror of the request codec law — END is the bare tag byte;
+     * trailing bytes after it are malformed framing and must fail loud.
+     */
+    public function test_decode_rejects_end_payload_with_trailing_bytes(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('RelayHttpResponseCodec: END chunk must be the bare tag byte');
+        RelayHttpResponseCodec::decode("\x03junk");
+    }
 }
