@@ -6,6 +6,18 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+README currency batch (review round 2026-11-04, lane w02-L5; LW-014,
+LW-020): `VersionTest` now pins the README against drift — the version
+stamp must equal `Version::VERSION` and the `composer require` constraint
+must match the current major.minor, closing the guard gap a reviewer proved
+(stale stamps had no test to catch them; mutation probe: stamping 0.52.0
+reddens exactly the two new tests). The README gains a "Package layout"
+section with the charter-driven namespace rationale (what belongs where and
+why), reachable from the shipped docs instead of only the export-ignored
+AGENTS.md; the historical WHAT-MOVES-WHERE table pointer names it as
+history-only. Suite: 1555 tests / 134748 assertions → 1557 / 134793
+(+2 tests / +45 assertions; both commits' figures measured).
+
 Shared head-gate and TTL batch (review round 2026-11-04, lane w02-L5;
 LW-052, LW-053, LW-055): `RelayHttpRequest::assertSafe()` now gates the
 whole request head — the control-character screen the path loop has always
@@ -31,8 +43,8 @@ concatenation (shared__srphp #16) — the failure is named here instead of
 surfacing in the transport. Every new law ships with tests measured failing
 at the parent commit 507e892 (33 reds, exact-reason each: pinned memo
 returned, "exception not thrown", leaked residues). Suite:
-1517 tests / 134703 assertions → 1557 / 134793 (+40 tests / +90 assertions,
-the adding-commit rotation of the same batch).
+1517 tests / 134703 assertions → 1555 / 134748 (+38 tests / +45 assertions,
+the adding-commit rotation of this batch).
 
 Docs/prose currency batch (review round 2026-11-03, lane w01-L9): the README
 status and install stamps advance to v0.53.0 / `^0.53`; `README.md` is no

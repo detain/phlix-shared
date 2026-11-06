@@ -47,6 +47,58 @@ final class VersionTest extends TestCase
         );
     }
 
+    /**
+     * LW-014 [review shared__ipd Minor #2]: the release lockstep covers the
+     * README stamps too (AGENTS.md "Versioning": Version::VERSION = CHANGELOG
+     * heading = git tag = README status/install stamps), and until this test
+     * the README half had no guard — v0.53.0 shipped a README still stamped
+     * v0.52.0. A release that forgets the README now reddens the suite.
+     */
+    public function test_readme_status_stamp_matches_version(): void
+    {
+        $readmePath = __DIR__ . '/../README.md';
+        $this->assertFileExists($readmePath, 'README.md must exist at the package root.');
+
+        $contents = (string) file_get_contents($readmePath);
+
+        $stamp = '**v' . Version::VERSION . '**';
+        $this->assertStringContainsString(
+            $stamp,
+            $contents,
+            sprintf(
+                'README.md must carry the "%s" status stamp that matches Version::VERSION (release lockstep).',
+                $stamp
+            )
+        );
+    }
+
+    /**
+     * LW-014: the copy-pasteable install line must carry the caret constraint
+     * for the current major.minor. Below 1.0 the caret does not admit the next
+     * minor, so a stale line silently pins every new adopter to the previous
+     * release.
+     */
+    public function test_readme_install_constraint_matches_version_minor(): void
+    {
+        $readmePath = __DIR__ . '/../README.md';
+        $this->assertFileExists($readmePath, 'README.md must exist at the package root.');
+
+        $contents = (string) file_get_contents($readmePath);
+
+        $parts = explode('.', Version::VERSION);
+        $constraint = '^' . $parts[0] . '.' . $parts[1];
+        $needle = 'composer require detain/phlix-shared:' . $constraint;
+
+        $this->assertStringContainsString(
+            $needle,
+            $contents,
+            sprintf(
+                'README.md must carry the "%s" install constraint matching Version::VERSION (release lockstep).',
+                $needle
+            )
+        );
+    }
+
     public function test_constructor_is_private(): void
     {
         $reflection = new ReflectionClass(Version::class);

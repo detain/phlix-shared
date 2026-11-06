@@ -228,6 +228,26 @@ see [`AGENTS.md`](AGENTS.md)).
 composer require detain/phlix-shared:^0.53
 ```
 
+## Package layout
+
+The split is charter-driven: each top-level namespace under `src/` is
+exactly the contract one consumer surface needs, and nothing more.
+`Auth/`, `Hub/` and `Relay/` mirror the server↔hub wire (token and claim
+types, protocol DTOs, tunnel and HTTP-over-relay envelopes); `Plugin/` and
+`Events/` are the plugin-facing surface (lifecycle, manifest, PSR-14 event
+DTOs and the alias map); `Metadata/` and `Subtitle/` hold the two plugin
+source contracts the server's registries consume; `Arr/` is the sole
+sanctioned I/O exception (*arr clients behind a pluggable transport seam);
+`Schema/`, `Security/` and `Support/` are shared helpers (schema-path
+resolution, the HMAC seam, wire-DTO assertions); `Version.php` is the
+single version marker consumers pin. A new helper belongs in the namespace
+of the contract it serves — if it serves none of them, it likely belongs in
+the consumer's own repo. (The longer contributor-facing version, including
+the layout tree, lives in [`AGENTS.md`](AGENTS.md) in the git checkout; the
+historical WHAT-MOVES-WHERE table in `plans/expansion/b.1-shared-design.md`
+of [`detain/phlix`](https://github.com/detain/phlix) is history-only and not
+part of the estate checkouts.)
+
 ## Related repositories
 
 - [`detain/phlix-server`](https://github.com/detain/phlix-server) — the Phlix media server (consumes this package).
