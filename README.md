@@ -19,7 +19,7 @@ optional `config/trash_guides.php` local read; see [`AGENTS.md`](AGENTS.md).
 
 ## Status
 
-**v0.53.0** (`Phlix\Shared\Version::VERSION`). `schemas/server-settings.schema.json` carries 84 keys (51 `restart: true`, 33 `restart: false`); `schemas/hub-settings.schema.json` carries 18 keys in lockstep with `phlix-hub`'s `HubSettingsRepository::ALLOWED_KEYS`. Cumulative surface:
+**v0.54.0** (`Phlix\Shared\Version::VERSION`). `schemas/server-settings.schema.json` carries 84 keys (51 `restart: true`, 33 `restart: false`); `schemas/hub-settings.schema.json` carries 18 keys in lockstep with `phlix-hub`'s `HubSettingsRepository::ALLOWED_KEYS`. Cumulative surface:
 
 - `Phlix\Shared\Plugin\{LifecycleInterface, ConfigurableInterface, Manifest, ManifestType, ManifestValidationError, EventNameMap}`
 - `Phlix\Shared\Events\{AbstractEvent, Playback\*, Library\*, Auth\*}` — 12 event DTOs.
@@ -225,7 +225,7 @@ see [`AGENTS.md`](AGENTS.md)).
 `detain/phlix-shared` is published on Packagist:
 
 ```bash
-composer require detain/phlix-shared:^0.53
+composer require detain/phlix-shared:^0.54
 ```
 
 ## Package layout

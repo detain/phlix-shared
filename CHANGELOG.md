@@ -4,7 +4,41 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.54.0] - 2026-11-06
+
+Minor: 7 commits over v0.53.0 — the review-round batches w01-L9 (docs/prose
+currency, style normalization), w02-L5 (relay request-head gate,
+TTL-before-memo, longest-first redaction, CR/LF API-key seam, README
+currency pins), w03-L4 (Arr client error-safety, transport guard, id law,
+JWT non-empty claims), w04-L3 (manifest settings gate, relay END law,
+TrashGuides redirect/https and config guards, EventNameMap drift guard,
+JwtClaims prose truth), w05-L2 (LW-061 loopback-TLS drive-through E2E),
+plus a lock-only symfony/filesystem bump (v7.4.21 → v7.4.23). Consumer-
+visible behavior changes ride the seam: `RelayHttpRequest::assertSafe()`
+gates the whole request head (control-character and DEL screening
+extended to the query string and every header name/value; padded
+forbidden-header names can no longer dodge the exact match);
+`AbstractArrClient` rejects CR/LF-carrying API keys at construction,
+fails loud naming ext-curl when the bundled default transport cannot
+exist, and create responses without an integer id now throw instead of
+returning the 0 sentinel (json floats throw instead of truncating);
+`JwtClaims` requires non-empty `iss`/`sub`/`type` and treats an
+explicitly empty `aud` as malformed (the legacy shim stays for a MISSING
+`aud`); `Manifest::fromArray()` admits a settings entry into the typed
+view only with a string `type` (malformed entries drop from the view;
+`rawData` keeps them untouched); relay chunk codecs reject END payloads
+carrying trailing bytes; `TrashGuidesProvider` walks redirects manually
+with a per-hop https re-check and the same five-hop budget, surfaces
+wrapper warnings through the thrown `RuntimeException`'s previous chain
+(the `@`-suppression is retired), and refuses a non-array included
+`config/trash_guides.php` at load time; `SecretRedactor::redact()` shreds
+longest-first regardless of argument order; `Hmac` and `SecretRedactor`
+constructors are private and the four hub claim/heartbeat DTOs are
+`final readonly`. The schema key surface is held: 84 server / 18 hub
+properties, zero type/default/bounds/enum moves; LW-095 (hub quota
+`0 = unlimited` zero-defaults) stays parked owner-gated, zero diff.
+Bump class: the new throws and stricter parse gates are consumer-visible,
+so minor rather than patch (planner OC-2 precedent, ratified).
 
 LW-061 drive-through test cure (the w04L3 review's sole minor; lane w05-L2;
 tests only, zero src diff): fetchUrl's per-hop refusal and hop-budget throw
