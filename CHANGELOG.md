@@ -4,6 +4,37 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Added: the canonical SyncPlay wire message-type catalog
+`Phlix\Shared\Relay\SyncPlayDialect` (LW-082-a, estate review ledger
+2026-11-04 wiring-hub.md). The nineteen `syncplay_*` message types lived as
+three independent transcriptions — the server's `Messages::TYPE_*`
+constants, the hub's `SyncPlayRelayWorker` inline literals, and
+`@phlix/syncplay` `messages.ts` — with an empty set difference today but no
+drift guard anywhere: a rename on any leg would surface as a runtime
+protocol mismatch, not a red test. The new class is the SSOT (values
+byte-ident to the server, const names mirroring it so consumers can alias
+with zero wire-behavior change) with `all()`/`isValidType()`; the hub's
+bare relay-local family (`room_state`/`client_joined`/`client_left`/
+`time_sync_reply`) is documented as deliberately out of scope. Enforcement:
+`tests/Relay/SyncPlayDialectTest.php` pins the catalog intrinsically
+(membership, shape, uniqueness, `all()` ↔ public-const agreement both
+directions via reflection), parses the server and hub sibling checkouts
+live with token-based comparators (skipped without a checkout; a broken
+`PHLIX_SERVER_REPO`/`PHLIX_HUB_REPO` pointer fails loudly), and carries
+fixture falsifiability pins — comment decoys and colon-prefixed
+rate-limiter keys excluded, every broken shape rejected, injected drift of
+every kind (grown/dropped/renamed/empty) tripping the guard — so the
+comparators cannot pass vacuously when CI checks out only this package.
+Suite moves 1587 → 1614 tests, 134890 → 134996 assertions, 0 skips (estate
+layout, both siblings reachable). New public surface: first ships with the
+next minor (the `@since 0.55.0` stamps are anticipatory — this lane
+created no tag and `Version::VERSION` stays at 0.54.0). No wire envelope,
+error-code, or settings-schema change; consumer-side legs (hub test import
+LW-082-b, server aliases LW-082-c, syncplay package LW-082-d) belong to
+those repositories.
+
 ## [0.54.0] - 2026-11-06
 
 Minor: 7 commits over v0.53.0 — the review-round batches w01-L9 (docs/prose

@@ -33,7 +33,8 @@ optional `config/trash_guides.php` local read; see [`AGENTS.md`](AGENTS.md).
   `searchByPath()`/`searchByHash()`/`searchByImdbId()` fan-out returning `SubtitleCandidate` values, and the
   quota-consuming `download()` that may throw `QuotaExceeded` (0.42.0+).
 - `Phlix\Shared\Hub\{ClaimRequest, ClaimResponse, ServerInfoDto, HeartbeatDto, LibraryRef}`
-- `Phlix\Shared\Relay\{RelayFrameType, RelayWireCodecInterface, RelayFrame}` — channel-mux protocol (0.5+);
+- `Phlix\Shared\Relay\{RelayFrameType, RelayWireCodecInterface, RelayFrame, SyncPlayDialect}` — channel-mux protocol (0.5+);
+  `SyncPlayDialect` is the canonical `syncplay_*` wire message-type catalog (0.55.0+);
   plus `Relay\{RelayHttpRequest, RelayHttpRequestHead, RelayHttpRequestChunk, RelayHttpRequestCodec}` and
   `Relay\{RelayHttpResponseHead, RelayHttpResponseChunk, RelayHttpResponseCodec}` —
   HTTP-over-relay request/response envelopes + `HEAD→BODY*→END` chunk framing (0.10.0+).
