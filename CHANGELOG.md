@@ -35,6 +35,35 @@ error-code, or settings-schema change; consumer-side legs (hub test import
 LW-082-b, server aliases LW-082-c, syncplay package LW-082-d) belong to
 those repositories.
 
+Added: the cookie-program schema trio (estate plan CP-010, owner ruling 19,
+COOKIE-DESIGN.md §4.7; lane w29-L2). `schemas/server-settings.schema.json`
+gains `auth.cookie.enabled` (boolean, default true — browser-class HttpOnly
+session/refresh cookie issuance stays offered behind the scheme rule),
+`auth.cookie.insecure` (boolean, default false — the stored form of the
+`PHLIX_COOKIE_INSECURE=1` plain-HTTP opt-in) and `auth.ws_query_token`
+(string enum `allow|deny`, default `allow` — the stored form of
+`PHLIX_WS_QUERY_TOKEN`, gating the legacy `?token=` WebSocket carrier with
+a token-redacted warn-log). All three are `restart: false` live reads and
+every default reproduces deployed behavior: this commit changes no wire
+behavior; it gives the program's server/hub read-throughs their schema
+home (CP-003-era issuance already reads the env levers; the warn/deny
+enforcement legs are CP-007/CP-024, hub parity CP-011 — consumed by the
+same tag roll). PUT law rides the existing machinery: type/enum bounds
+validate through the vendored justinrainbow path, and the F7 lock-out
+guard is untouched — the cookie pair is not a sign-in-method toggle, the
+auth.<method>.enabled quintet is unchanged. The hub schema deliberately
+does NOT gain keys this wave (hub ALLOWED_KEYS lockstep is CP-011's own
+bless; the drift comparator stays green at 18). Tripwire rotated
+84 -> 87 from measured red (parent tree vs new schema convicted exactly
+the two roster tests — pin-table and key-set — naming precisely the three
+keys); propertyProvider and pinTable each gained three rows. README
+census rotated with the schema (51 `restart: true` / 36 `restart: false`).
+Suite moves 1614 -> 1638 tests, 134996 -> 143622 assertions, 0 skips
+(both figures measured in the estate layout with sibling checkouts
+reachable; +24 tests = three keys across the eight per-key provider
+laws). No new public PHP surface; `Version::VERSION` stays at 0.54.0 —
+the v0.55.0 tag is the owner-wave TAGGATE, not this lane.
+
 ## [0.54.0] - 2026-11-06
 
 Minor: 7 commits over v0.53.0 — the review-round batches w01-L9 (docs/prose

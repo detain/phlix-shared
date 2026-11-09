@@ -383,6 +383,66 @@
             "restart": false,
             "default": false
         },
+        "auth.cookie.enabled": {
+            "type": "boolean",
+            "description": "Whether the server issues the HttpOnly auth cookie pair (phlix_session + phlix_refresh) on browser-class login, refresh and logout responses. Absent or true means cookie issuance is on (still gated on the https/localhost scheme rule); false means the server never sets auth cookies at all and browsers keep body-token custody. Device-class clients are unaffected either way.",
+            "group": "auth",
+            "label": "Issue browser session cookies",
+            "helpText": "When enabled, a sign-in from a real browser arriving over https (or localhost) receives its session as a pair of HttpOnly SameSite=Lax cookies, so the page's JavaScript never holds a long-lived credential: a cross-site script in that mode can act as the signed-in user but cannot copy the token out of the browser. Turning this off reverts browser logins to the older custody model where the web app stores the tokens itself and sends them as bearer headers. TV apps, consoles, mobile, desktop vaults and plugins authenticate with bearer headers and never receive these cookies, so this switch changes nothing for them. The setting governs issuance only — flipping it never invalidates tokens or cookies that already exist.",
+            "helpLinks": [
+                {
+                    "text": "HTTP cookie",
+                    "url": "https://en.wikipedia.org/wiki/HTTP_cookie"
+                }
+            ],
+            "tier": "standard",
+            "restart": false,
+            "default": true
+        },
+        "auth.cookie.insecure": {
+            "type": "boolean",
+            "description": "Whether auth cookies may be issued WITHOUT the Secure attribute over plain HTTP. Default false: cookies are only ever set when the request arrived over https or localhost, and plain-HTTP deployments stay in body-token custody. Setting true is an explicit operator opt-in to LAN-readable session cookies.",
+            "group": "auth",
+            "label": "Allow auth cookies over plain HTTP",
+            "helpText": "By default the server refuses to set the auth cookies on a plain-HTTP request: without the Secure attribute a session cookie travels in clear text and anyone on the network path can capture it, so Phlix does not silently trade credentials for a missing certificate — a plain-HTTP deployment simply keeps working in the older body-token custody mode. Turn this on only on a network you control (a home LAN, a development box) when you specifically want cookie custody without HTTPS; the cookies then travel unencrypted and are readable by any device on the path. This is the stored form of the PHLIX_COOKIE_INSECURE=1 environment opt-out that the server also honors for installs that need the decision before a setting can be written. For anything reachable beyond your own network, keep this off and serve the portal over TLS.",
+            "helpLinks": [
+                {
+                    "text": "HTTP cookie",
+                    "url": "https://en.wikipedia.org/wiki/HTTP_cookie"
+                }
+            ],
+            "tier": "advanced",
+            "restart": false,
+            "default": false
+        },
+        "auth.ws_query_token": {
+            "type": "string",
+            "description": "Gate for the legacy WebSocket handshake that carries the access token as a ?token= query parameter on the server's direct sync-play socket. 'allow' (default) accepts such handshakes with a token-redacted warning log per use; 'deny' refuses them so only the bearer subprotocol header carrier connects.",
+            "group": "auth",
+            "label": "Token-in-URL WebSocket auth",
+            "helpText": "Older and third-party WebSocket clients sign in by putting the access token straight into the connect URL (?token=...). That works, but the token then rides through every access log, proxy log and crash report between client and server, and the platform treats a token in a log line as incident-grade. The current carrier sends the token in the WebSocket handshake header instead, which never lands in a URL. 'Allow' keeps accepting URL handshakes while warning once per use with the token redacted, so an operator can count the stragglers from the log; 'Deny' closes the URL carrier entirely. Flip to 'Deny' only after every client you run has moved to the header carrier — a client that has not will simply stop connecting to watch parties.",
+            "helpLinks": [
+                {
+                    "text": "Query string",
+                    "url": "https://en.wikipedia.org/wiki/Query_string"
+                }
+            ],
+            "tier": "advanced",
+            "restart": false,
+            "enumLabels": {
+                "allow": "Accept ?token= handshakes, one redacted warning each (current default)",
+                "deny": "Refuse ?token= handshakes; header carrier only"
+            },
+            "optionHelp": {
+                "allow": "Query-carried WebSocket handshakes keep working; each one logs a warning with the token redacted, so the log shows which clients still use the URL carrier without leaking secrets into the log itself.",
+                "deny": "Query-carried WebSocket handshakes are rejected before the protocol upgrade completes. Only clients that send the token in the handshake header (the bearer subprotocol) can connect. Set this after every client you run has migrated; un-migrated clients stop connecting."
+            },
+            "enum": [
+                "allow",
+                "deny"
+            ],
+            "default": "allow"
+        },
         "auth.password.min_length": {
             "type": "integer",
             "description": "Minimum number of characters required in a user password. Enforced on self-service registration and on both administrator create-user and change-password paths. Cannot be set below 8: the control may only strengthen the shipped policy, never weaken it.",

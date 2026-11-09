@@ -19,7 +19,7 @@ optional `config/trash_guides.php` local read; see [`AGENTS.md`](AGENTS.md).
 
 ## Status
 
-**v0.54.0** (`Phlix\Shared\Version::VERSION`). `schemas/server-settings.schema.json` carries 84 keys (51 `restart: true`, 33 `restart: false`); `schemas/hub-settings.schema.json` carries 18 keys in lockstep with `phlix-hub`'s `HubSettingsRepository::ALLOWED_KEYS`. Cumulative surface:
+**v0.54.0** (`Phlix\Shared\Version::VERSION`). `schemas/server-settings.schema.json` carries 87 keys (51 `restart: true`, 36 `restart: false`); `schemas/hub-settings.schema.json` carries 18 keys in lockstep with `phlix-hub`'s `HubSettingsRepository::ALLOWED_KEYS`. Cumulative surface:
 
 - `Phlix\Shared\Plugin\{LifecycleInterface, ConfigurableInterface, Manifest, ManifestType, ManifestValidationError, EventNameMap}`
 - `Phlix\Shared\Events\{AbstractEvent, Playback\*, Library\*, Auth\*}` — 12 event DTOs.
@@ -126,8 +126,10 @@ for the files without a dedicated accessor, such as `manifest.schema.json`):
   **`restart` flags (0.46.0–0.48.0 audit).** Every one of the then-72 keys was traced to
   its consumer (the audit window held 72 — v0.46.0 = v0.47.0 = v0.48.0 = v0.48.1; the 73rd,
   `transcoding.segment_format`, arrived with the 0.49.0 addition named just above); keys
-  added since each carry an explicit flag too. As of 0.53.0 the schema holds
-  84 keys: 51 carry `restart: true` and 33 carry `restart: false`. `restart: true` means the
+  added since each carry an explicit flag too. As of 0.53.0 the schema held 84 keys (51 true /
+  33 false); the cookie-program trio (`auth.cookie.enabled`, `auth.cookie.insecure`,
+  `auth.ws_query_token` — all live reads, Unreleased) brings it to 87 keys: 51 carry
+  `restart: true` and 36 carry `restart: false`. `restart: true` means the
   admin **Restart server** control (a graceful SIGUSR2 reload that cycles workers, re-runs
   `onWorkerStart`, and rebuilds DI containers) — required for any value captured at worker
   start, container build, or route build. The `restart: false` keys resolve through

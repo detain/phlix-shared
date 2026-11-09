@@ -248,6 +248,9 @@ final class ServerSettingsSchemaTest extends TestCase
             'auth.oidc.enabled' => ['auth.oidc.enabled', 'boolean'],
             'auth.ldap.enabled' => ['auth.ldap.enabled', 'boolean'],
             'auth.github.enabled' => ['auth.github.enabled', 'boolean'],
+            'auth.cookie.enabled' => ['auth.cookie.enabled', 'boolean'],
+            'auth.cookie.insecure' => ['auth.cookie.insecure', 'boolean'],
+            'auth.ws_query_token' => ['auth.ws_query_token', 'string'],
             // Resolves to config/auth.php -> ['password']['min_length'].
             // Consumed LIVE (read-path class (a)) by Phlix\Auth\PasswordPolicy,
             // which is the single enforcement point for all three sites that
@@ -677,6 +680,9 @@ final class ServerSettingsSchemaTest extends TestCase
             'auth.oidc.enabled' => ['type' => 'boolean', 'default' => false, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
             'auth.ldap.enabled' => ['type' => 'boolean', 'default' => false, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
             'auth.github.enabled' => ['type' => 'boolean', 'default' => false, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
+            'auth.cookie.enabled' => ['type' => 'boolean', 'default' => true, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
+            'auth.cookie.insecure' => ['type' => 'boolean', 'default' => false, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
+            'auth.ws_query_token' => ['type' => 'string', 'default' => 'allow', 'minimum' => null, 'maximum' => null, 'enum' => ["allow","deny"], 'restart' => false, 'secret' => false],
             'auth.password.min_length' => ['type' => 'integer', 'default' => 8, 'minimum' => 8, 'maximum' => 128, 'enum' => null, 'restart' => false, 'secret' => false],
             'auth.access_ttl' => ['type' => 'integer', 'default' => 3600, 'minimum' => 60, 'maximum' => 86400, 'enum' => null, 'restart' => false, 'secret' => false],
             'auth.refresh_ttl' => ['type' => 'integer', 'default' => 604800, 'minimum' => 3600, 'maximum' => 7776000, 'enum' => null, 'restart' => false, 'secret' => false],
@@ -802,7 +808,17 @@ final class ServerSettingsSchemaTest extends TestCase
         // 24 h hardcode), all four restart:false live reads consumed by
         // phlix-server SecurityHeadersPolicy / the two existing W3 policies
         // whose "until the schema declares" KNOWN LIMIT docblocks this closes.
-        $this->assertCount(84, $actual);
+        // 84 -> 87: the cookie-program trio of COOKIE-DESIGN.md §4.7 (estate
+        // plan CP-010, owner ruling 19): auth.cookie.enabled + auth.cookie.insecure
+        // (browser-class HttpOnly cookie issuance and its explicit plain-HTTP
+        // opt-in — the stored home of the PHLIX_COOKIE_INSECURE lever the landed
+        // attachAuthCookies() path reads) and auth.ws_query_token (allow|deny
+        // gate for the legacy :8097 ?token= carrier — the stored home of
+        // PHLIX_WS_QUERY_TOKEN, whose warn/deny enforcement ships in the
+        // program's server legs CP-007/CP-024). All three restart:false live
+        // reads; every default reproduces deployed behavior (issue=on behind
+        // the scheme gate, Secure stays on, query carrier stays allowed).
+        $this->assertCount(87, $actual);
     }
 
     /**
