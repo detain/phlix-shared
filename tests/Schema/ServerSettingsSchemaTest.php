@@ -682,7 +682,7 @@ final class ServerSettingsSchemaTest extends TestCase
             'auth.github.enabled' => ['type' => 'boolean', 'default' => false, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
             'auth.cookie.enabled' => ['type' => 'boolean', 'default' => true, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
             'auth.cookie.insecure' => ['type' => 'boolean', 'default' => false, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
-            'auth.ws_query_token' => ['type' => 'string', 'default' => 'allow', 'minimum' => null, 'maximum' => null, 'enum' => ["allow","deny"], 'restart' => false, 'secret' => false],
+            'auth.ws_query_token' => ['type' => 'string', 'default' => 'deny', 'minimum' => null, 'maximum' => null, 'enum' => ["allow","deny"], 'restart' => false, 'secret' => false],
             'auth.password.min_length' => ['type' => 'integer', 'default' => 8, 'minimum' => 8, 'maximum' => 128, 'enum' => null, 'restart' => false, 'secret' => false],
             'auth.access_ttl' => ['type' => 'integer', 'default' => 3600, 'minimum' => 60, 'maximum' => 86400, 'enum' => null, 'restart' => false, 'secret' => false],
             'auth.refresh_ttl' => ['type' => 'integer', 'default' => 604800, 'minimum' => 3600, 'maximum' => 7776000, 'enum' => null, 'restart' => false, 'secret' => false],
@@ -817,7 +817,9 @@ final class ServerSettingsSchemaTest extends TestCase
         // PHLIX_WS_QUERY_TOKEN, whose warn/deny enforcement ships in the
         // program's server legs CP-007/CP-024). All three restart:false live
         // reads; every default reproduces deployed behavior (issue=on behind
-        // the scheme gate, Secure stays on, query carrier stays allowed).
+        // the scheme gate, Secure stays on, query carrier refused by default —
+        // the CP-024 PHASE B shipped deny posture, owner wiring ruling
+        // 2026-11-10; the schema's earlier allow default mis-stated it).
         $this->assertCount(87, $actual);
     }
 

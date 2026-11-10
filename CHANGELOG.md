@@ -64,6 +64,38 @@ reachable; +24 tests = three keys across the eight per-key provider
 laws). No new public PHP surface; `Version::VERSION` stays at 0.54.0 —
 the v0.55.0 tag is the owner-wave TAGGATE, not this lane.
 
+Changed: `auth.ws_query_token` structural default flipped `allow` -> `deny` —
+the schema now states shipped PHASE-B truth (owner ruling 2026-11-10, "for the
+open decision wire it"; shared off-kit flip lane). CP-010 gave the key its
+schema home while the server's CP-024 PHASE B had already made deny the
+deployed posture, and the field is machine-consumed — the server's admin
+settings controller forwards the schema `default` verbatim into the meta API
+the admin UI renders — so the stale value was a stored-default lie shown to
+operators, not decorative metadata; the earlier entry's "every default
+reproduces deployed behavior" claim does not hold for this key and is
+superseded by this one (verbatim history kept). The `enumLabels` move the
+default claim honestly: `allow` drops "(current default)", `deny` gains
+"(shipped default)". `description`/`helpText` are rewritten deny-first and now
+document the shipped control surface: an explicit `PHLIX_WS_QUERY_TOKEN`
+environment value takes operator precedence, the admin-stored row governs
+otherwise, and the server reads the gate live per handshake — `restart: false`
+carries that promise (the server wiring lane pins next-handshake honoring in
+its own suite). The pin-table row for the key re-pinned `allow` -> `deny` from
+measured red: with only the schema flipped, exactly the
+`test_property_value_pin_matches_the_schema` dataset `auth.ws_query_token`
+failed on the default-drift leg; after the deliberate re-pin the full suite
+measured identical figures to the parent in both layouts (estate with sibling
+checkouts reachable, and a detached clone whose extra skips are the
+sibling-path environment legs, unaffected by this diff). Adjacent roster
+docblock prose corrected to match ("query carrier stays allowed" was stale
+against PHASE B even before this flip). No other schema field moves: type
+stays the string enum `allow|deny`, and key set, tier, enum members,
+`optionHelp`, `helpLinks` and the restart/secret dimensions are untouched.
+Pre-tag master currency: server/hub keep their v0.54.0-pinned vendored schema
+copies until the next tag wave re-vendors; `Version::VERSION` stays at 0.54.0
+and no tag moves — v0.54.0 stays as peeled, this commit rides the owner's next
+TAGGATE.
+
 ## [0.54.0] - 2026-11-06
 
 Minor: 7 commits over v0.53.0 — the review-round batches w01-L9 (docs/prose

@@ -417,10 +417,10 @@
         },
         "auth.ws_query_token": {
             "type": "string",
-            "description": "Gate for the legacy WebSocket handshake that carries the access token as a ?token= query parameter on the server's direct sync-play socket. 'allow' (default) accepts such handshakes with a token-redacted warning log per use; 'deny' refuses them so only the bearer subprotocol header carrier connects.",
+            "description": "Gate for the legacy WebSocket handshake that carries the access token as a ?token= query parameter on the server's direct sync-play socket. 'deny' (shipped default since the CP-024 PHASE B flip) refuses such handshakes so only the bearer subprotocol header carrier connects; 'allow' re-admits them with a token-redacted warning log per use. The explicit PHLIX_WS_QUERY_TOKEN environment value takes operator precedence over this control.",
             "group": "auth",
             "label": "Token-in-URL WebSocket auth",
-            "helpText": "Older and third-party WebSocket clients sign in by putting the access token straight into the connect URL (?token=...). That works, but the token then rides through every access log, proxy log and crash report between client and server, and the platform treats a token in a log line as incident-grade. The current carrier sends the token in the WebSocket handshake header instead, which never lands in a URL. 'Allow' keeps accepting URL handshakes while warning once per use with the token redacted, so an operator can count the stragglers from the log; 'Deny' closes the URL carrier entirely. Flip to 'Deny' only after every client you run has moved to the header carrier — a client that has not will simply stop connecting to watch parties.",
+            "helpText": "Older and third-party WebSocket clients sign in by putting the access token straight into the connect URL (?token=...). That works, but the token then rides through every access log, proxy log and crash report between client and server, and the platform treats a token in a log line as incident-grade. The current carrier sends the token in the WebSocket handshake header instead, which never lands in a URL. The shipped default is 'Deny': the URL carrier stays closed and only header-carrying clients connect to watch parties. Set 'Allow' only as a temporary grace window for stragglers — each query-carried handshake then logs one warning with the token redacted, so you can count the remaining clients from the log — and return to 'Deny' once the log runs quiet; a client that has not moved to the header carrier simply stops connecting while 'Deny' is in force. The server reads this control live at each handshake (no restart needed for the decision to take effect), and an explicit PHLIX_WS_QUERY_TOKEN environment value overrides it in either direction.",
             "helpLinks": [
                 {
                     "text": "Query string",
@@ -430,8 +430,8 @@
             "tier": "advanced",
             "restart": false,
             "enumLabels": {
-                "allow": "Accept ?token= handshakes, one redacted warning each (current default)",
-                "deny": "Refuse ?token= handshakes; header carrier only"
+                "allow": "Accept ?token= handshakes, one redacted warning each",
+                "deny": "Refuse ?token= handshakes; header carrier only (shipped default)"
             },
             "optionHelp": {
                 "allow": "Query-carried WebSocket handshakes keep working; each one logs a warning with the token redacted, so the log shows which clients still use the URL carrier without leaking secrets into the log itself.",
@@ -441,7 +441,7 @@
                 "allow",
                 "deny"
             ],
-            "default": "allow"
+            "default": "deny"
         },
         "auth.password.min_length": {
             "type": "integer",
