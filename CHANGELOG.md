@@ -6,6 +6,40 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+Fixed / new reject arms: Hub DTO `fromPayload()` boundary hardening
+(SHR-S1 / SHR-1, SHR-3, SHR-7, SHR-26). Payloads that decoded before and
+now throw `InvalidArgumentException`:
+- Empty-string identity fields (`requireNonEmptyString`, messages
+  `<Dto> "<field>" must be a non-empty string.`): `HeartbeatDto`
+  `serverId`/`version`; `ClaimRequest` `serverName`/`version`/
+  `protocolVersion`; `ClaimResponse` `claimCode`/`claimId`/`hubBaseUrl`;
+  `ServerInfoDto` `serverId`/`userId`/`serverName`/`version`/`status`
+  (status stays a convention, not an allowlist — any non-empty value
+  still decodes). Missing/non-string messages are unchanged.
+- `ClaimResponse.hubBaseUrl` must be an absolute `http`/`https` URL with a
+  valid host and no userinfo, query or fragment; the class docblock now
+  carries a SECURITY CONTRACT stating what the gate does not prove
+  (origin, TLS, private hosts) and what consumers must enforce.
+- `HeartbeatDto` / `ClaimRequest` `hostnameCandidates` entries must be a
+  bare RFC 1123 hostname / IPv4 / IPv6 literal (optional `:port`, IPv6
+  bracketed when ported) or an absolute `http`/`https` URL over such a host
+  — the server's live `scheme://host:port` candidates keep decoding.
+  Underscores, spaces/control/non-ASCII bytes (punycode instead), numeric
+  TLDs, port 0/>65535, non-http schemes, userinfo, query and fragment are
+  refused; one bad entry rejects the whole payload, message
+  `<Dto> "hostnameCandidates" entry <n> must be a hostname, IP literal, or
+  http(s) URL.` (value not echoed). `ServerInfoDto` (stored hub rows) is
+  not grammar-gated. Grammar lives in new `@internal` `Hub\HostGrammar`.
+- `ClaimRequest.publicKeysJwk` key type: adjudicated as a delegated
+  contract, not a gate — the DTO checks object shape only and the class
+  docblock assigns key policy to the verifying consumer (phlix-hub
+  `ClaimRequestHandler::validateJwkStructure`, OKP/Ed25519). No behavior
+  change on this field.
+Consumers: the hub's heartbeat/claim endpoints now 400 a server whose
+`gethostname()` contains `_` or other non-RFC-1123 bytes (server
+`PortForwardService` `lan-hostname` candidate) — the server lane should
+sanitize or drop such candidates when it bumps shared.
+
 Fixed: Relay frame `seq` range gate + frame-type table (SHR-S10 / SHR-22,
 SHR-17). `RelayFrame`'s constructor accepted any PHP `int` as `seq`, so a
 negative or > 32-bit value could be built and only failed (or silently

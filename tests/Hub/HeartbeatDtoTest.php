@@ -201,4 +201,127 @@ final class HeartbeatDtoTest extends TestCase
         $this->expectExceptionMessage('HeartbeatDto "libraries" must be a list of objects.');
         HeartbeatDto::fromPayload($payload, strictLibraries: false);
     }
+
+    /**
+     * @dataProvider provideEmptyIdentityFields
+     */
+    public function test_empty_identity_field_throws(string $field): void
+    {
+        $payload = self::full();
+        $payload[$field] = '';
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('HeartbeatDto "' . $field . '" must be a non-empty string.');
+        HeartbeatDto::fromPayload($payload);
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function provideEmptyIdentityFields(): array
+    {
+        return [
+            'serverId' => ['serverId'],
+            'version' => ['version'],
+        ];
+    }
+
+    /**
+     * Every shape the estate actually advertises must keep decoding — the
+     * server sends `scheme://host:port` URLs (HubClient /
+     * PortForwardService), operators and fixtures send bare hosts/IPs.
+     *
+     * @dataProvider provideValidHostnameCandidates
+     */
+    public function test_valid_hostnameCandidate_is_accepted(string $candidate): void
+    {
+        $payload = self::full();
+        $payload['hostnameCandidates'] = [$candidate];
+
+        $dto = HeartbeatDto::fromPayload($payload);
+        $this->assertSame([$candidate], $dto->hostnameCandidates);
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function provideValidHostnameCandidates(): array
+    {
+        return [
+            'ipv4' => ['10.0.0.5'],
+            'ipv4 with port' => ['192.168.1.10:8096'],
+            'single-label host' => ['nas'],
+            'mdns host' => ['phlix.local'],
+            'fqdn with port' => ['nas.lan:8096'],
+            'digit-leading label' => ['1password.example.com'],
+            'punycode label' => ['xn--bcher-kva.example'],
+            'max-length label' => [str_repeat('a', 63) . '.example'],
+            'bare ipv6' => ['fe80::1'],
+            'bare ipv6 loopback' => ['::1'],
+            'bracketed ipv6' => ['[::1]'],
+            'bracketed ipv6 with port' => ['[2001:db8::1]:8096'],
+            'http url ipv4 port' => ['http://192.168.1.10:8096'],
+            'http url mdns port' => ['http://phlix.local:8096'],
+            'https url' => ['https://media.example.com'],
+            'https url with path' => ['https://media.example.com/phlix/'],
+            'https url ipv6' => ['https://[2001:db8::1]:8920'],
+            'uppercase scheme and host' => ['HTTP://Media.Example.COM'],
+        ];
+    }
+
+    /**
+     * @dataProvider provideInvalidHostnameCandidates
+     */
+    public function test_invalid_hostnameCandidate_throws(string $candidate): void
+    {
+        $payload = self::full();
+        $payload['hostnameCandidates'] = ['10.0.0.5', $candidate];
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            'HeartbeatDto "hostnameCandidates" entry 1 must be a hostname, IP literal, or http(s) URL.',
+        );
+        HeartbeatDto::fromPayload($payload);
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function provideInvalidHostnameCandidates(): array
+    {
+        return [
+            'empty' => [''],
+            'whitespace' => [' '],
+            'embedded space' => ['nas lan'],
+            'trailing newline' => ["nas.lan\n"],
+            'underscore' => ['my_host.lan'],
+            'leading hyphen label' => ['-nas.lan'],
+            'trailing hyphen label' => ['nas-.lan'],
+            'empty label' => ['nas..lan'],
+            'trailing dot' => ['nas.lan.'],
+            'over-long label' => [str_repeat('a', 64) . '.example'],
+            'over-long host' => [str_repeat('a.', 127) . 'ab'],
+            'non-ascii host' => ['bücher.example'],
+            'numeric tld (bad ipv4)' => ['1.2.3.999'],
+            'leading-zero ipv4' => ['010.0.0.1'],
+            'port zero' => ['nas.lan:0'],
+            'port out of range' => ['nas.lan:99999'],
+            'non-numeric port' => ['nas.lan:http'],
+            'pseudo scheme' => ['javascript:alert(1)'],
+            'bad bracket literal' => ['[not-ipv6]'],
+            'unterminated bracket' => ['[::1'],
+            'host with path, no scheme' => ['nas.lan/phlix'],
+            'scheme-relative' => ['//nas.lan'],
+            'ftp scheme' => ['ftp://nas.lan'],
+            'file scheme' => ['file:///etc/passwd'],
+            'scheme only' => ['http://'],
+            'userinfo' => ['http://user:pw@nas.lan'],
+            'query' => ['http://nas.lan?x=1'],
+            'fragment' => ['http://nas.lan#x'],
+            'url port zero' => ['http://nas.lan:0'],
+            'unbracketed ipv6 in url' => ['http://:::1:8096'],
+            'url with trailing space' => ['http://nas.lan:8096 '],
+            'url bad host' => ['https://bad_host.example'],
+        ];
+    }
 }

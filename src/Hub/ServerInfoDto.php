@@ -19,7 +19,8 @@ use Phlix\Shared\Support\PayloadAssert;
  * `GET /api/v1/users/{id}/servers` (Phase C.4 dashboard).
  *
  * The `STATUS_*` constants are conventions, not gates: `fromPayload()`
- * validates presence and PHP types only, so an unknown-but-string `status`
+ * validates presence, PHP types and non-emptiness only (an empty identity
+ * or status string is absence in all but name), so an unknown-but-non-empty `status`
  * from a stored row decodes instead of throwing — read sites compare
  * against the constants. An `in_array` gate would change behavior for a
  * class the hub consumes today and is reserved for a coordinated breaking
@@ -68,15 +69,16 @@ final readonly class ServerInfoDto
     /**
      * @param array<string, mixed> $payload
      *
-     * @throws InvalidArgumentException When a required field is missing or wrong-typed.
+     * @throws InvalidArgumentException When a required field is missing, wrong-typed, or an
+     *                                  empty string.
      */
     public static function fromPayload(array $payload): self
     {
-        $serverId = self::requireString($payload, 'serverId', 'ServerInfoDto');
-        $userId = self::requireString($payload, 'userId', 'ServerInfoDto');
-        $serverName = self::requireString($payload, 'serverName', 'ServerInfoDto');
-        $version = self::requireString($payload, 'version', 'ServerInfoDto');
-        $status = self::requireString($payload, 'status', 'ServerInfoDto');
+        $serverId = self::requireNonEmptyString($payload, 'serverId', 'ServerInfoDto');
+        $userId = self::requireNonEmptyString($payload, 'userId', 'ServerInfoDto');
+        $serverName = self::requireNonEmptyString($payload, 'serverName', 'ServerInfoDto');
+        $version = self::requireNonEmptyString($payload, 'version', 'ServerInfoDto');
+        $status = self::requireNonEmptyString($payload, 'status', 'ServerInfoDto');
 
         $lastSeenAt = null;
         if (array_key_exists('lastSeenAt', $payload) && $payload['lastSeenAt'] !== null) {

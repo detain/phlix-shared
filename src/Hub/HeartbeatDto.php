@@ -31,8 +31,9 @@ final readonly class HeartbeatDto
      * @param int            $uptimeSeconds    How long the server process has been running.
      * @param int            $activeSessions   Concurrent playback session count.
      * @param int            $activeTranscodes Concurrent transcode count.
-     * @param list<string>   $hostnameCandidates Reachable hostnames discovered since last heartbeat
-     *                                           (UPnP/manual config).
+     * @param list<string>   $hostnameCandidates Reachable hosts discovered since last heartbeat
+     *                                           (UPnP/manual config): bare host[:port] or
+     *                                           absolute http(s) URL — grammar in {@see HostGrammar}.
      * @param list<LibraryRef> $libraries      Libraries on this server.
      */
     public function __construct(
@@ -52,29 +53,25 @@ final readonly class HeartbeatDto
      * @param bool                  $strictLibraries When true, throws on malformed library entries;
      *                                               when false (default), silently skips them (BC).
      *
-     * @throws InvalidArgumentException When a required field is missing or wrong-typed.
+     * Reject arms: `serverId`/`version` missing, non-string or empty;
+     * integer counters missing or non-int; `hostnameCandidates` not a
+     * list of strings or any entry outside the {@see HostGrammar} host/URL
+     * grammar (one bad entry rejects the whole heartbeat — the DTO never
+     * silently drops advertise material); `libraries` per `$strictLibraries`.
+     *
+     * @throws InvalidArgumentException When a required field is missing, wrong-typed, empty,
+     *                                  or a hostname candidate is malformed.
      */
     public static function fromPayload(array $payload, bool $strictLibraries = false): self
     {
-        $serverId = self::requireString($payload, 'serverId', 'HeartbeatDto');
-        $version = self::requireString($payload, 'version', 'HeartbeatDto');
+        $serverId = self::requireNonEmptyString($payload, 'serverId', 'HeartbeatDto');
+        $version = self::requireNonEmptyString($payload, 'version', 'HeartbeatDto');
         $timestamp = self::requireInt($payload, 'timestamp', 'HeartbeatDto');
         $uptimeSeconds = self::requireInt($payload, 'uptimeSeconds', 'HeartbeatDto');
         $activeSessions = self::requireInt($payload, 'activeSessions', 'HeartbeatDto');
         $activeTranscodes = self::requireInt($payload, 'activeTranscodes', 'HeartbeatDto');
 
-        $hostnameCandidates = [];
-        if (array_key_exists('hostnameCandidates', $payload)) {
-            if (!is_array($payload['hostnameCandidates'])) {
-                throw new InvalidArgumentException('HeartbeatDto "hostnameCandidates" must be a list of strings.');
-            }
-            foreach ($payload['hostnameCandidates'] as $candidate) {
-                if (!is_string($candidate)) {
-                    throw new InvalidArgumentException('HeartbeatDto "hostnameCandidates" must contain only strings.');
-                }
-                $hostnameCandidates[] = $candidate;
-            }
-        }
+        $hostnameCandidates = HostGrammar::parseCandidates($payload, 'HeartbeatDto');
 
         $libraries = [];
         if (array_key_exists('libraries', $payload)) {

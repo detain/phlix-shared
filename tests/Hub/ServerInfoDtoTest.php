@@ -205,4 +205,27 @@ final class ServerInfoDtoTest extends TestCase
         $this->expectExceptionMessage('ServerInfoDto "hostnameCandidates" must be a list of strings.');
         ServerInfoDto::fromPayload($payload);
     }
+
+    /**
+     * @dataProvider provideMissingRequiredFields
+     */
+    public function test_empty_required_string_throws(string $field): void
+    {
+        $payload = self::full();
+        $payload[$field] = '';
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('ServerInfoDto "' . $field . '" must be a non-empty string.');
+        ServerInfoDto::fromPayload($payload);
+    }
+
+    public function test_unknown_nonempty_status_still_decodes(): void
+    {
+        // The non-empty gate is not a status allowlist (class docblock):
+        // an unknown-but-present status keeps decoding.
+        $payload = self::full();
+        $payload['status'] = 'maintenance';
+
+        $this->assertSame('maintenance', ServerInfoDto::fromPayload($payload)->status);
+    }
 }
