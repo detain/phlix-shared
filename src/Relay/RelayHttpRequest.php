@@ -95,6 +95,16 @@ final readonly class RelayHttpRequest
     public const STRIPPED_HEADERS = ['x-phlix-relay-user', 'x-forwarded-for', 'authorization', 'cookie'];
 
     /**
+     * How many percent-decoding layers {@see self::assertSafe()} peels off
+     * the path, re-checking each one. A path that still changes under
+     * decoding after this many layers is refused outright (fail-closed)
+     * rather than half-checked: no legitimate route is percent-encoded four
+     * times over, and an unchecked deeper layer is exactly where a
+     * double-decoding hop would find '..' or '//'.
+     */
+    private const MAX_PATH_DECODE_LAYERS = 4;
+
+    /**
      * @param string                $method  Upper-case HTTP method (GET/POST/…).
      * @param string                $path    Request path (no query string), e.g. /api/v1/libraries.
      * @param string                $query   Raw query string without the leading '?' (may be '').
@@ -209,10 +219,20 @@ final readonly class RelayHttpRequest
      * the DTO must not silently mutate the envelope.
      *
      * Path rules: must start with a single '/'; must not be protocol-relative
-     * ('//…'); must not contain '..' (raw or percent-encoded), a NUL byte
-     * (raw or '%00'), a backslash, '://', a '?' (query is a separate field),
-     * a '#', or any control character (< 0x20). Percent-encoded sequences are
-     * decoded once and re-checked so '%2e%2e' / '%00' are caught.
+     * ('//…'); must not contain '..', a NUL byte, a backslash, '://', a '?'
+     * (query is a separate field), a '#', or any control character (< 0x20)
+     * or DEL (0x7F). Every rule — the protocol-relative one included — is
+     * applied to the raw path AND to each percent-decoding layer of it
+     * (decoded repeatedly until it stops changing, up to
+     * {@see self::MAX_PATH_DECODE_LAYERS} layers; a path still changing past
+     * that is refused), so '%2e%2e', '%00', '/%2f/evil.com' and their
+     * double-encoded forms ('%252e%252e', '/%252f/…') are all caught.
+     *
+     * Verbatim-raw-path law: the gate never rewrites the path — the decoded
+     * layers are inspected and discarded, and the envelope keeps the raw
+     * bytes the producer sent. Consumers forward {@see self::$path} verbatim
+     * (phlix-server's RelayConsumer does) and must not normalize it into a
+     * form this gate did not inspect.
      *
      * Method rules: must match {@see self::ALLOWED_METHODS} case-insensitively.
      *
@@ -225,8 +245,10 @@ final readonly class RelayHttpRequest
      * has always applied, widened to the whole head. The same screen closes a
      * trust-set bypass: a name like "X-Forwarded-For\r" would slip past the
      * exact match in {@see self::isForbiddenHeader()}, and the value screen
-     * likewise covers multi-line values. The path keeps its own long-standing
-     * sub-0x20 screen verbatim.
+     * likewise covers multi-line values. The path screen now refuses DEL as
+     * well, so the whole head shares one control-byte law. Independently,
+     * {@see self::isForbiddenHeader()} trims SP/HTAB padding before its
+     * match, so "Authorization " cannot dodge the trust set either.
      *
      * @throws InvalidArgumentException When the method, path, query or any
      *                                  header name/value is unsafe.
@@ -247,16 +269,16 @@ final readonly class RelayHttpRequest
             throw new InvalidArgumentException('RelayHttpRequest: "path" must start with "/".');
         }
 
-        // Protocol-relative URL (//host/...) — would target an external origin.
-        if (isset($path[1]) && $path[1] === '/') {
-            throw new InvalidArgumentException('RelayHttpRequest: "path" must not be protocol-relative.');
-        }
-
-        // Re-check the path with percent-encoding decoded once so encoded
-        // traversal / NUL bytes are caught alongside their literal forms.
-        $decoded = rawurldecode($path);
-
-        foreach ([$path, $decoded] as $candidate) {
+        // Check the raw path and every percent-decoding layer of it, so an
+        // encoded form ('%2e%2e', '%2f', '%00', and their double-encoded
+        // '%25…' wrappers) is caught alongside its literal one. The raw path
+        // itself is never rewritten (verbatim-raw-path law).
+        foreach (self::pathDecodingLayers($path) as $candidate) {
+            // Protocol-relative URL (//host/...) — would target an external
+            // origin. Checked per layer: '/%2f/evil.com' decodes to it.
+            if (isset($candidate[1]) && $candidate[0] === '/' && $candidate[1] === '/') {
+                throw new InvalidArgumentException('RelayHttpRequest: "path" must not be protocol-relative.');
+            }
             if (str_contains($candidate, '..')) {
                 throw new InvalidArgumentException('RelayHttpRequest: "path" must not contain "..".');
             }
@@ -276,18 +298,11 @@ final readonly class RelayHttpRequest
                 throw new InvalidArgumentException('RelayHttpRequest: "path" must not contain a fragment.');
             }
 
-            $length = strlen($candidate);
-            for ($i = 0; $i < $length; $i++) {
-                if (ord($candidate[$i]) < 0x20) {
-                    throw new InvalidArgumentException(
-                        'RelayHttpRequest: "path" must not contain control characters.',
-                    );
-                }
-            }
+            self::assertNoControlCharacters($candidate, 'path');
         }
 
-        // The rest of the head: the same per-byte screen the path loop above
-        // has always applied, widened (plus DEL) to the query and every
+        // The rest of the head: the same per-byte screen (control bytes and
+        // DEL) the path layers above get, applied to the query and every
         // header name and value, so the documented single gate covers the
         // whole head on the untrusted wire (review shared__secaudit Major #1).
         self::assertNoControlCharacters($this->query, 'query');
@@ -296,6 +311,37 @@ final readonly class RelayHttpRequest
             self::assertNoControlCharacters($name, 'header name');
             self::assertNoControlCharacters($value, 'header value');
         }
+    }
+
+    /**
+     * The raw path followed by each distinct percent-decoding layer of it,
+     * decoded repeatedly until it stops changing. Refuses (fail-closed) a
+     * path that is still changing after {@see self::MAX_PATH_DECODE_LAYERS}
+     * layers, so no layer a double-decoding hop could reach goes unchecked.
+     *
+     * @param string $path Raw request path.
+     *
+     * @return list<string> Raw path first, then each decoded layer in order.
+     *
+     * @throws InvalidArgumentException When the path is encoded more deeply
+     *                                  than the gate inspects.
+     */
+    private static function pathDecodingLayers(string $path): array
+    {
+        $layers = [$path];
+        $current = $path;
+
+        for ($layer = 1; ($decoded = rawurldecode($current)) !== $current; $layer++) {
+            if ($layer > self::MAX_PATH_DECODE_LAYERS) {
+                throw new InvalidArgumentException(
+                    'RelayHttpRequest: "path" is percent-encoded too deeply.',
+                );
+            }
+            $layers[] = $decoded;
+            $current = $decoded;
+        }
+
+        return $layers;
     }
 
     /**
@@ -325,7 +371,10 @@ final readonly class RelayHttpRequest
     /**
      * Whether a header name is a trust-bearing header the consumer must not
      * accept from the untrusted relay producer (see {@see self::STRIPPED_HEADERS}).
-     * Case-insensitive.
+     * Case-insensitive, and blind to surrounding SP/HTAB padding: a name
+     * like "Authorization " (which lenient downstream parsers trim back to
+     * "Authorization") is treated as forbidden too — fail-closed, so the
+     * padded spelling is stripped rather than forwarded.
      *
      * @param string $name Header name.
      *
@@ -335,7 +384,7 @@ final readonly class RelayHttpRequest
      */
     public static function isForbiddenHeader(string $name): bool
     {
-        return in_array(strtolower($name), self::STRIPPED_HEADERS, true);
+        return in_array(strtolower(trim($name, " \t")), self::STRIPPED_HEADERS, true);
     }
 
     /**

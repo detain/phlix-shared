@@ -6,6 +6,30 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+Fixed / new reject arms: `Relay\RelayHttpRequest` path + trust-header gate
+(SHR-S2 / SHR-8, SHR-9). `assertSafe()` (and so every `fromJson()`) now
+refuses paths that cleared it before: the protocol-relative test ran on the
+raw path only, so `/%2f/evil.com` (decoding to `//evil.com`) passed; the
+path was percent-decoded exactly once, so double-encoded forms
+(`%252e%252e`, `%2500`, `%255c`, `/%252f/…`) reached any hop that decodes
+again; and the path's per-byte screen stopped at `< 0x20`, so DEL (`0x7F`,
+raw or `%7f`) passed although the query and headers already refused it.
+Every path rule — protocol-relative included — now runs on the raw path and
+on each percent-decoding layer, decoded until it stops changing; a path
+still changing after four layers is refused (`"path" is percent-encoded too
+deeply.`, fail-closed). The other messages are unchanged (DEL reports the
+path's existing `must not contain control characters`). The gate still never
+rewrites the path — decoded layers are inspected and discarded, and the
+docblock now states the verbatim-raw-path law and the consumer's duty to
+forward `$path` as-is. `isForbiddenHeader()` (and so
+`withoutForbiddenHeaders()`) trims SP/HTAB padding before its
+case-insensitive match, so `"Authorization "` / `" Cookie"` are stripped
+rather than forwarded to a parser that trims them back; padding does not
+widen the trust set. Red-first pins in `tests/Relay/RelayHttpRequestTest.php`
+(19 failures against the parent source); the old pin that DEL in a path
+stays legal is replaced by its inverse. No public-surface, wire-shape, or
+schema change.
+
 Fixed / new reject arms: Hub DTO `fromPayload()` boundary hardening
 (SHR-S1 / SHR-1, SHR-3, SHR-7, SHR-26). Payloads that decoded before and
 now throw `InvalidArgumentException`:

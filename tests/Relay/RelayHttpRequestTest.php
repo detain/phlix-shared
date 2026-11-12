@@ -95,6 +95,15 @@ final class RelayHttpRequestTest extends TestCase
             'query in path' => ['/a?b=1'],
             'fragment in path' => ['/a#b'],
             'control char' => ["/a\x01b"],
+            'DEL (0x7F)' => ["/a\x7fb"],
+            'percent-encoded DEL' => ['/a%7fb'],
+            'encoded-slash protocol-relative' => ['/%2f/evil.com'],
+            'upper-case encoded-slash protocol-relative' => ['/%2F%2Fevil.com'],
+            'double-encoded traversal' => ['/%252e%252e/b'],
+            'double-encoded NUL' => ['/a%2500b'],
+            'double-encoded protocol-relative' => ['/%252f/evil.com'],
+            'double-encoded backslash' => ['/a%255cb'],
+            'too deeply encoded' => ['/a%2525252541'],
         ];
     }
 
@@ -374,20 +383,120 @@ final class RelayHttpRequestTest extends TestCase
     }
 
     /**
-     * The long-standing method/path law is byte-identical after the head
-     * was widened: the path keeps its own sub-0x20 screen only, so DEL in
-     * a path stays legal (it was never rejected before this fix, and
-     * consumers rely on that unchanged wording).
+     * The path screen now shares the head's control-byte law: DEL (0x7F)
+     * is refused alongside sub-0x20 bytes, with the path's long-standing
+     * message. Red-first at the parent: DEL in a path cleared the gate.
      */
-    public function test_path_control_character_law_is_unchanged(): void
+    public function test_path_rejects_del_with_the_control_character_message(): void
     {
-        $reqWithDel = new RelayHttpRequest('GET', "/a\x7fb", '', [], '');
-        $reqWithDel->assertSafe();
-        $this->addToAssertionCount(1);
-
-        $reqWithLf = new RelayHttpRequest('GET', "/a\rb", '', [], '');
+        $req = new RelayHttpRequest('GET', "/a\x7fb", '', [], '');
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('"path" must not contain control characters');
-        $reqWithLf->assertSafe();
+        $req->assertSafe();
+    }
+
+    /**
+     * Red-first at the parent: the protocol-relative test ran on the raw
+     * path only, so '/%2f/evil.com' (decoding to '//evil.com') cleared it.
+     */
+    public function test_encoded_slash_protocol_relative_path_is_refused(): void
+    {
+        $req = new RelayHttpRequest('GET', '/%2f/evil.com', '', [], '');
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('"path" must not be protocol-relative');
+        $req->assertSafe();
+    }
+
+    /**
+     * Red-first at the parent: the path was decoded once only, so a
+     * double-encoded traversal ('%252e%252e' -> '%2e%2e' -> '..') reached
+     * any hop that decodes again.
+     */
+    public function test_double_encoded_traversal_is_refused(): void
+    {
+        $req = new RelayHttpRequest('GET', '/api/%252e%252e/admin', '', [], '');
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('"path" must not contain ".."');
+        $req->assertSafe();
+    }
+
+    /**
+     * Fail-closed bound: four decoding layers are inspected; a path that is
+     * still changing past that is refused rather than half-checked.
+     */
+    public function test_path_encoded_past_the_layer_bound_is_refused(): void
+    {
+        // Four layers decode cleanly ('%25252541' -> ... -> 'A') and pass.
+        (new RelayHttpRequest('GET', '/a%25252541', '', [], ''))->assertSafe();
+        $this->addToAssertionCount(1);
+
+        // A fifth layer is refused.
+        $req = new RelayHttpRequest('GET', '/a%2525252541', '', [], '');
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('"path" is percent-encoded too deeply');
+        $req->assertSafe();
+    }
+
+    /**
+     * Verbatim-raw-path law: the gate inspects decoded layers but never
+     * rewrites the envelope — benign encoded paths keep their raw bytes
+     * through assertSafe() and a fromJson() round trip.
+     */
+    public function test_gate_preserves_the_raw_path_verbatim(): void
+    {
+        $raw = '/api/v1/items/a%20b%2Fc%25d';
+        $req = new RelayHttpRequest('GET', $raw, '', [], '');
+        $req->assertSafe();
+        $this->assertSame($raw, $req->path);
+
+        $decoded = RelayHttpRequest::fromJson($req->toJson());
+        $this->assertSame($raw, $decoded->path);
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function paddedForbiddenHeaderProvider(): array
+    {
+        return [
+            'trailing space' => ['Authorization '],
+            'leading space' => [' Authorization'],
+            'trailing tab' => ["Cookie\t"],
+            'both sides, mixed case' => [" \tX-Phlix-Relay-User \t"],
+            'padded x-forwarded-for' => ['x-forwarded-for  '],
+        ];
+    }
+
+    /**
+     * Red-first at the parent: the trust-set match was exact, so a padded
+     * name ("Authorization ") was not forbidden — and lenient downstream
+     * parsers trim it back to the real header.
+     *
+     * @dataProvider paddedForbiddenHeaderProvider
+     */
+    public function test_padded_forbidden_header_name_is_still_forbidden(string $name): void
+    {
+        $this->assertTrue(RelayHttpRequest::isForbiddenHeader($name));
+    }
+
+    public function test_without_forbidden_headers_strips_padded_trust_header(): void
+    {
+        $req = new RelayHttpRequest(
+            'GET',
+            '/x',
+            '',
+            ['Accept' => 'application/json', 'Authorization ' => 'Bearer spoofed'],
+            '',
+        );
+        $req->assertSafe();
+
+        $this->assertSame(['Accept' => 'application/json'], $req->withoutForbiddenHeaders()->headers);
+    }
+
+    public function test_padding_does_not_widen_the_trust_set(): void
+    {
+        $this->assertFalse(RelayHttpRequest::isForbiddenHeader(' Accept '));
+        $this->assertFalse(RelayHttpRequest::isForbiddenHeader('Authorization-Extra'));
+        $this->assertFalse(RelayHttpRequest::isForbiddenHeader('X-Authorization'));
     }
 }
