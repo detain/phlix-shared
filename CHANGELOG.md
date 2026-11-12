@@ -6,6 +6,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+Schema copy (SHR-S12 / SHR-21): wire-visible `helpText`/`description` copy
+changes in `schemas/server-settings.schema.json` (hwaccel.enabled tense,
+tone_mapping_mode option casing, auth.ws_query_token) and
+`schemas/hub-settings.schema.json` (signups boolean lead now "When enabled,");
+no keys, bounds or defaults changed. Consumers must re-vendor to see the new
+copy. Kill-switch "When disabled," leads and "Whether ..."/"Master ..."
+description leads are deliberate no-ops (they read correctly per setting).
+
 Behavior changes (SHR-S9 / SHR-24, SHR-30): `Auth\JwtClaims::isExpired()` now
 returns true when `exp <= $now` (RFC 7519 §4.1.4), previously `exp < $now`.
 CONSUMER DISCLOSURE: a token presented in exactly its `exp` second is now
