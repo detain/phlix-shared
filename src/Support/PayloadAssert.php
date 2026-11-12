@@ -17,7 +17,7 @@ use InvalidArgumentException;
  * Reusable payload assertion helpers for DTOs.
  *
  * @package Phlix\Shared\Support
- * @since 0.2.1
+ * @since 0.11.1
  */
 trait PayloadAssert
 {

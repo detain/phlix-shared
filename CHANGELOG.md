@@ -6,6 +6,18 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+Changelog hygiene (SHR-S13 / SHR-33, SHR-34, SHR-35): document-only; no
+released entry below was rewritten (verbatim history). Seam notes for readers
+reconciling this file against the git tags: `## [0.5.0]` and `## [0.9.0]` have
+no git tag (their content shipped in `v0.5.1` and the `v0.9.x` tags
+respectively); tags `v0.7.1`, `v0.8.1`, `v0.9.2` and `v0.17.0` have no heading
+of their own here. Headings through `[0.9.0]` use an em dash date separator
+and later ones a hyphen; the difference is historical and deliberately kept.
+`src/Support/PayloadAssert.php` carried `@since 0.2.1`, a version that never
+existed (no tag, no heading); the trait first shipped in `v0.11.1` (see the
+`Hub\PayloadAssert` bullet there, which predates its move to `Support\`) and the
+stamp is corrected forward to `@since 0.11.1` without altering that entry.
+
 Schema copy (SHR-S12 / SHR-21): wire-visible `helpText`/`description` copy
 changes in `schemas/server-settings.schema.json` (hwaccel.enabled tense,
 tone_mapping_mode option casing, auth.ws_query_token) and
