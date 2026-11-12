@@ -29,11 +29,12 @@ use Throwable;
  * The reset time is always exposed as a normalised ISO-8601 UTC string
  * (`DateTimeImmutable::ATOM`, e.g. `2026-07-22T00:00:00+00:00`) or null. A
  * string argument is provider-reported, so it is parsed with
- * {@see DateTimeImmutable} rather than passed through: it must begin with a
- * `YYYY-MM-DD` calendar date and parse without warnings (an offset-less value
- * is read as UTC). Anything else — empty, relative (`tomorrow`), or garbage —
- * degrades to null ("reset time unknown") instead of throwing, so a malformed
- * reset field can never mask the quota signal itself.
+ * {@see DateTimeImmutable} rather than passed through: it must be a
+ * `YYYY-MM-DD` calendar date, optionally followed by an ISO time and a `Z` or
+ * numeric offset, and parse without warnings (an offset-less value is read as
+ * UTC). Anything else — empty, relative (`tomorrow`, `2026-07-13 next monday`),
+ * or garbage — degrades to null ("reset time unknown") instead of throwing, so
+ * a malformed reset field can never mask the quota signal itself.
  *
  * @package Phlix\Shared\Subtitle\Exception
  * @since 0.42.0
@@ -102,7 +103,15 @@ final class QuotaExceeded extends RuntimeException
         }
 
         $value = trim($resetTimeUtc);
-        if (preg_match('/^\d{4}-\d{2}-\d{2}(?:[T ]|$)/', $value) !== 1) {
+        // Full ISO shape only: a date-prefixed relative suffix
+        // (`2026-07-13 next monday`, `... +1 year`) must not reach the
+        // DateTimeImmutable relative-format parser.
+        if (
+            preg_match(
+                '/^\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?$/i',
+                $value
+            ) !== 1
+        ) {
             return null;
         }
 

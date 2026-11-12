@@ -121,16 +121,23 @@ class SonarrClient extends AbstractArrClient implements ArrClientInterface
     /**
      * Adds a new series to Sonarr.
      *
-     * @param int|array<int> $tvdbId The TVDB ID or array of TVDB IDs.
+     * Sonarr's `POST /api/v3/series` adds exactly one series per call, keyed by
+     * a single TVDB ID, and places it under a root folder named by its PATH
+     * (e.g. `/tv`) — never an index. The signature says so: `int $tvdbId`
+     * (the former `int|array` admitted a list the endpoint cannot take) and
+     * `string $rootFolder` (the former `int` admitted only a meaningless
+     * index). Changed in 0.x as a BREAKING fix while the seam is dormant.
+     *
+     * @param int $tvdbId The TVDB ID of the series to add.
      * @param int $qualityProfileId The quality profile ID to use.
-     * @param int $rootFolder The root folder path index.
+     * @param string $rootFolder The root folder path (e.g. `/tv`).
      * @param string|null $monitor Monitoring option (default 'all').
      * @return array<string, mixed> Created series data.
      */
     public function addSeries(
-        int|array $tvdbId,
+        int $tvdbId,
         int $qualityProfileId,
-        int $rootFolder,
+        string $rootFolder,
         ?string $monitor = 'all'
     ): array {
         $payload = [

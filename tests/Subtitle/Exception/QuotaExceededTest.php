@@ -130,6 +130,8 @@ final class QuotaExceededTest extends TestCase
             'impossible date' => ['2026-02-30T00:00:00Z'],
             'impossible hour' => ['2026-07-22T25:00:00Z'],
             'trailing garbage' => ['2026-07-22 garbage'],
+            'date-prefixed relative' => ['2026-07-13 next monday'],
+            'date-prefixed relative offset' => ['2026-07-13 +1 year'],
             'oversized junk' => [str_repeat('9', 200)],
         ];
     }

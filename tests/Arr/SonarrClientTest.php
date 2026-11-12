@@ -170,11 +170,35 @@ class SonarrClientTest extends TestCase
 
         $this->mockableClient->setMockResponse($expectedResponse);
 
-        $result = $this->mockableClient->addSeries(123456, 2, 1, 'future');
+        $result = $this->mockableClient->addSeries(123456, 2, '/tv', 'future');
 
         $this->assertEquals(123456, $result['tvdbId']);
         $this->assertEquals('post', $this->mockableClient->getLastMethodCalled());
         $this->assertEquals('/api/v3/series', $this->mockableClient->getLastPathCalled());
+        $this->assertSame(
+            [
+                'tvdbId' => 123456,
+                'qualityProfileId' => 2,
+                'rootFolder' => '/tv',
+                'monitor' => 'future',
+            ],
+            $this->mockableClient->getLastBodyCalled()
+        );
+    }
+
+    /**
+     * Sonarr adds ONE series per call, under a root folder named by PATH:
+     * the signature pins `int $tvdbId` (no list) and `string $rootFolder`
+     * (no index), so a regression to the old `int|array` / `int` shape fails here.
+     */
+    public function testAddSeriesSignatureTakesSingleTvdbIdAndRootFolderPath(): void
+    {
+        $params = (new \ReflectionMethod(SonarrClient::class, 'addSeries'))->getParameters();
+
+        $this->assertSame('tvdbId', $params[0]->getName());
+        $this->assertSame('int', (string) $params[0]->getType());
+        $this->assertSame('rootFolder', $params[2]->getName());
+        $this->assertSame('string', (string) $params[2]->getType());
     }
 
     public function testTriggerDownloadSendsEpisodeSearchCommand(): void

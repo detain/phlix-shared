@@ -18,8 +18,9 @@ use RuntimeException;
 /**
  * Unit tests for CurlArrTransport.
  *
- * Tests protocol pinning (CURLOPT_PROTOCOLS, CURLOPT_REDIR_PROTOCOLS) and
- * connect timeout (CURLOPT_CONNECTTIMEOUT) are properly configured.
+ * Tests protocol pinning (CURLOPT_PROTOCOLS, CURLOPT_REDIR_PROTOCOLS), explicit
+ * TLS verification (CURLOPT_SSL_VERIFYPEER/VERIFYHOST) and connect timeout
+ * (CURLOPT_CONNECTTIMEOUT) are properly configured.
  *
  * @package Phlix\Shared\Tests\Arr\Transport
  * @since 0.11.0
@@ -123,6 +124,41 @@ class CurlArrTransportTest extends TestCase
                 'Request should fail within connect timeout, not full request timeout'
             );
         }
+    }
+
+    /**
+     * @return array<string, array{string, string|null}>
+     */
+    public static function everyMethodShape(): array
+    {
+        return [
+            'GET' => ['GET', null],
+            'POST' => ['POST', '{}'],
+            'PUT' => ['PUT', '{}'],
+            'DELETE' => ['DELETE', null],
+            'custom verb' => ['PATCH', '{}'],
+        ];
+    }
+
+    /**
+     * TLS verification is stated explicitly on every transfer (the shared
+     * handle is curl_reset() between calls, and libcurl/php.ini defaults are
+     * not a contract): VERIFYPEER true and VERIFYHOST 2 (name must match),
+     * alongside the protocol pin, for every method branch.
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('everyMethodShape')]
+    public function test_tls_verification_is_explicit_for_every_method(string $method, ?string $body): void
+    {
+        $build = new \ReflectionMethod(CurlArrTransport::class, 'buildOptions');
+        /** @var array<int, mixed> $options */
+        $options = $build->invoke(new CurlArrTransport(), $method, 'https://arr.example/api', [], $body);
+
+        $this->assertArrayHasKey(CURLOPT_SSL_VERIFYPEER, $options);
+        $this->assertTrue($options[CURLOPT_SSL_VERIFYPEER]);
+        $this->assertArrayHasKey(CURLOPT_SSL_VERIFYHOST, $options);
+        $this->assertSame(2, $options[CURLOPT_SSL_VERIFYHOST]);
+        $this->assertSame(CURLPROTO_HTTP | CURLPROTO_HTTPS, $options[CURLOPT_PROTOCOLS]);
+        $this->assertSame(CURLPROTO_HTTP | CURLPROTO_HTTPS, $options[CURLOPT_REDIR_PROTOCOLS]);
     }
 
     /**

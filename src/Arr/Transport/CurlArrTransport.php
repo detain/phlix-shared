@@ -76,31 +76,7 @@ final class CurlArrTransport implements ArrTransportInterface
             throw new RuntimeException('CurlArrTransport: empty request method');
         }
 
-        $options = [
-            CURLOPT_URL => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => $this->timeout,
-            CURLOPT_CONNECTTIMEOUT => $this->connectTimeout,
-            CURLOPT_HTTPHEADER => $headers,
-            // Pin to HTTP/HTTPS only — reject file://, gopher://, ftp:// etc.
-            CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
-            CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
-        ];
-
-        if ($method === 'POST') {
-            $options[CURLOPT_POST] = true;
-            $options[CURLOPT_POSTFIELDS] = (string) $body;
-        } elseif ($method === 'PUT') {
-            $options[CURLOPT_CUSTOMREQUEST] = 'PUT';
-            $options[CURLOPT_POSTFIELDS] = (string) $body;
-        } elseif ($method === 'DELETE') {
-            $options[CURLOPT_CUSTOMREQUEST] = 'DELETE';
-        } elseif ($method !== 'GET') {
-            $options[CURLOPT_CUSTOMREQUEST] = $method;
-            if ($body !== null && $body !== '') {
-                $options[CURLOPT_POSTFIELDS] = $body;
-            }
-        }
+        $options = $this->buildOptions($method, $url, $headers, $body);
 
         if (self::$handle === null) {
             $handle = curl_init();
@@ -126,5 +102,53 @@ final class CurlArrTransport implements ArrTransportInterface
         }
 
         return ['status' => $httpCode, 'body' => $responseBody];
+    }
+
+    /**
+     * Builds the full cURL option set for one transfer.
+     *
+     * Applied to the shared handle right after `curl_reset()`, so every
+     * security-relevant option (protocol pin, TLS verification) is restated on
+     * each request rather than inherited from a previous transfer or from
+     * libcurl/php.ini defaults.
+     *
+     * @param array<string> $headers
+     * @return array<int, mixed>
+     */
+    private function buildOptions(string $method, string $url, array $headers, ?string $body): array
+    {
+        $options = [
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => $this->timeout,
+            CURLOPT_CONNECTTIMEOUT => $this->connectTimeout,
+            CURLOPT_HTTPHEADER => $headers,
+            // Pin to HTTP/HTTPS only — reject file://, gopher://, ftp:// etc.
+            CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+            CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+            // TLS verification stated explicitly rather than inherited from
+            // libcurl defaults: the request carries the *arr API key, so a
+            // build or php.ini that relaxed verification must not silently
+            // downgrade this transport. VERIFYHOST 2 = the name must match.
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+        ];
+
+        if ($method === 'POST') {
+            $options[CURLOPT_POST] = true;
+            $options[CURLOPT_POSTFIELDS] = (string) $body;
+        } elseif ($method === 'PUT') {
+            $options[CURLOPT_CUSTOMREQUEST] = 'PUT';
+            $options[CURLOPT_POSTFIELDS] = (string) $body;
+        } elseif ($method === 'DELETE') {
+            $options[CURLOPT_CUSTOMREQUEST] = 'DELETE';
+        } elseif ($method !== 'GET') {
+            $options[CURLOPT_CUSTOMREQUEST] = $method;
+            if ($body !== null && $body !== '') {
+                $options[CURLOPT_POSTFIELDS] = $body;
+            }
+        }
+
+        return $options;
     }
 }

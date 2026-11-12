@@ -6,6 +6,25 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+BREAKING (dormant seam) / Fixed: *arr seam correctness (SHR-S8 / SHR-12,
+SHR-23). `SonarrClient::addSeries()` took `int|array $tvdbId` and
+`int $rootFolder`, but Sonarr's `POST /api/v3/series` adds exactly one series
+by a single TVDB ID under a root folder named by its PATH (e.g. `/tv`), so
+the int "index" could never address a real folder and a list ID could never
+be accepted. The signature is now `addSeries(int $tvdbId, int
+$qualityProfileId, string $rootFolder, ?string $monitor = 'all')`; payload
+keys are unchanged. Taken now, while the seam is dormant, rather than at a
+later release: the one estate caller (phlix-hub `RequestManager::
+approveSeriesRequest()`, whose `getSonarrRootFolder()` returns int `0`) must
+pass a root-folder path when it bumps shared — under its `strict_types` an
+int now raises a TypeError, which that caller's `\Throwable` catch already
+logs as "Sonarr addSeries failed". `Arr\Transport\CurlArrTransport` now sets
+`CURLOPT_SSL_VERIFYPEER => true` and `CURLOPT_SSL_VERIFYHOST => 2`
+explicitly on every transfer instead of inheriting libcurl/php.ini
+defaults (the request carries the *arr API key); the option set moved into a
+private `buildOptions()` so the TLS + protocol pins are asserted per method
+branch. No wire or schema change.
+
 Fixed: Subtitle value-object input gating (SHR-S7 / SHR-11, SHR-29).
 `SubtitleFile`'s constructor ran no validation, so a provider could hand the
 host an empty, `.`/`..`, separator-bearing (`/`, `\`) or control-byte
@@ -18,8 +37,14 @@ verbatim, so a non-UTC, oversized or garbage value reached the host's
 `DateTimeImmutable` (must start `YYYY-MM-DD`, parse warning-free, offset-less
 read as UTC) and normalised to the same UTC `ATOM` form as the
 `DateTimeImmutable` branch, with anything unparseable degrading to null
-("unknown") rather than throwing and masking the quota signal. No wire
-change; phlix-server's `SubtitleStorage` path jail remains the belt.
+("unknown") rather than throwing and masking the quota signal. Observable
+change: a provider-reported `Z` reset string (e.g. OpenSubtitles'
+`2022-04-08T13:03:16.000Z`) now renders as `2022-04-08T13:03:16+00:00` — the
+same instant, envelope shape unchanged — so phlix-plugin-opensubtitles'
+`tests/Unit/OpenSubtitlesProviderTest.php:2646` expectation
+(`2026-07-13T23:59:59Z`) must move to `2026-07-13T23:59:59+00:00` when that
+plugin bumps shared. phlix-server's `SubtitleStorage` path
+jail remains the belt.
 
 Fixed: `Plugin\Manifest::getUnknownFields()` int leak + plugin-manifest
 doc truth (SHR-S5 / SHR-5, SHR-10, SHR-19). PHP folds a decimal-integer
