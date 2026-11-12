@@ -19,8 +19,8 @@ use Phlix\Shared\Events\AbstractEvent;
  * Fired by: `\Phlix\Session\PlaybackController::reportProgress()` when
  * the reported `isPaused` flag flips from true to false for an existing
  * session.
- * Typical listener: scrobble plugins (re-start the scrobble timer), now-
- * playing dashboard updaters, smart-bulb / "movie mode" integrations.
+ * Typical listener: scrobble plugins (re-start the scrobble timer), `now playing`
+ * dashboard updaters, smart-bulb / "movie mode" integrations.
  *
  * Manifest alias: `phlix.playback.resumed`.
  *

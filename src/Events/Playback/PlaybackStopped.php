@@ -37,7 +37,7 @@ final class PlaybackStopped extends AbstractEvent
      * @param int    $finalPositionTicks Final playback position when the
      *                                   session ended, in 100-ns ticks.
      * @param bool   $reachedEnd         True when the listener should treat
-     *                                   the item as fully watched (>= 90 %
+     *                                   the item as fully watched (>= 90%
      *                                   per Phlix convention); false when
      *                                   the user stopped mid-stream.
      */

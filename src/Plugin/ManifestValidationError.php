@@ -19,8 +19,8 @@ namespace Phlix\Shared\Plugin;
  * or against any soft rule, such as "unknown field", that the schema
  * cannot express.
  *
- * `field` is a dotted property path (e.g. `settings.api_key.type`) — a
- * JSON Pointer's `/` separators are rewritten to `.` by the validator —
+ * `field` is a dotted property path (e.g. `settings.api_key.type`; a
+ * JSON Pointer's `/` separators are rewritten to `.` by the validator)
  * or `''` for the document root. For an `unknown_field` error it is the
  * offending top-level key verbatim. `code` is a short machine identifier
  * (`required`, `pattern`, `enum`, `type`, `unknown_field`, …). `message`

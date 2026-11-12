@@ -27,7 +27,7 @@ use Phlix\Shared\Subtitle\Exception\QuotaExceeded;
  * source registry registers any `SubtitleSourceInterface` instance on
  * plugin-enable and deregisters it on plugin-disable (no leak), and the admin
  * priority list (`subtitles.provider_priority`, added later in the server
- * settings schema) can order sources by their {@see getName()} value.
+ * settings schema) can order sources by their {@see self::getName()} value.
  *
  * ## Method shape (search fan-out + on-demand download)
  *
@@ -35,13 +35,13 @@ use Phlix\Shared\Subtitle\Exception\QuotaExceeded;
  * only spends a provider's (usually rate-limited) download quota on the ONE
  * subtitle a user actually wants:
  *
- *  1. **Search** — the host calls whichever of {@see searchByHash()},
- *     {@see searchByImdbId()} or {@see searchByPath()} it has the inputs for
+ *  1. **Search** — the host calls whichever of {@see self::searchByHash()},
+ *     {@see self::searchByImdbId()} or {@see self::searchByPath()} it has the inputs for
  *     (best-match first is hash, then imdb id, then a path/name heuristic).
  *     Each returns a list of {@see SubtitleCandidate} value objects describing
  *     found-but-not-yet-downloaded subtitles, carrying ranking signals a UI can
  *     display and sort on. Search does NOT consume download quota.
- *  2. **Download** — the host calls {@see download()} with exactly one chosen
+ *  2. **Download** — the host calls {@see self::download()} with exactly one chosen
  *     candidate to fetch its actual file content. THIS is the quota-consuming
  *     step and MAY throw {@see QuotaExceeded}.
  *

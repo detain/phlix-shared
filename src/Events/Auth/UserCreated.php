@@ -18,7 +18,7 @@ use Phlix\Shared\Events\AbstractEvent;
  *
  * Fired by: `\Phlix\Auth\AuthManager::register()` after the user row is
  * persisted and before the response JWT is generated.
- * Typical listener: welcome-email sender, audit-log writer, default-
+ * Typical listener: welcome-email sender, audit-log writer, default
  * library-permissions bootstrap, hub-side "user came from server X"
  * mirror.
  *

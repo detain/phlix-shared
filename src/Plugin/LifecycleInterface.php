@@ -23,19 +23,19 @@ use Psr\Container\ContainerInterface;
  *
  * ## Lifecycle
  *
- * - **enable phase** — {@see self::onEnable()} runs after the manifest
+ * - **enable phase (1)** — {@see self::onEnable()} runs after the manifest
  *   is loaded, the plugin's `vendor/autoload.php` is registered, and
  *   the entry class is instantiated. The host container is passed in
  *   so the plugin can resolve services lazily.
- * - **enable phase** — {@see self::subscribedEvents()} runs immediately
- *   after {@see onEnable()} returns, to obtain the list of
+ * - **enable phase (2)** — {@see self::subscribedEvents()} runs immediately
+ *   after {@see self::onEnable()} returns, to obtain the list of
  *   `eventClassFqcn => callable` pairs the loader should attach to
  *   the PSR-14 dispatcher.
  * - **disable phase** — {@see self::onDisable()} runs before the
  *   loader unsubscribes the listeners returned earlier from
- *   {@see subscribedEvents()}.
+ *   {@see self::subscribedEvents()}.
  *
- * Plugins should keep {@see onEnable()} cheap: any heavy initialisation
+ * Plugins should keep {@see self::onEnable()} cheap: any heavy initialisation
  * (HTTP client warmup, background workers) belongs in the listeners
  * themselves, which only run when a relevant event fires.
  *
@@ -76,7 +76,7 @@ interface LifecycleInterface
     /**
      * Called by the loader once when the plugin is disabled, after the
      * loader has unsubscribed every listener returned from
-     * {@see subscribedEvents()}. Use it to flush queued state, close
+     * {@see self::subscribedEvents()}. Use it to flush queued state, close
      * clients, etc. Exceptions are caught and logged but the disable
      * still completes.
      *

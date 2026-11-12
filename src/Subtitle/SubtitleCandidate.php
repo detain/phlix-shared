@@ -46,7 +46,7 @@ final readonly class SubtitleCandidate
      *                                           Treat as an opaque string; do not parse.
      * @param string           $releaseName     Provider release / file name (e.g. `The.Matrix.1999.1080p.BluRay`).
      * @param non-empty-string $format          Subtitle format extension without a dot (e.g. `srt`, `ass`, `vtt`).
-     * @param string|null      $matchedBy       How the candidate was matched: one of self::MATCH_* , or null
+     * @param string|null      $matchedBy       How the candidate was matched: one of {@see self::MATCH_*}, or null
      *                                           when the provider does not report it.
      * @param float|null       $rating          Provider rating (higher is better), or null when not reported.
      * @param int|null         $downloadCount   Number of times the file has been downloaded (popularity

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Trash Guides Provider.
+ * TRaSH-Guides provider.
  *
  * @copyright 2026 Joe Huss <detain@interserver.net>
  * @license   MIT

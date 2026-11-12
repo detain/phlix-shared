@@ -35,17 +35,17 @@ namespace Phlix\Shared\Metadata;
  * directly, the host server's source registry registers any
  * `MetadataSourceInterface` instance on plugin-enable and deregisters it on
  * plugin-disable (no leak), and the admin priority list
- * (`metadata.provider_priority`) can include plugin {@see sourceName()} values
+ * (`metadata.provider_priority`) can include plugin {@see self::sourceName()} values
  * alongside the built-ins.
  *
  * ## Method shape (the lookup triad + identity)
  *
- * The triad ({@see search()} → {@see getDetails()} / {@see getImages()})
+ * The triad ({@see self::search()} → {@see self::getDetails()} / {@see self::getImages()})
  * mirrors the host's existing provider-driving contract exactly, so the host
  * registry can drive a registered source the same way it drives a built-in
  * provider: resolve a free-text query to an external id, then fetch the full
- * record and images by that id. Identity is carried by {@see sourceName()}
- * (the canonical priority-map name) and {@see supportedMediaTypes()} (the
+ * record and images by that id. Identity is carried by {@see self::sourceName()}
+ * (the canonical priority-map name) and {@see self::supportedMediaTypes()} (the
  * media types the registry indexes the source under).
  *
  * Implementations must be **non-blocking** in a resident-memory (Workerman)
@@ -99,7 +99,7 @@ interface MetadataSourceInterface
      * Search this source for items matching a free-text query.
      *
      * The host calls this first; the returned external id(s) are then fed to
-     * {@see getDetails()} / {@see getImages()}. Results are ordered best-match
+     * {@see self::getDetails()} / {@see self::getImages()}. Results are ordered best-match
      * first; a source with no ranked search may return a single best match (or
      * an empty list when nothing matches). Each result MUST carry a non-empty
      * `id` (the source's external identifier, as a string) and a `title`;
@@ -116,14 +116,15 @@ interface MetadataSourceInterface
 
     /**
      * Fetch the full metadata record for an external id returned by
-     * {@see search()}.
+     * {@see self::search()}.
      *
      * The returned map is the source's raw-but-named detail shape; the host's
      * field mappers normalise it into the canonical record. Return an empty
      * array when the id is unknown or the lookup fails — never a partially
      * `null`-filled map (absent keys signal "this source has no value").
      *
-     * @param string               $externalId External id from {@see search()} (e.g. an AniDB AID/MAL id as a string).
+     * @param string               $externalId External id from {@see self::search()}
+     *                                         (e.g. an AniDB AID/MAL id as a string).
      * @param array<string, mixed> $options    Optional hints such as `language`; unknown keys MUST be ignored.
      * @return array<string, mixed> Detailed metadata, or `[]` when not found.
      *
@@ -140,7 +141,7 @@ interface MetadataSourceInterface
      * images of that type (do not emit empty groups). Return an empty array
      * when the id is unknown or the source provides no images.
      *
-     * @param string $externalId The external id from {@see search()}.
+     * @param string $externalId The external id from {@see self::search()}.
      * @return array<string, list<array{url: non-empty-string, width?: int, height?: int}>> Images keyed by type.
      *
      * @since 0.15.0
