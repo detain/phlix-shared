@@ -61,6 +61,13 @@ final class UserInfoTest extends TestCase
         $this->assertFalse($info->hasEmail());
     }
 
+    public function testHasEmailReturnsFalseWhenEmailEmptyString(): void
+    {
+        $info = new UserInfo(externalId: 'id', email: '');
+
+        $this->assertFalse($info->hasEmail());
+    }
+
     public function testHasDisplayNameReturnsTrueWhenDisplayNamePresent(): void
     {
         $info = new UserInfo(externalId: 'id', displayName: 'Test User');

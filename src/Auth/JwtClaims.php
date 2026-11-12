@@ -293,8 +293,9 @@ final class JwtClaims
     }
 
     /**
-     * True when the token's `exp` claim is in the past relative to
-     * `$now` (or `time()` when omitted).
+     * True when the token has expired: `exp <= $now` (`$now` defaults to
+     * `time()`). Per RFC 7519 §4.1.4 the token must NOT be accepted on or
+     * after the `exp` instant, so the boundary second itself is expired.
      *
      * `exp` is a wall-clock (Unix epoch) claim, so this must compare against
      * `time()` — `hrtime(true)` measures elapsed monotonic time since an
@@ -304,7 +305,7 @@ final class JwtClaims
     public function isExpired(?int $now = null): bool
     {
         $now ??= time();
-        return $this->exp < $now;
+        return $this->exp <= $now;
     }
 
     /**

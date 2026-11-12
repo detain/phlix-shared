@@ -6,6 +6,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+Behavior changes (SHR-S9 / SHR-24, SHR-30): `Auth\JwtClaims::isExpired()` now
+returns true when `exp <= $now` (RFC 7519 §4.1.4), previously `exp < $now`.
+CONSUMER DISCLOSURE: a token presented in exactly its `exp` second is now
+expired; phlix-server and phlix-hub boundary-token grace edges (and any
+tests pinning that second) change. `Auth\UserInfo::hasEmail()` now returns
+false for the empty string as well as null.
+
 Fixed / new reject arms: `Relay\RelayHttpRequest` path + trust-header gate
 (SHR-S2 / SHR-8, SHR-9). `assertSafe()` (and so every `fromJson()`) now
 refuses paths that cleared it before: the protocol-relative test ran on the

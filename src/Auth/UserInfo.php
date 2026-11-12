@@ -54,13 +54,17 @@ final readonly class UserInfo
     }
 
     /**
-     * Return true when the external user has an email address on record.
+     * Return true when the external user has a usable email address on record.
+     *
+     * Null and the empty string both count as "no email" (PayloadAssert
+     * non-empty law): providers that return `""` for a missing claim must
+     * not look like they supplied an address.
      *
      * @return bool
      */
     public function hasEmail(): bool
     {
-        return $this->email !== null;
+        return $this->email !== null && $this->email !== '';
     }
 
     /**

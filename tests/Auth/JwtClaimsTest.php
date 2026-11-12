@@ -140,6 +140,17 @@ final class JwtClaimsTest extends TestCase
         $this->assertTrue($claims->isExpired(null));
     }
 
+    public function test_isExpired_is_true_at_the_exp_boundary(): void
+    {
+        $claims = JwtClaims::fromPayload([
+            'iss' => 'phlix', 'sub' => 'u', 'iat' => 1, 'exp' => 100, 'type' => 'access',
+        ]);
+
+        $this->assertFalse($claims->isExpired(99));
+        $this->assertTrue($claims->isExpired(100)); // RFC 7519: exp <= now
+        $this->assertTrue($claims->isExpired(101));
+    }
+
     public function test_hasScope_true_when_scope_present(): void
     {
         $claims = JwtClaims::fromPayload([
