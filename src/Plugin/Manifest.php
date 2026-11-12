@@ -86,8 +86,8 @@ class Manifest
      * @param list<string> $events Manifest event aliases.
      * @param array<string, array{type: string, required?: bool, secret?: bool, default?: mixed}> $settings
      *     Settings schema keyed by setting name. The `type: string` element
-     *     is enforced at the parse boundary by {@see self::fromArray()}
-     *     (LW-060); the optional `required`/`secret`/`default` elements are
+     *     is enforced at the parse boundary by {@see self::fromArray()};
+     *     the optional `required`/`secret`/`default` elements are
      *     value-checked downstream by the consuming schema validator, which
      *     reads the untouched {@see self::rawData()}.
      * @param string|null $signature `sha256:<hex>` signature or null when unsigned.
@@ -169,7 +169,7 @@ class Manifest
         if (isset($data['settings']) && is_array($data['settings'])) {
             /** @var mixed $value */
             foreach ($data['settings'] as $key => $value) {
-                // LW-060: the property's shape promise starts HERE. An entry
+                // The property's shape promise starts HERE. An entry
                 // must carry a string `type` to join the typed view; anything
                 // else is malformed and is dropped exactly like the non-array
                 // and int-keyed arms below, while the untouched payload stays

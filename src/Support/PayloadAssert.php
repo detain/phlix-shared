@@ -40,7 +40,7 @@ trait PayloadAssert
     }
 
     /**
-     * String assertion that also rejects the empty value (review shared__srphp #5).
+     * String assertion that also rejects the empty value.
      *
      * For identifiers (JWT claims, library refs) an empty string is absence in
      * all but name — `requireString` alone let `''` pass its way into DTOs.

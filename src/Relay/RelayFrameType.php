@@ -78,7 +78,7 @@ use InvalidArgumentException;
  * payload) down the same tunnel. This asks the server to STOP any in-flight work
  * for that request — releasing CPU/bandwidth spent on a response nobody will
  * read (e.g. an active transcode/stream). The server-side handler that stops the
- * in-flight work on receipt is the server's responsibility (server step SV-4.2);
+ * in-flight work on receipt is the server's responsibility;
  * the hub side only PROPAGATES the cancellation. A server that does not yet
  * honour HTTP_CANCEL simply ignores it — the frame is advisory and never
  * requires a response frame back to the hub.
@@ -257,7 +257,7 @@ enum RelayFrameType: int
     /**
      * The accepted values as `0xNN` literals, comma-joined.
      *
-     * M-SHARED-16: a misuse throw must teach the valid set, not merely name
+     * A misuse throw must teach the valid set, not merely name
      * the offender. Derived from `cases()`, so the list can never rot behind
      * the enum it describes.
      */

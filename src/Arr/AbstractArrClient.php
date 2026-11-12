@@ -59,13 +59,13 @@ abstract class AbstractArrClient
      * @param int $timeout Request timeout in seconds (default 30). The value is
      *     forwarded to the default transport only; injected transports own
      *     their own timing (there used to be a write-once `$this->timeout`
-     *     copy nothing ever read — review shared__srphp #7 dropped it).
+     *     copy nothing ever read).
      * @param ArrTransportInterface|null $transport Optional HTTP transport. When null,
      *     the blocking {@see CurlArrTransport} is used — appropriate for CLI/tests and
      *     for runtimes that hook curl (phlix-hub's S425 position); cooperative
      *     event-loop consumers (Workerman/Webman) should inject an async,
      *     non-blocking transport. Building that default requires ext-curl;
-     *     a runtime without it fails loud at construction (review shared__srphp #6).
+     *     a runtime without it fails loud at construction.
      */
     public function __construct(
         string $baseUrl,
@@ -84,7 +84,7 @@ abstract class AbstractArrClient
         // The X-Api-Key header is assembled by raw concatenation, so a key
         // carrying a line break would reach the transport as a malformed —
         // or header-injecting — request line. Fail at this seam, naming it,
-        // instead of letting curl notice downstream (review shared__srphp #16).
+        // instead of letting curl notice downstream.
         if (str_contains($apiKey, "\r") || str_contains($apiKey, "\n")) {
             throw new RuntimeException(
                 'API key must not contain CR or LF — it would inject a malformed X-Api-Key header.'
@@ -106,7 +106,7 @@ abstract class AbstractArrClient
     }
 
     /**
-     * Capability probe for the bundled default transport (review shared__srphp #6).
+     * Capability probe for the bundled default transport.
      *
      * ext-curl is only a require-dev/suggest of this package, so a runtime
      * without it used to die on an undefined-function error inside the
@@ -212,7 +212,7 @@ abstract class AbstractArrClient
      * @return array<array-key, mixed> Decoded JSON response: object shapes carry
      *     string keys, list endpoints carry sequential int keys, and values stay
      *     mixed because json_decode can produce any JSON type. This is the honest
-     *     floor of the seam (review shared__srphp #2): concrete clients declare the
+     *     floor of the seam: concrete clients declare the
      *     narrowed per-endpoint shape on their public methods, and consumers must
      *     treat this level as untyped until they do.
      * @throws RuntimeException On network or HTTP errors.
@@ -244,7 +244,7 @@ abstract class AbstractArrClient
             // The *arr APIs carry the actionable message in the 4xx/5xx
             // JSON body — dropping it left callers with "HTTP 500" and
             // nothing to act on. Append a capped, single-line excerpt.
-            // Redact BEFORE trimming/capping (review shared__secaudit #2):
+            // Redact BEFORE trimming/capping:
             // the vendor body can echo the caller's API key back, and only
             // two client methods re-wrapped errors with SecretRedactor —
             // every other method raised this raw message, keys included,

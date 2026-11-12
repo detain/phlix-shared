@@ -19,8 +19,8 @@ namespace Phlix\Shared\Relay;
  * the hub's `SyncPlayRelayWorker` inline literals, and the
  * `@phlix/syncplay` package's `messages.ts`. The three-way set difference
  * is empty today, but every leg keeps its own copy — a rename in one
- * surfaces as a runtime protocol mismatch, not as a red drift test
- * (estate review ledger LW-082). This class is the SSOT: the canonical
+ * surfaces as a runtime protocol mismatch, not as a red drift test.
+ * This class is the SSOT: the canonical
  * values, with const NAMES mirroring the server's so consumers can alias
  * `public const TYPE_CHAT_MESSAGE = SyncPlayDialect::TYPE_CHAT_MESSAGE;`
  * with zero wire-behavior change.
@@ -36,12 +36,12 @@ namespace Phlix\Shared\Relay;
  * (token-based; skipped when no sibling checkout is reachable, failing
  * loudly when a `PHLIX_SERVER_REPO`/`PHLIX_HUB_REPO` pointer is set but
  * broken), and carries fixture pins so the guard cannot pass vacuously
- * where CI checks out only this repository. The consumer-side legs of
- * LW-082 — hub test import (LW-082-b), server constant aliases
- * (LW-082-c), the syncplay package (LW-082-d) — belong to those repos.
+ * where CI checks out only this repository. The consumer-side legs — the
+ * hub test import, the server constant aliases and the syncplay package —
+ * belong to those repos.
  *
  * @package Phlix\Shared
- * @since 0.55.0 (LW-082-a; anticipatory stamp — v0.54.0 was the shipped tip when this landed)
+ * @since 0.55.0 (anticipatory stamp — v0.54.0 was the shipped tip when this landed)
  */
 final class SyncPlayDialect
 {

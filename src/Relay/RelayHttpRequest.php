@@ -236,8 +236,7 @@ final readonly class RelayHttpRequest
      *
      * Method rules: must match {@see self::ALLOWED_METHODS} case-insensitively.
      *
-     * Query and header rules (head-wide screen added in the review round
-     * 2026-11-04 fix wave, LW-052): the query string and every header name
+     * Query and header rules (head-wide screen): the query string and every header name
      * and value must not contain any control character (ord < 0x20) or DEL
      * (0x7F). This kills CR/LF header- and request-line injection, NUL
      * truncation, and every other control byte an untrusted hub producer
@@ -304,7 +303,7 @@ final readonly class RelayHttpRequest
         // The rest of the head: the same per-byte screen (control bytes and
         // DEL) the path layers above get, applied to the query and every
         // header name and value, so the documented single gate covers the
-        // whole head on the untrusted wire (review shared__secaudit Major #1).
+        // whole head on the untrusted wire.
         self::assertNoControlCharacters($this->query, 'query');
 
         foreach ($this->headers as $name => $value) {

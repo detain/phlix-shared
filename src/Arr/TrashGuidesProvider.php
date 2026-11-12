@@ -26,12 +26,12 @@ use RuntimeException;
  * and `CustomFormatSyncer` consumes it) the fetch blocks the worker. Routing
  * these fetches through an injectable transport is the honest fix but is a
  * coordinated consumer-side cascade, deferred as an owner/tag-wave item.
- * LW-061 hardened what remains inside the class (2026-11-06): wrapper
+ * The class was hardened in place (2026-11-06): wrapper
  * auto-follow is OFF — every redirect target is resolved from the response
  * headers and re-validated against the https gate before the next hop is
  * dialed (hop budget 5, the stream setting it replaces), and fetch failures
  * are no longer `@`-silenced — the wrapper warning rides the exception chain
- * while public messages keep their stable, leak-free form (M-SHARED-22).
+ * while public messages keep their stable, leak-free form.
  *
  * KNOWN LIMITATIONS (documented behavior, each verified against the code):
  * - The three static caches (`$qualityProfilesCache`, `$customFormatsCache`,
@@ -40,8 +40,8 @@ use RuntimeException;
  *   is ~2x the advertised 24 h TTL, and any item fetched while a sibling
  *   refreshes never expires on its own schedule.
  * - The same shared timestamp reaches the per-instance memos: every getter
- *   runs the TTL check BEFORE the memo hit (review shared__srphp Major #1,
- *   cured 2026-11-06 — a lone instance now refetches once its 24 h is up),
+ *   runs the TTL check BEFORE the memo hit (cured 2026-11-06 — a lone
+ *   instance now refetches once its 24 h is up),
  *   but a sibling instance's refresh rewrites the shared timestamp, so an
  *   idle instance's memo can outlive 24 h of wall time while other instances
  *   keep the generation fresh. A memo is released when its own instance
@@ -57,10 +57,10 @@ use RuntimeException;
  *   unreachable for consumers: the hardcoded fallback URLs are effectively
  *   constants unless the vendor tree itself is edited. An included file that
  *   does not return an array is now rejected at load time, naming the path
- *   and the actual type (LW-061) — previously its `@var` promise was a
+ *   and the actual type — previously its `@var` promise was a
  *   comment, and a bare `return;` flowed onward as a phantom shape.
  * - The fallback URLs are INERT BY UPSTREAM REALITY, not merely mutable
- *   (forensics 2026-11-06, LW-061): the consolidated files they name do not
+ *   (forensics 2026-11-06): the consolidated files they name do not
  *   exist in `TRaSH-Guides/Guides` at any probed ref — not on `master`
  *   (current HEAD or mid-2025 trees; `docs/json/radarr/` ships per-file
  *   subtrees `cf/`, `cf-groups/`, `quality-profiles/`, … only), not on
@@ -92,14 +92,14 @@ class TrashGuidesProvider
     private const int CACHE_TTL_SECONDS = 86400; // 24 hours
 
     /**
-     * Redirect hops one fetch may walk (LW-061). Mirrors the `max_redirects`
+     * Redirect hops one fetch may walk. Mirrors the `max_redirects`
      * stream setting the manual redirect loop replaced; the budget, not the
      * wrapper, is enforced so every intermediate target passes the https gate.
      */
     private const int MAX_REDIRECT_HOPS = 5;
 
     /**
-     * Byte ceiling on one response body (SHR-2): 32 MiB. PHP's http stream
+     * Byte ceiling on one response body: 32 MiB. PHP's http stream
      * context has no response-size option, so the cap is enforced on the
      * read itself — at most MAX + 1 bytes are pulled, and a body that reaches
      * MAX + 1 is refused before it can be buffered further or JSON-decoded.
@@ -257,7 +257,7 @@ class TrashGuidesProvider
 
     /**
      * Picks the version string from a decoded custom-formats payload, gated
-     * BEFORE it can reach `$versionCache` (SHR-2).
+     * BEFORE it can reach `$versionCache`.
      *
      * The upstream `version` field is untrusted JSON: it used to flow through
      * an unverified `@var string` straight into a `?string` static, so an
@@ -337,7 +337,7 @@ class TrashGuidesProvider
     {
         $configPath = dirname(__DIR__, 2) . '/config/trash_guides.php';
         if (!file_exists($configPath)) {
-            // INERT BY DEFAULT (class header, LW-061 forensics): these
+            // INERT BY DEFAULT (class header forensics): these
             // consolidated upstream files do not exist at any probed ref, so
             // the fetch legs fail closed unless a config supplies live URLs.
             // The literals are exact-pinned by the unit suite; changing them
@@ -354,7 +354,7 @@ class TrashGuidesProvider
             ];
         }
 
-        // LW-061: the shape promise is a CHECK now — an included file that
+        // The shape promise is a CHECK now — an included file that
         // returns anything but an array fails loud, naming the path.
         /** @var mixed $included */
         $included = include $configPath;
@@ -391,14 +391,14 @@ class TrashGuidesProvider
      * redirects manually.
      *
      * https-only by policy: the URL is config-supplied, and a poisoned config
-     * must not be able to point this fetch at local stream wrappers. LW-061
-     * moved the scheme gate from "checked once, then the wrapper followed
+     * must not be able to point this fetch at local stream wrappers. The scheme gate
+     * moved from "checked once, then the wrapper followed
      * Locations unseen" to "checked on every hop": the stream does not
      * auto-follow at all, each 3xx target is resolved to an absolute URL and
      * re-passes the same gate before it is dialed.
      *
-     * Every hop's body is read under a byte ceiling ({@see self::MAX_RESPONSE_BYTES},
-     * SHR-2): an oversize response is refused instead of buffered whole.
+     * Every hop's body is read under a byte ceiling ({@see self::MAX_RESPONSE_BYTES}):
+     * an oversize response is refused instead of buffered whole.
      *
      * @param string $url      The URL to fetch.
      * @param int    $maxBytes Body byte ceiling per hop (the constant in
@@ -417,7 +417,7 @@ class TrashGuidesProvider
                 'http' => [
                     'method' => 'GET',
                     'timeout' => 30,
-                    // LW-061: no wrapper auto-follow — this loop validates
+                    // No wrapper auto-follow — this loop validates
                     // and dials every hop itself.
                     'follow_location' => 0,
                     'header' => [
@@ -455,7 +455,7 @@ class TrashGuidesProvider
     }
 
     /**
-     * The M-SHARED-22 gate, applicable to every hop: refuses anything that is
+     * The https gate, applicable to every hop: refuses anything that is
      * not https:// before it reaches a stream call, so a poisoned config — or
      * a poisoned redirect — cannot turn this fetch into a local read
      * (`file://`, `php://`, …) whose content lands in the *arr supply chain.
@@ -479,12 +479,12 @@ class TrashGuidesProvider
     /**
      * One blocking stream read with the wrapper's voice captured.
      *
-     * LW-061 retires the `@`-suppression: the wrapper warning is recorded and
+     * The `@`-suppression is retired: the wrapper warning is recorded and
      * chained as the RuntimeException's previous — kept out of the public
-     * message (raw wrapper text can embed internal detail, M-SHARED-22), but
+     * message (raw wrapper text can embed internal detail), but
      * never dropped.
      *
-     * SHR-2: the read is length-bounded — at most `$maxBytes + 1` bytes are
+     * The read is length-bounded — at most `$maxBytes + 1` bytes are
      * pulled, and reaching the extra byte is the oversize verdict (the body
      * is dropped, never decoded).
      *
@@ -532,7 +532,7 @@ class TrashGuidesProvider
     }
 
     /**
-     * Resolve the next hop from a response header stack (pure; LW-061).
+     * Resolve the next hop from a response header stack (pure).
      *
      * Returns the absolute URL to follow, or null when the exchange is final:
      * a non-3xx status, a 304, or any response without a usable Location.
@@ -573,7 +573,7 @@ class TrashGuidesProvider
     }
 
     /**
-     * Resolve $target against $base (pure; LW-061), reduced to the four
+     * Resolve $target against $base (pure), reduced to the four
      * reference forms raw/CDN redirects emit: absolute-with-scheme (kept as
      * given — the caller's https gate polices it), protocol-relative (takes
      * the request scheme), root-relative (anchors on the authority), and

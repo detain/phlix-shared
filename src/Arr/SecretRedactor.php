@@ -35,7 +35,7 @@ final class SecretRedactor
      * Secrets are applied LONGEST FIRST regardless of argument order: if one
      * secret is a substring of another (e.g. `KEY` inside `SECRETKEY`), the
      * shorter replacement running first would shred the longer value and
-     * strand its residue in the message (review shared__srphp Minor #4).
+     * strand its residue in the message.
      * PHP 8's sort is stable, so equal-length secrets keep the caller's
      * relative order; the outcome is order-independent for them anyway.
      *

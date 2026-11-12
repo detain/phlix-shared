@@ -26,7 +26,7 @@ use function substr;
  *   - tag {@see self::TAG_HEAD} (0x01): `data` is {@see RelayHttpRequestHead} JSON.
  *   - tag {@see self::TAG_BODY} (0x02): `data` is raw body bytes (<= {@see self::MAX_BODY_CHUNK}).
  *   - tag {@see self::TAG_END}  (0x03): `data` is empty; the request is complete.
- *     A payload with bytes after the tag is malformed and rejected (LW-063).
+ *     A payload with bytes after the tag is malformed and rejected.
  *
  * A producer emits exactly one HEAD, then zero or more BODY chunks, then one
  * END. The 1-byte tag keeps the wire fully compatible with the existing relay
@@ -188,7 +188,7 @@ final class RelayHttpRequestCodec
                 null,
                 $data,
             ),
-            // LW-063: END is the bare tag byte by contract — trailing bytes
+            // END is the bare tag byte by contract — trailing bytes
             // are producer framing bugs and must fail loud, never be dropped
             // into silence where they would hide data loss.
             self::TAG_END => strlen($payload) > 1
