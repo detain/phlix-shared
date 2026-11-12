@@ -6,6 +6,17 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+Fixed: Relay frame `seq` range gate + frame-type table (SHR-S10 / SHR-22,
+SHR-17). `RelayFrame`'s constructor accepted any PHP `int` as `seq`, so a
+negative or > 32-bit value could be built and only failed (or silently
+truncated) when packed into the 4-byte big-endian wire field; it now throws
+`InvalidArgumentException` unless `0 <= seq <= 0xFFFFFFFF`, mirroring
+`RelayHttpResponseHead`'s status-range gate. Every in-range frame (channel
+ids, tunnel-scoped `0`, the hub's `>= 0x80000000` request ids) is
+unaffected. The `RelayFrameType` class-doc type table now aligns on a
+single `=` column and uses one direction vocabulary (S/H/C with `→`/`↔`,
+legend in the heading). Comment-only for the enum; no wire or schema change.
+
 BREAKING (dormant seam) / Fixed: *arr seam correctness (SHR-S8 / SHR-12,
 SHR-23). `SonarrClient::addSeries()` took `int|array $tvdbId` and
 `int $rootFolder`, but Sonarr's `POST /api/v3/series` adds exactly one series
@@ -34,7 +45,8 @@ throws `InvalidArgumentException` on any of those. The other
 `QuotaExceeded` passed a provider-reported `resetTimeUtc` string through
 verbatim, so a non-UTC, oversized or garbage value reached the host's
 `VARCHAR(40)` quota row; the string branch is now parsed via
-`DateTimeImmutable` (must start `YYYY-MM-DD`, parse warning-free, offset-less
+`DateTimeImmutable` (must be a `YYYY-MM-DD` date, optionally followed by
+an ISO time and a `Z`/numeric offset, parse warning-free, offset-less
 read as UTC) and normalised to the same UTC `ATOM` form as the
 `DateTimeImmutable` branch, with anything unparseable degrading to null
 ("unknown") rather than throwing and masking the quota signal. Observable

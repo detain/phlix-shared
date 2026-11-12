@@ -11,6 +11,8 @@ declare(strict_types=1);
 
 namespace Phlix\Shared\Relay;
 
+use InvalidArgumentException;
+
 /**
  * Immutable value object representing a relay wire protocol frame.
  *
@@ -49,18 +51,35 @@ namespace Phlix\Shared\Relay;
 final readonly class RelayFrame
 {
     /**
+     * Largest value the 4-byte big-endian `seq` wire field can carry.
+     */
+    private const int SEQ_MAX = 0xFFFFFFFF;
+
+    /**
      * @param RelayFrameType $type    Frame type.
      * @param int            $seq     32-bit unsigned value. For client-scoped
      *                                frames (CLIENT_CONNECT, CLIENT_DISCONNECT,
      *                                DATA) this is the per-client channel id;
      *                                tunnel-scoped frames use 0. See class doc.
+     *                                Must fit the 4-byte wire field
+     *                                (0..0xFFFFFFFF).
      * @param string         $payload Raw byte payload (may be empty).
+     *
+     * @throws InvalidArgumentException When `$seq` is negative or exceeds
+     *                                  0xFFFFFFFF (it could not be encoded
+     *                                  into the uint32 wire field).
      */
     public function __construct(
         public RelayFrameType $type,
         public int $seq,
         public string $payload,
     ) {
+        if ($seq < 0 || $seq > self::SEQ_MAX) {
+            throw new InvalidArgumentException(sprintf(
+                'RelayFrame: "seq" must be a uint32 (0..0xFFFFFFFF), got %d.',
+                $seq,
+            ));
+        }
     }
 
     /**

@@ -30,36 +30,34 @@ use InvalidArgumentException;
  * demultiplexed over one tunnel; tunnel-scoped frames use channel 0. See
  * {@see RelayFrame} for the full description.
  *
- * Types:
- *   HELLO            = 0x01 — S→H: JSON text sent immediately after WS upgrade (channel 0)
- *   HELLO_ACK        = 0x02 — H→S: JSON text response to HELLO (channel 0)
- *   CLIENT_CONNECT   = 0x03 — H→S: a client connected; channel = the client's channel id;
+ * Types (direction: S = server, H = hub, C = client; `→` one way, `↔` both ways):
+ *   HELLO                 = 0x01 — S→H: JSON text sent immediately after WS upgrade (channel 0)
+ *   HELLO_ACK             = 0x02 — H→S: JSON text response to HELLO (channel 0)
+ *   CLIENT_CONNECT        = 0x03 — H→S: a client connected; channel = the client's channel id;
  *                                  payload {"client_id","session_id"} (observability only)
- *   CLIENT_DISCONNECT= 0x04 — H→S: a client disconnected; channel = that client's channel id;
+ *   CLIENT_DISCONNECT     = 0x04 — H→S: a client disconnected; channel = that client's channel id;
  *                                  payload {"client_id"} (observability only)
- *   DATA             = 0x05 — S↔H↔C: raw bytes forwarded verbatim; channel = owning client
- *   HEARTBEAT        = 0x06 — either→either: keep-alive probe/ack (channel 0)
- *   DISCONNECTED     = 0x07 — H→C: server tunnel closed, client should reconnect (channel 0)
- *   ERROR            = 0x08 — H↔any: error condition (channel 0)
- *   HUB_HELLO        = 0x09 — RETIRED (see "Federation wire types 0x09–0x0F" below)
- *   HUB_HELLO_ACK    = 0x0A — RETIRED
- *   HUB_HEARTBEAT    = 0x0B — RETIRED
- *   LIBRARY_SHARE_UPDATE = 0x0C — RETIRED
- *   LIBRARY_SHARE_REVOKED= 0x0D — RETIRED
- *   ADMIN_DELEGATION = 0x0E — RETIRED
- *   HUB_DISCONNECTED = 0x0F — RETIRED
- *   HTTP_REQUEST     = 0x10 — Hub→Server: a single proxied HTTP request; the 4-byte
- *                             field carries a per-request id (NOT a client channel),
- *                             payload = {@see RelayHttpRequest} JSON. See below.
- *   HTTP_RESPONSE    = 0x11 — Server→Hub: the proxied response for a request id;
- *                             payload is a tagged chunk (HEAD/BODY/END) so a response
- *                             larger than one frame streams across several frames.
- *                             See {@see RelayHttpResponseCodec}.
- *   HTTP_CANCEL      = 0x12 — Hub→Server: the client abandoned the proxied request
- *                             (browser navigated away / connection dropped) so the
- *                             hub can no longer deliver its response. The 4-byte
- *                             field carries the same per-request id as the original
- *                             HTTP_REQUEST; the payload is empty. See below.
+ *   DATA                  = 0x05 — S↔H↔C: raw bytes forwarded verbatim; channel = owning client
+ *   HEARTBEAT             = 0x06 — S↔H: keep-alive probe/ack, sent by either side (channel 0)
+ *   DISCONNECTED          = 0x07 — H→C: server tunnel closed, client should reconnect (channel 0)
+ *   ERROR                 = 0x08 — H↔S/C: error condition, hub with either peer (channel 0)
+ *   HUB_HELLO             = 0x09 — RETIRED (see "Federation wire types 0x09–0x0F" below)
+ *   HUB_HELLO_ACK         = 0x0A — RETIRED
+ *   HUB_HEARTBEAT         = 0x0B — RETIRED
+ *   LIBRARY_SHARE_UPDATE  = 0x0C — RETIRED
+ *   LIBRARY_SHARE_REVOKED = 0x0D — RETIRED
+ *   ADMIN_DELEGATION      = 0x0E — RETIRED
+ *   HUB_DISCONNECTED      = 0x0F — RETIRED
+ *   HTTP_REQUEST          = 0x10 — H→S: a single proxied HTTP request; the 4-byte field carries
+ *                                  a per-request id (NOT a client channel), payload =
+ *                                  {@see RelayHttpRequest} JSON. See below.
+ *   HTTP_RESPONSE         = 0x11 — S→H: the proxied response for a request id; payload is a tagged
+ *                                  chunk (HEAD/BODY/END) so a response larger than one frame
+ *                                  streams across several frames. See {@see RelayHttpResponseCodec}.
+ *   HTTP_CANCEL           = 0x12 — H→S: the client abandoned the proxied request (browser navigated
+ *                                  away / connection dropped) so the hub can no longer deliver
+ *                                  its response. The 4-byte field carries the same per-request
+ *                                  id as the original HTTP_REQUEST; the payload is empty. See below.
  *
  * ## HTTP-over-relay request multiplexing (0x10 / 0x11)
  *

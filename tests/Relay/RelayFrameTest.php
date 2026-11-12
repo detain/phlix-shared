@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace Phlix\Shared\Tests\Relay;
 
+use InvalidArgumentException;
 use Phlix\Shared\Relay\RelayFrame;
 use Phlix\Shared\Relay\RelayFrameType;
 use PHPUnit\Framework\TestCase;
@@ -35,6 +36,37 @@ final class RelayFrameTest extends TestCase
 
         $this->assertSame('', $frame->payload);
         $this->assertSame(0, $frame->seq);
+    }
+
+    public function test_seq_accepts_uint32_bounds(): void
+    {
+        $this->assertSame(0, (new RelayFrame(RelayFrameType::DATA, 0, ''))->seq);
+        $this->assertSame(0xFFFFFFFF, (new RelayFrame(RelayFrameType::HTTP_REQUEST, 0xFFFFFFFF, ''))->seq);
+        $this->assertSame(0x80000000, (new RelayFrame(RelayFrameType::HTTP_RESPONSE, 0x80000000, ''))->seq);
+    }
+
+    /**
+     * @return array<string, array{int}>
+     */
+    public static function provide_out_of_range_seq(): array
+    {
+        return [
+            'minus one' => [-1],
+            'int min' => [PHP_INT_MIN],
+            'uint32 max + 1' => [0x100000000],
+            'int max' => [PHP_INT_MAX],
+        ];
+    }
+
+    /**
+     * @dataProvider provide_out_of_range_seq
+     */
+    public function test_seq_outside_uint32_range_throws(int $seq): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('RelayFrame: "seq" must be a uint32 (0..0xFFFFFFFF), got ' . $seq . '.');
+
+        new RelayFrame(RelayFrameType::DATA, $seq, '');
     }
 
     public function test_channel_id_aliases_seq_for_client_scoped_frames(): void
