@@ -115,7 +115,7 @@ in a new plan step against `detain/phlix` if needed.
 
 ## Before committing
 
-1. `composer install` resolves clean.
+1. `composer install` resolves clean (contributors need `ext-curl` — a `require-dev` entry for the `CurlArrTransport` tests).
 2. `./vendor/bin/phpunit` green.
 3. `./vendor/bin/phpstan analyze --no-progress` green.
 4. `./vendor/bin/phpcs --standard=PSR12 src/` clean.

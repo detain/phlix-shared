@@ -15,11 +15,11 @@ Composer-installable, PHP 8.3+, zero I/O by charter — pure interfaces and
 value objects, with one sanctioned exception: bundled I/O is confined to the
 `Arr\*` namespace — the blocking cURL `CurlArrTransport` default of the *arr
 HTTP clients, plus `TrashGuidesProvider`'s own blocking stream fetches and its
-optional `config/trash_guides.php` local read; see [`AGENTS.md`](AGENTS.md).
+optional `config/trash_guides.php` local read; see [`AGENTS.md`](AGENTS.md) (in the git checkout; it is excluded from the Composer archive).
 
 ## Status
 
-**v0.54.0** (`Phlix\Shared\Version::VERSION`). `schemas/server-settings.schema.json` carries 87 keys (51 `restart: true`, 36 `restart: false`); `schemas/hub-settings.schema.json` carries 18 keys in lockstep with `phlix-hub`'s `HubSettingsRepository::ALLOWED_KEYS`. Cumulative surface:
+**v0.54.0** (`Phlix\Shared\Version::VERSION`). At the working tip, `schemas/server-settings.schema.json` carries 87 keys (51 `restart: true`, 36 `restart: false`; a census of the working tree, not a v0.54.0 tag-time stamp); `schemas/hub-settings.schema.json` carries 18 keys in lockstep with `phlix-hub`'s `HubSettingsRepository::ALLOWED_KEYS`. Cumulative surface:
 
 - `Phlix\Shared\Plugin\{LifecycleInterface, ConfigurableInterface, Manifest, ManifestType, ManifestValidationError, EventNameMap}`
 - `Phlix\Shared\Events\{AbstractEvent, Playback\*, Library\*, Auth\*}` — 12 event DTOs.
@@ -34,7 +34,7 @@ optional `config/trash_guides.php` local read; see [`AGENTS.md`](AGENTS.md).
   quota-consuming `download()` that may throw `QuotaExceeded` (0.42.0+).
 - `Phlix\Shared\Hub\{ClaimRequest, ClaimResponse, ServerInfoDto, HeartbeatDto, LibraryRef}`
 - `Phlix\Shared\Relay\{RelayFrameType, RelayWireCodecInterface, RelayFrame, SyncPlayDialect}` — channel-mux protocol (0.5+);
-  `SyncPlayDialect` is the canonical `syncplay_*` wire message-type catalog (0.55.0+);
+  `SyncPlayDialect` is the canonical `syncplay_*` wire message-type catalog (anticipatory 0.55.0 — ships with the next tag; v0.54.0 is the latest tagged release);
   plus `Relay\{RelayHttpRequest, RelayHttpRequestHead, RelayHttpRequestChunk, RelayHttpRequestCodec}` and
   `Relay\{RelayHttpResponseHead, RelayHttpResponseChunk, RelayHttpResponseCodec}` —
   HTTP-over-relay request/response envelopes + `HEAD→BODY*→END` chunk framing (0.10.0+).
@@ -208,6 +208,7 @@ this runbook is those steps written down before you hit them:
 - `psr/container ^2.0`
 - `psr/event-dispatcher ^1.0`
 - `psr/log ^3.0`
+- Contributors only (`require-dev`): `ext-curl` — the test suite exercises `CurlArrTransport`.
 
 `psr/event-dispatcher` is deliberately declarative: no class in `src/`
 imports a PSR-14 interface — dispatching the plain event DTOs under
@@ -221,7 +222,7 @@ The package has zero framework dependencies — no Workerman, no Monolog,
 no Smarty. It is intended to be safely required by any PHP 8.3+ codebase,
 with one caveat: the `Arr\*` HTTP clients are real network code (their
 default transport needs `ext-curl`, or inject an `ArrTransportInterface`;
-see [`AGENTS.md`](AGENTS.md)).
+see [`AGENTS.md`](AGENTS.md) in the git checkout).
 
 ## Installation
 
@@ -255,6 +256,7 @@ part of the estate checkouts.)
 
 - [`detain/phlix-server`](https://github.com/detain/phlix-server) — the Phlix media server (consumes this package).
 - [`detain/phlix-hub`](https://github.com/detain/phlix-hub) — the multi-server hub + reverse-tunnel relay.
+- Usage guides — the developer pages under [`detain/phlix-docs`](https://github.com/detain/phlix-docs/tree/main/docs/dev) (e.g. `shared-schemas.md`, `arr-clients.md`, `relay-protocol.md`).
 
 ## Development
 
@@ -280,7 +282,7 @@ from the audited set, and it hid CVE-2026-67434 (HIGH, OS command injection) in
 against a vulnerable lock. `scripts/security-audit-check.php` audits the whole
 lock, labels each finding `[require]` / `[require-dev]`, and prints the number of
 packages it examined so a truncated audit cannot pass as a clean one. See
-[`AGENTS.md`](AGENTS.md) for the full policy.
+[`AGENTS.md`](AGENTS.md) (in the git checkout) for the full policy.
 
 The `phpunit` job in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) uploads
 `./coverage.xml` to both Codecov and Codacy.
