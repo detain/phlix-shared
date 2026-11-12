@@ -41,7 +41,7 @@ namespace Phlix\Shared\Relay;
  * belong to those repos.
  *
  * @package Phlix\Shared
- * @since 0.55.0 (anticipatory stamp — v0.54.0 was the shipped tip when this landed)
+ * @since 0.55.0
  */
 final class SyncPlayDialect
 {

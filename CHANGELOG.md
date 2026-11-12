@@ -6,13 +6,21 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.55.0] - 2026-11-12
+
+Minor: release cut of the SHR-S1..S13 review-round batch (changelog hygiene,
+schema copy, behavior changes and the `auth.ws_query_token` deny-default flip
+noted below). `Version::VERSION`, README stamps and the anticipatory `@since
+0.55.0` docblocks now read as shipped. Consumers (phlix-server, phlix-hub)
+re-vendor via SRV-S35 / HUB-S53.
+
 Changelog hygiene (SHR-S13 / SHR-33, SHR-34, SHR-35): document-only; no
 released entry below was rewritten (verbatim history). Seam notes for readers
 reconciling this file against the git tags: `## [0.5.0]` and `## [0.9.0]` have
 no git tag (their content shipped in `v0.5.1` and the `v0.9.x` tags
 respectively); tags `v0.7.1`, `v0.8.1`, `v0.9.2` and `v0.17.0` have no heading
-of their own here. Headings through `[0.9.0]` use an em dash date separator
-and later ones a hyphen; the difference is historical and deliberately kept.
+of their own here. Most headings through `[0.9.0]` use an em dash date
+separator (`[0.5.1]` uses a hyphen) and later ones a hyphen; the difference is historical and deliberately kept.
 `src/Support/PayloadAssert.php` carried `@since 0.2.1`, a version that never
 existed (no tag, no heading); the trait first shipped in `v0.11.1` (see the
 `Hub\PayloadAssert` bullet there, which predates its move to `Support\`) and the

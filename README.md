@@ -19,7 +19,7 @@ optional `config/trash_guides.php` local read; see [`AGENTS.md`](AGENTS.md) (in 
 
 ## Status
 
-**v0.54.0** (`Phlix\Shared\Version::VERSION`). At the working tip, `schemas/server-settings.schema.json` carries 87 keys (51 `restart: true`, 36 `restart: false`; a census of the working tree, not a v0.54.0 tag-time stamp); `schemas/hub-settings.schema.json` carries 18 keys in lockstep with `phlix-hub`'s `HubSettingsRepository::ALLOWED_KEYS`. Cumulative surface:
+**v0.55.0** (`Phlix\Shared\Version::VERSION`). At the working tip, `schemas/server-settings.schema.json` carries 87 keys (51 `restart: true`, 36 `restart: false`; a census of the working tree, not a v0.55.0 tag-time stamp); `schemas/hub-settings.schema.json` carries 18 keys in lockstep with `phlix-hub`'s `HubSettingsRepository::ALLOWED_KEYS`. Cumulative surface:
 
 - `Phlix\Shared\Plugin\{LifecycleInterface, ConfigurableInterface, Manifest, ManifestType, ManifestValidationError, EventNameMap}`
 - `Phlix\Shared\Events\{AbstractEvent, Playback\*, Library\*, Auth\*}` — 12 event DTOs.
@@ -34,7 +34,7 @@ optional `config/trash_guides.php` local read; see [`AGENTS.md`](AGENTS.md) (in 
   quota-consuming `download()` that may throw `QuotaExceeded` (0.42.0+).
 - `Phlix\Shared\Hub\{ClaimRequest, ClaimResponse, ServerInfoDto, HeartbeatDto, LibraryRef}`
 - `Phlix\Shared\Relay\{RelayFrameType, RelayWireCodecInterface, RelayFrame, SyncPlayDialect}` — channel-mux protocol (0.5+);
-  `SyncPlayDialect` is the canonical `syncplay_*` wire message-type catalog (anticipatory 0.55.0 — ships with the next tag; v0.54.0 is the latest tagged release);
+  `SyncPlayDialect` is the canonical `syncplay_*` wire message-type catalog (shipped in v0.55.0);
   plus `Relay\{RelayHttpRequest, RelayHttpRequestHead, RelayHttpRequestChunk, RelayHttpRequestCodec}` and
   `Relay\{RelayHttpResponseHead, RelayHttpResponseChunk, RelayHttpResponseCodec}` —
   HTTP-over-relay request/response envelopes + `HEAD→BODY*→END` chunk framing (0.10.0+).
@@ -229,7 +229,7 @@ see [`AGENTS.md`](AGENTS.md) in the git checkout).
 `detain/phlix-shared` is published on Packagist:
 
 ```bash
-composer require detain/phlix-shared:^0.54
+composer require detain/phlix-shared:^0.55
 ```
 
 ## Package layout
