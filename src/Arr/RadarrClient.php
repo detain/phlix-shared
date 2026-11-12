@@ -147,8 +147,8 @@ class RadarrClient extends AbstractArrClient implements ArrClientInterface
     /**
      * Extracts the integer `id` a create response must carry.
      *
-     * The old `is_numeric ? (int)$id : 0` arm failed two ways (review
-     * shared__srphp #3): an absent id returned the 0 sentinel, indistinguishable
+     * The old `is_numeric ? (int)$id : 0` arm failed two ways:
+     * an absent id returned the 0 sentinel, indistinguishable
      * from a real creation, and a json_decode float (12.9) was silently
      * truncated to 12. A create response that does not name its resource is a
      * contract violation and now fails loud; integer-valued strings are the

@@ -11,7 +11,7 @@
             "description": "Master switch for hardware-accelerated transcoding.",
             "group": "transcoding",
             "label": "Enable hardware acceleration",
-            "helpText": "When enabled, the server will use your GPU (NVENC, QSV, VCE, or VideoToolbox) to accelerate transcoding instead of relying solely on CPU-based software encoding. This dramatically reduces CPU load and power consumption for concurrent streams, but requires a compatible GPU and appropriate driver support. If your hardware does not support acceleration, the server falls back to software encoding automatically. Changes take effect after a server restart: the merged transcoding config is built once per worker and handed to the ffmpeg runner.",
+            "helpText": "When enabled, the server uses your GPU (NVENC, QSV, VCE, or VideoToolbox) to accelerate transcoding instead of relying solely on CPU-based software encoding. This dramatically reduces CPU load and power consumption for concurrent streams, but requires a compatible GPU and appropriate driver support. If your hardware does not support acceleration, the server falls back to software encoding automatically. Changes take effect after a server restart: the merged transcoding config is built once per worker and handed to the ffmpeg runner.",
             "helpLinks": [
                 {
                     "text": "NVENC (NVIDIA)",
@@ -107,7 +107,7 @@
             "group": "transcoding",
             "description": "HDR tone mapping mode when converting HDR content for SDR displays.",
             "label": "HDR tone mapping mode",
-            "helpText": "Controls how HDR10 and other HDR video is tone-mapped for display on SDR screens. 'None' passes the video through without tone mapping (HDR content may look washed out on SDR screens); 'zscale' uses the zimg/zscale filter for high-quality CPU tone mapping; 'libplacebo' uses the libplacebo filter for GPU-accelerated tone mapping. Changes take effect after a server restart: the merged transcoding config is built once per worker and handed to the ffmpeg runner.",
+            "helpText": "Controls how HDR10 and other HDR video is tone-mapped for display on SDR screens. 'none' passes the video through without tone mapping (HDR content may look washed out on SDR screens); 'zscale' uses the zimg/zscale filter for high-quality CPU tone mapping; 'libplacebo' uses the libplacebo filter for GPU-accelerated tone mapping. Changes take effect after a server restart: the merged transcoding config is built once per worker and handed to the ffmpeg runner.",
             "helpLinks": [
                 {
                     "text": "HDR tone mapping",
@@ -417,7 +417,7 @@
         },
         "auth.ws_query_token": {
             "type": "string",
-            "description": "Gate for the legacy WebSocket handshake that carries the access token as a ?token= query parameter on the server's direct sync-play socket. 'deny' (shipped default since the CP-024 PHASE B flip) refuses such handshakes so only the bearer subprotocol header carrier connects; 'allow' re-admits them with a token-redacted warning log per use. The explicit PHLIX_WS_QUERY_TOKEN environment value takes operator precedence over this control.",
+            "description": "Gate for the legacy WebSocket handshake that carries the access token as a ?token= query parameter on the server's direct sync-play socket. 'deny' (the shipped default) refuses such handshakes so only the bearer subprotocol header carrier connects; 'allow' re-admits them with a token-redacted warning log per use. The explicit PHLIX_WS_QUERY_TOKEN environment value takes operator precedence over this control.",
             "group": "auth",
             "label": "Token-in-URL WebSocket auth",
             "helpText": "Older and third-party WebSocket clients sign in by putting the access token straight into the connect URL (?token=...). That works, but the token then rides through every access log, proxy log and crash report between client and server, and the platform treats a token in a log line as incident-grade. The current carrier sends the token in the WebSocket handshake header instead, which never lands in a URL. The shipped default is 'Deny': the URL carrier stays closed and only header-carrying clients connect to watch parties. Set 'Allow' only as a temporary grace window for stragglers — each query-carried handshake then logs one warning with the token redacted, so you can count the remaining clients from the log — and return to 'Deny' once the log runs quiet; a client that has not moved to the header carrier simply stops connecting while 'Deny' is in force. The server reads this control live at each handshake (no restart needed for the decision to take effect), and an explicit PHLIX_WS_QUERY_TOKEN environment value overrides it in either direction.",
