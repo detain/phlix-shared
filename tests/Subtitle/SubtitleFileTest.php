@@ -11,8 +11,11 @@ declare(strict_types=1);
 
 namespace Phlix\Shared\Tests\Subtitle;
 
+use InvalidArgumentException;
 use Phlix\Shared\Subtitle\SubtitleFile;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
 
 /**
  * @covers \Phlix\Shared\Subtitle\SubtitleFile
@@ -56,5 +59,53 @@ final class SubtitleFileTest extends TestCase
         $this->assertNull($file->releaseName);
         $this->assertFalse($file->hearingImpaired);
         $this->assertFalse($file->isHearingImpaired());
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function unsafeFilenames(): array
+    {
+        return [
+            'empty' => [''],
+            'dot' => ['.'],
+            'dot-dot' => ['..'],
+            'forward slash' => ['../../etc/passwd'],
+            'nested dir' => ['sub/Movie.en.srt'],
+            'absolute' => ['/var/subtitles/Movie.en.srt'],
+            'backslash' => ['..\\Movie.en.srt'],
+            'nul byte' => ["Movie.en.srt\0.php"],
+            'newline' => ["Movie\n.en.srt"],
+            'unit separator' => ["Movie\x1F.en.srt"],
+        ];
+    }
+
+    #[DataProvider('unsafeFilenames')]
+    public function test_rejects_unsafe_suggested_filename(string $name): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        // Out-of-contract input (the param is statically non-empty-string), so
+        // construct reflectively: this pins the RUNTIME gate a plugin hits.
+        (new ReflectionClass(SubtitleFile::class))->newInstanceArgs([
+            'language' => 'en',
+            'format' => 'srt',
+            'content' => '',
+            'provider' => 'opensubtitles',
+            'suggestedFilename' => $name,
+        ]);
+    }
+
+    public function test_accepts_dotted_base_name_with_spaces_and_unicode(): void
+    {
+        $file = new SubtitleFile(
+            language: 'en',
+            format: 'srt',
+            content: '',
+            provider: 'opensubtitles',
+            suggestedFilename: '..Amélie (2001) ..en.srt',
+        );
+
+        $this->assertSame('..Amélie (2001) ..en.srt', $file->suggestedFilename);
     }
 }

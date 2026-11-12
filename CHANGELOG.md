@@ -6,6 +6,21 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+Fixed: Subtitle value-object input gating (SHR-S7 / SHR-11, SHR-29).
+`SubtitleFile`'s constructor ran no validation, so a provider could hand the
+host an empty, `.`/`..`, separator-bearing (`/`, `\`) or control-byte
+`suggestedFilename` despite the documented "base name only" contract; it now
+throws `InvalidArgumentException` on any of those. The other
+`non-empty-string` fields stay static-contract only (documented as such).
+`QuotaExceeded` passed a provider-reported `resetTimeUtc` string through
+verbatim, so a non-UTC, oversized or garbage value reached the host's
+`VARCHAR(40)` quota row; the string branch is now parsed via
+`DateTimeImmutable` (must start `YYYY-MM-DD`, parse warning-free, offset-less
+read as UTC) and normalised to the same UTC `ATOM` form as the
+`DateTimeImmutable` branch, with anything unparseable degrading to null
+("unknown") rather than throwing and masking the quota signal. No wire
+change; phlix-server's `SubtitleStorage` path jail remains the belt.
+
 Fixed: `Plugin\Manifest::getUnknownFields()` int leak + plugin-manifest
 doc truth (SHR-S5 / SHR-5, SHR-10, SHR-19). PHP folds a decimal-integer
 top-level key such as `"42"` to int `42`, so `getUnknownFields()` broke its

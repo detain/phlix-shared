@@ -13,6 +13,7 @@ namespace Phlix\Shared\Subtitle\Exception;
 
 use DateTimeImmutable;
 use DateTimeZone;
+use Exception;
 use RuntimeException;
 use Throwable;
 
@@ -24,6 +25,15 @@ use Throwable;
  * host to stop attempting downloads against this source and to surface/persist
  * the quota state to the operator. It optionally carries the remaining
  * allowance and the reset time when the provider reports them.
+ *
+ * The reset time is always exposed as a normalised ISO-8601 UTC string
+ * (`DateTimeImmutable::ATOM`, e.g. `2026-07-22T00:00:00+00:00`) or null. A
+ * string argument is provider-reported, so it is parsed with
+ * {@see DateTimeImmutable} rather than passed through: it must begin with a
+ * `YYYY-MM-DD` calendar date and parse without warnings (an offset-less value
+ * is read as UTC). Anything else — empty, relative (`tomorrow`), or garbage —
+ * degrades to null ("reset time unknown") instead of throwing, so a malformed
+ * reset field can never mask the quota signal itself.
  *
  * @package Phlix\Shared\Subtitle\Exception
  * @since 0.42.0
@@ -51,9 +61,11 @@ final class QuotaExceeded extends RuntimeException
      *                                                          the provider does not report it.
      * @param DateTimeImmutable|string|null $resetTimeUtc      When the quota resets. Accepts a
      *                                                          {@see DateTimeImmutable} (converted to UTC and
-     *                                                          normalised to an ISO-8601 string) or a
-     *                                                          pre-formatted string, or
-     *                                                          null when the provider does not report it.
+     *                                                          normalised to an ISO-8601 string), a
+     *                                                          provider-reported date-time string (validated
+     *                                                          and normalised the same way; unparseable
+     *                                                          values become null), or null when the
+     *                                                          provider does not report it.
      * @param int                          $code               Exception code (default 0).
      * @param Throwable|null               $previous           Underlying cause, if any.
      */
@@ -67,9 +79,45 @@ final class QuotaExceeded extends RuntimeException
         parent::__construct($message, $code, $previous);
 
         $this->downloadsRemaining = $downloadsRemaining;
-        $this->resetTimeUtc = $resetTimeUtc instanceof DateTimeImmutable
-            ? $resetTimeUtc->setTimezone(new DateTimeZone('UTC'))->format(DateTimeImmutable::ATOM)
-            : $resetTimeUtc;
+        $this->resetTimeUtc = self::normaliseResetTime($resetTimeUtc);
+    }
+
+    /**
+     * Normalise a reset time to an ISO-8601 UTC string, or null when absent/invalid.
+     *
+     * @param DateTimeImmutable|string|null $resetTimeUtc Reset time as given to the constructor.
+     *
+     * @return string|null `DateTimeImmutable::ATOM` in UTC, or null.
+     */
+    private static function normaliseResetTime(DateTimeImmutable|string|null $resetTimeUtc): ?string
+    {
+        $utc = new DateTimeZone('UTC');
+
+        if ($resetTimeUtc instanceof DateTimeImmutable) {
+            return $resetTimeUtc->setTimezone($utc)->format(DateTimeImmutable::ATOM);
+        }
+
+        if ($resetTimeUtc === null) {
+            return null;
+        }
+
+        $value = trim($resetTimeUtc);
+        if (preg_match('/^\d{4}-\d{2}-\d{2}(?:[T ]|$)/', $value) !== 1) {
+            return null;
+        }
+
+        try {
+            $parsed = new DateTimeImmutable($value, $utc);
+        } catch (Exception) {
+            return null;
+        }
+
+        $errors = DateTimeImmutable::getLastErrors();
+        if ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0)) {
+            return null;
+        }
+
+        return $parsed->setTimezone($utc)->format(DateTimeImmutable::ATOM);
     }
 
     /**

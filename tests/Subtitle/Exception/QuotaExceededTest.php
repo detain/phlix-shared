@@ -13,6 +13,7 @@ namespace Phlix\Shared\Tests\Subtitle\Exception;
 
 use DateTimeImmutable;
 use Phlix\Shared\Subtitle\Exception\QuotaExceeded;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -87,5 +88,59 @@ final class QuotaExceededTest extends TestCase
 
         $this->assertSame(429, $e->getCode());
         $this->assertSame($previous, $e->getPrevious());
+    }
+
+    public function test_normalises_provider_string_reset_time_to_utc_atom(): void
+    {
+        // OpenSubtitles reports fractional-second `Z` timestamps.
+        $this->assertSame(
+            '2022-04-08T13:03:16+00:00',
+            (new QuotaExceeded('x', resetTimeUtc: '2022-04-08T13:03:16.000Z'))->getResetTimeUtc(),
+        );
+        $this->assertSame(
+            '2026-07-22T06:30:00+00:00',
+            (new QuotaExceeded('x', resetTimeUtc: '2026-07-22T08:30:00+02:00'))->getResetTimeUtc(),
+        );
+    }
+
+    public function test_offsetless_string_reset_time_is_read_as_utc(): void
+    {
+        $previous = date_default_timezone_get();
+        date_default_timezone_set('Europe/Berlin');
+
+        try {
+            $e = new QuotaExceeded('x', resetTimeUtc: '2026-07-22 00:00:00');
+
+            $this->assertSame('2026-07-22T00:00:00+00:00', $e->getResetTimeUtc());
+        } finally {
+            date_default_timezone_set($previous);
+        }
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function invalidResetStrings(): array
+    {
+        return [
+            'empty' => [''],
+            'whitespace' => ['   '],
+            'relative' => ['tomorrow'],
+            'military zone letter' => ['a'],
+            'impossible date' => ['2026-02-30T00:00:00Z'],
+            'impossible hour' => ['2026-07-22T25:00:00Z'],
+            'trailing garbage' => ['2026-07-22 garbage'],
+            'oversized junk' => [str_repeat('9', 200)],
+        ];
+    }
+
+    #[DataProvider('invalidResetStrings')]
+    public function test_invalid_string_reset_time_degrades_to_null_without_masking_quota(string $value): void
+    {
+        $e = new QuotaExceeded('Out of downloads.', downloadsRemaining: 0, resetTimeUtc: $value);
+
+        $this->assertNull($e->getResetTimeUtc());
+        $this->assertSame('Out of downloads.', $e->getMessage());
+        $this->assertSame(0, $e->getDownloadsRemaining());
     }
 }
