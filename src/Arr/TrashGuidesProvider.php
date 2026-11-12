@@ -98,6 +98,15 @@ class TrashGuidesProvider
      */
     private const int MAX_REDIRECT_HOPS = 5;
 
+    /**
+     * Byte ceiling on one response body (SHR-2): 32 MiB. PHP's http stream
+     * context has no response-size option, so the cap is enforced on the
+     * read itself — at most MAX + 1 bytes are pulled, and a body that reaches
+     * MAX + 1 is refused before it can be buffered further or JSON-decoded.
+     * Every hop (redirect bodies included) is read under the same ceiling.
+     */
+    private const int MAX_RESPONSE_BYTES = 33_554_432;
+
     /** @var array<string, mixed>|null Cached quality profiles data */
     private static ?array $qualityProfilesCache = null;
 
@@ -237,15 +246,49 @@ class TrashGuidesProvider
         $json = $this->fetchUrl($customFormatsUrl);
         $data = $this->parseJson($json);
 
-        // TRaSH-Guides JSON often contains a version field
-        /** @var string */
-        $version = $data['version'] ?? $this->deriveVersionFromUrl($customFormatsUrl);
+        $version = $this->resolveVersion($data, $customFormatsUrl);
 
         self::$versionCache = $version;
         self::$cacheTimestamp = (int) (hrtime(true) / 1_000_000_000);
 
         $this->version = $version;
         return $this->version;
+    }
+
+    /**
+     * Picks the version string from a decoded custom-formats payload, gated
+     * BEFORE it can reach `$versionCache` (SHR-2).
+     *
+     * The upstream `version` field is untrusted JSON: it used to flow through
+     * an unverified `@var string` straight into a `?string` static, so an
+     * integer died as a TypeError and an empty string was cached as a valid
+     * "version" for 24 h. Now: an absent or null field derives from the URL
+     * (unchanged fallback); a present field must be a non-empty string or the
+     * read fails loud, naming the actual type, with nothing cached.
+     *
+     * @param array<string, mixed> $data Decoded custom-formats payload.
+     * @param string               $url  The URL it came from (derivation base).
+     *
+     * @return non-empty-string The verified version string.
+     *
+     * @throws RuntimeException When the payload carries a non-string or empty
+     *                          `version` field.
+     */
+    private function resolveVersion(array $data, string $url): string
+    {
+        $version = $data['version'] ?? null;
+        if ($version === null) {
+            $version = $this->deriveVersionFromUrl($url);
+        }
+
+        if (!is_string($version) || $version === '') {
+            throw new RuntimeException(
+                'TRaSH-Guides custom formats "version" field must be a non-empty string, got '
+                . (is_string($version) ? 'empty string' : get_debug_type($version)) . '.'
+            );
+        }
+
+        return $version;
     }
 
     /**
@@ -354,12 +397,18 @@ class TrashGuidesProvider
      * auto-follow at all, each 3xx target is resolved to an absolute URL and
      * re-passes the same gate before it is dialed.
      *
-     * @param string $url The URL to fetch.
+     * Every hop's body is read under a byte ceiling ({@see self::MAX_RESPONSE_BYTES},
+     * SHR-2): an oversize response is refused instead of buffered whole.
+     *
+     * @param string $url      The URL to fetch.
+     * @param int    $maxBytes Body byte ceiling per hop (the constant in
+     *                         production; tests pass a small one).
      * @return string The response body.
      * @throws RuntimeException On a non-https URL (initial or redirect target),
-     *                          an exhausted redirect budget, or a network error.
+     *                          an exhausted redirect budget, an oversize body,
+     *                          or a network error.
      */
-    private function fetchUrl(string $url): string
+    private function fetchUrl(string $url, int $maxBytes = self::MAX_RESPONSE_BYTES): string
     {
         $current = $this->requireHttpsUrl($url);
 
@@ -378,7 +427,7 @@ class TrashGuidesProvider
                 ],
             ]);
 
-            [$body, $responseHeaders] = $this->readUrlBody($current, $context);
+            [$body, $responseHeaders] = $this->readUrlBody($current, $context, $maxBytes);
 
             $target = $this->redirectTargetFromHeaders($responseHeaders, $current);
             if ($target === null) {
@@ -435,15 +484,21 @@ class TrashGuidesProvider
      * message (raw wrapper text can embed internal detail, M-SHARED-22), but
      * never dropped.
      *
-     * @param resource $context Stream context for the read.
+     * SHR-2: the read is length-bounded — at most `$maxBytes + 1` bytes are
+     * pulled, and reaching the extra byte is the oversize verdict (the body
+     * is dropped, never decoded).
+     *
+     * @param resource $context  Stream context for the read.
+     * @param int      $maxBytes Body byte ceiling (>= 1).
      *
      * @return array{0: string, 1: list<string>} Response body and the response
      *         header stack the wrapper reported.
      *
-     * @throws RuntimeException When the read fails.
+     * @throws RuntimeException When the read fails or the body exceeds $maxBytes.
      */
-    private function readUrlBody(string $url, mixed $context): array
+    private function readUrlBody(string $url, mixed $context, int $maxBytes = self::MAX_RESPONSE_BYTES): array
     {
+        $maxBytes = max(1, $maxBytes);
         /** @var list<string> $http_response_header */
         $http_response_header = [];
         $capturedError = null;
@@ -455,7 +510,7 @@ class TrashGuidesProvider
         });
         try {
             /** @var string|false $body */
-            $body = file_get_contents($url, false, $context);
+            $body = file_get_contents($url, false, $context, 0, $maxBytes + 1);
             /** @var list<string> $responseHeaders */
             $responseHeaders = $http_response_header;
         } finally {
@@ -464,6 +519,13 @@ class TrashGuidesProvider
 
         if ($body === false) {
             throw new RuntimeException('Failed to fetch TRaSH-Guides data from: ' . $url, 0, $capturedError);
+        }
+
+        if (strlen($body) > $maxBytes) {
+            throw new RuntimeException(
+                'Failed to fetch TRaSH-Guides data from: ' . $url
+                . ' (response exceeds the ' . $maxBytes . '-byte cap)'
+            );
         }
 
         return [$body, $responseHeaders];

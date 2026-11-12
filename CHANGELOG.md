@@ -6,6 +6,22 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+Fixed: `Arr\TrashGuidesProvider` version validation + fetch byte cap
+(SHR-S3 / SHR-2). `getVersion()` wrote the upstream JSON `version` field
+into the `?string` static cache through an unverified `@var string`: an
+integer died as a TypeError and an empty string was cached as a valid
+version for 24 h. A new private `resolveVersion()` gate now runs before the
+cache write — absent/null derives from the URL as before; a present
+non-string or empty value throws a `RuntimeException` naming the actual
+type, caching nothing. `fetchUrl()` had no response-size bound; every hop's
+body is now read under `MAX_RESPONSE_BYTES` (32 MiB) — PHP's http stream
+context has no size option, so the read itself is length-bounded (max + 1
+bytes) and an over-cap body is refused with the stable
+`Failed to fetch TRaSH-Guides data from:` prefix before any decode. Pinned
+by boundary tests through the loopback TLS harness (exact-cap passes,
+cap + 1 refused), a type-matrix test on the gate, and a wiring pin that the
+gate precedes the cache write. No public-surface, wire, or schema change.
+
 Added: the canonical SyncPlay wire message-type catalog
 `Phlix\Shared\Relay\SyncPlayDialect` (LW-082-a, estate review ledger
 2026-11-04 wiring-hub.md). The nineteen `syncplay_*` message types lived as

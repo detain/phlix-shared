@@ -849,6 +849,146 @@ class TrashGuidesProviderTest extends TestCase
     }
 
     /**
+     * SHR-2: the response byte ceiling is a pinned constant (32 MiB) and the
+     * production default of fetchUrl's cap parameter.
+     */
+    public function testResponseByteCapIsPinnedAndIsTheFetchDefault(): void
+    {
+        $reflection = new \ReflectionClass(TrashGuidesProvider::class);
+        if (!$reflection->hasConstant('MAX_RESPONSE_BYTES')) {
+            $this->fail('SHR-2: TrashGuidesProvider::MAX_RESPONSE_BYTES is missing.');
+        }
+        $this->assertSame(33_554_432, $reflection->getConstant('MAX_RESPONSE_BYTES'));
+
+        foreach (['fetchUrl', 'readUrlBody'] as $method) {
+            $parameter = null;
+            foreach ($reflection->getMethod($method)->getParameters() as $candidate) {
+                if ($candidate->getName() === 'maxBytes') {
+                    $parameter = $candidate;
+                }
+            }
+            $this->assertNotNull($parameter, "SHR-2: $method must take the maxBytes cap.");
+            $this->assertTrue($parameter->isDefaultValueAvailable());
+            $this->assertSame(33_554_432, $parameter->getDefaultValue(), "$method cap default");
+        }
+    }
+
+    /**
+     * SHR-2: the fetch is length-bounded, driven through the real stream read
+     * on the loopback TLS harness with a small cap. A body of exactly the cap
+     * is returned whole; one byte more is refused with the stable public
+     * prefix plus the cap — never returned, never decoded. A mutant that
+     * drops the read bound or the oversize check returns the 17-byte body and
+     * is caught red by the exception assertion.
+     */
+    public function testFetchUrlEnforcesTheResponseByteCap(): void
+    {
+        $atCap = str_repeat('a', 16);
+        $outcome = $this->runFetchThroughRedirectServer(
+            '/fits.json',
+            ['/fits.json' => ['status' => 200, 'body' => $atCap]],
+            2,
+            16
+        );
+        $this->assertArrayNotHasKey('exception', $outcome, 'a body of exactly the cap must pass');
+        $this->assertSame($atCap, $outcome['returned'] ?? null);
+        $this->assertSame(['/fits.json 200'], $outcome['served']);
+
+        $outcome = $this->runFetchThroughRedirectServer(
+            '/big.json',
+            ['/big.json' => ['status' => 200, 'body' => $atCap . 'b']],
+            2,
+            16
+        );
+        $exception = $outcome['exception'] ?? null;
+        $this->assertInstanceOf(
+            \RuntimeException::class,
+            $exception,
+            'an over-cap body must be refused; returned=' . var_export($outcome['returned'] ?? null, true)
+        );
+        $this->assertSame(
+            'Failed to fetch TRaSH-Guides data from: ' . $outcome['url'] . ' (response exceeds the 16-byte cap)',
+            $exception->getMessage()
+        );
+        $this->assertSame(['/big.json 200'], $outcome['served']);
+    }
+
+    /**
+     * SHR-2: the upstream `version` field is gated before it can reach the
+     * static cache. A non-empty string is kept verbatim; an absent or null
+     * field derives from the URL (prior fallback, unchanged); a present
+     * non-string or empty value fails loud naming the actual type instead of
+     * riding an unverified `@var string` into `?string $versionCache`.
+     */
+    public function testResolveVersionGatesTheUpstreamField(): void
+    {
+        $provider = new TrashGuidesProvider();
+        $reflection = new \ReflectionClass($provider);
+        if (!$reflection->hasMethod('resolveVersion')) {
+            $this->fail('SHR-2: TrashGuidesProvider::resolveVersion() is missing.');
+        }
+        $resolve = $reflection->getMethod('resolveVersion');
+        $resolve->setAccessible(true);
+
+        $shaUrl = 'https://raw.githubusercontent.com/TRaSH-Guides/Guides/abc1234def/docs/json/x.json';
+        $branchUrl = 'https://raw.githubusercontent.com/TRaSH-Guides/Guides/main/docs/json/x.json';
+
+        $this->assertSame('v2024.1', $resolve->invoke($provider, ['version' => 'v2024.1'], $branchUrl));
+        $this->assertSame('abc1234def', $resolve->invoke($provider, [], $shaUrl));
+        $this->assertSame('abc1234def', $resolve->invoke($provider, ['version' => null], $shaUrl));
+        /** @var string $derived */
+        $derived = $resolve->invoke($provider, [], $branchUrl);
+        $this->assertMatchesRegularExpression('/^unknown-\d+$/', $derived);
+
+        $rejects = [
+            'int' => [42, 'int'],
+            'float' => [1.5, 'float'],
+            'bool' => [true, 'bool'],
+            'array' => [['x'], 'array'],
+            'empty string' => ['', 'empty string'],
+        ];
+        foreach ($rejects as $label => [$value, $typeText]) {
+            try {
+                $resolve->invoke($provider, ['version' => $value], $shaUrl);
+                $this->fail("[$label] a malformed version field must throw, not be cached or derived around.");
+            } catch (\RuntimeException $e) {
+                $this->assertSame(
+                    'TRaSH-Guides custom formats "version" field must be a non-empty string, got '
+                        . $typeText . '.',
+                    $e->getMessage(),
+                    "[$label]"
+                );
+            }
+        }
+    }
+
+    /**
+     * SHR-2 wiring pin: getVersion() routes the decoded payload through the
+     * gate and only then writes the static cache (no raw `$data['version']`
+     * read survives in its body).
+     */
+    public function testGetVersionWritesTheCacheOnlyThroughTheGate(): void
+    {
+        $method = new \ReflectionMethod(TrashGuidesProvider::class, 'getVersion');
+        $file = $method->getFileName();
+        $this->assertIsString($file);
+        $lines = file($file);
+        $this->assertIsArray($lines);
+        $body = implode('', array_slice(
+            $lines,
+            (int) $method->getStartLine() - 1,
+            (int) $method->getEndLine() - (int) $method->getStartLine() + 1
+        ));
+
+        $gate = strpos($body, '$this->resolveVersion(');
+        $write = strpos($body, 'self::$versionCache = $version;');
+        $this->assertNotFalse($gate, 'getVersion must call resolveVersion');
+        $this->assertNotFalse($write, 'getVersion must still populate the static cache');
+        $this->assertLessThan($write, $gate, 'the gate must run before the cache write');
+        $this->assertStringNotContainsString("\$data['version']", $body);
+    }
+
+    /**
      * Hermetic loopback harness for the two LW-061 drive-through tests.
      *
      * Starts the scripted TLS child (tests/Support/Arr/
@@ -864,12 +1004,18 @@ class TrashGuidesProviderTest extends TestCase
      * `{port}` inside scripted Locations is substituted with the real port.
      *
      * @param array<string, array{status: int, location?: string, body?: string}> $routes
-     * @param int $maxConns Connection ceiling the child will service.
+     * @param int      $maxConns Connection ceiling the child will service.
+     * @param int|null $maxBytes Body byte cap handed to fetchUrl (null: the
+     *                           production default).
      *
      * @return array{url: string, served: list<string>, exception?: \RuntimeException, returned?: string}
      */
-    private function runFetchThroughRedirectServer(string $initialPath, array $routes, int $maxConns): array
-    {
+    private function runFetchThroughRedirectServer(
+        string $initialPath,
+        array $routes,
+        int $maxConns,
+        ?int $maxBytes = null
+    ): array {
         $dir = sys_get_temp_dir() . '/tg-e2e-' . bin2hex(random_bytes(6));
         if (!mkdir($dir, 0700) && !is_dir($dir)) {
             $this->fail("could not create the scratch dir $dir");
@@ -939,7 +1085,9 @@ class TrashGuidesProviderTest extends TestCase
             $outcome = ['url' => $url, 'served' => []];
             try {
                 /** @var string $body */
-                $body = $fetchUrl->invoke($provider, $url);
+                $body = $maxBytes === null
+                    ? $fetchUrl->invoke($provider, $url)
+                    : $fetchUrl->invoke($provider, $url, $maxBytes);
                 $outcome['returned'] = $body;
             } catch (\RuntimeException $exception) {
                 $outcome['exception'] = $exception;
