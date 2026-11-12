@@ -878,8 +878,10 @@ class TrashGuidesProviderTest extends TestCase
      * on the loopback TLS harness with a small cap. A body of exactly the cap
      * is returned whole; one byte more is refused with the stable public
      * prefix plus the cap — never returned, never decoded. A mutant that
-     * drops the read bound or the oversize check returns the 17-byte body and
-     * is caught red by the exception assertion.
+     * drops the oversize check returns the 17-byte body and is caught red by
+     * the exception assertion. Dropping only the read bound is NOT visible
+     * here (the post-read strlen check throws the same message), so the
+     * bounded read itself is pinned by the source assertion at the end.
      */
     public function testFetchUrlEnforcesTheResponseByteCap(): void
     {
@@ -911,6 +913,22 @@ class TrashGuidesProviderTest extends TestCase
             $exception->getMessage()
         );
         $this->assertSame(['/big.json 200'], $outcome['served']);
+
+        $method = new \ReflectionMethod(TrashGuidesProvider::class, 'readUrlBody');
+        $file = $method->getFileName();
+        $this->assertIsString($file);
+        $lines = file($file);
+        $this->assertIsArray($lines);
+        $body = implode('', array_slice(
+            $lines,
+            (int) $method->getStartLine() - 1,
+            (int) $method->getEndLine() - (int) $method->getStartLine() + 1
+        ));
+        $this->assertStringContainsString(
+            'file_get_contents($url, false, $context, 0, $maxBytes + 1)',
+            $body,
+            'the read itself must stay bounded at cap + 1 bytes'
+        );
     }
 
     /**

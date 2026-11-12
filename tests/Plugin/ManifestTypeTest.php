@@ -25,6 +25,25 @@ final class ManifestTypeTest extends TestCase
     }
 
     /**
+     * SHR-S5: the case values mirror, in order, the `type` enum of the
+     * bundled schemas/manifest.schema.json (the canonical schema;
+     * phlix-server's ManifestSchema validates against it).
+     */
+    public function test_cases_mirror_the_bundled_schema_type_enum(): void
+    {
+        $source = file_get_contents(dirname(__DIR__, 2) . '/schemas/manifest.schema.json');
+        $this->assertIsString($source);
+        $schema = json_decode($source, true, 512, JSON_THROW_ON_ERROR);
+        $this->assertIsArray($schema);
+        $this->assertIsArray($schema['properties']['type']['enum'] ?? null);
+
+        $this->assertSame(
+            $schema['properties']['type']['enum'],
+            array_map(static fn (ManifestType $case): string => $case->value, ManifestType::cases())
+        );
+    }
+
+    /**
      * @return array<string, array{0: string, 1: ManifestType}>
      */
     public static function caseProvider(): array

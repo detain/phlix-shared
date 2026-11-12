@@ -6,6 +6,21 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+Fixed: `Plugin\Manifest::getUnknownFields()` int leak + plugin-manifest
+doc truth (SHR-S5 / SHR-5, SHR-10, SHR-19). PHP folds a decimal-integer
+top-level key such as `"42"` to int `42`, so `getUnknownFields()` broke its
+`list<string>` promise and the int then hit the strict-typed `string $field`
+of `ManifestValidationError` in the consuming validator as a TypeError. Each
+key is now cast to string (wire-identical: the string form is the key as
+written). Docblocks on `Manifest`, `ManifestType` and `ManifestValidationError`
+now agree that the schema is bundled here in `schemas/manifest.schema.json`
+and `phlix-server`'s `ManifestSchema` validates against it (one still named a
+non-existent `phlix-server` `docs/` path); `ManifestValidationError::$field`
+is described as the dotted path it is, not "JSON Pointer"; `EventNameMap`'s
+"the table above" pointer now reads "the map in this class". Pinned by an
+int-like-key test, plus `KNOWN_TOP_LEVEL_KEYS` and `ManifestType` parity
+tests against the bundled schema. No public-surface, wire, or schema change.
+
 Fixed: `Arr\TrashGuidesProvider` version validation + fetch byte cap
 (SHR-S3 / SHR-2). `getVersion()` wrote the upstream JSON `version` field
 into the `?string` static cache through an unverified `@var string`: an

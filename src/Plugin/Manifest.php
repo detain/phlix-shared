@@ -25,8 +25,9 @@ use RuntimeException;
  *     including unknown {@see ManifestType} values and missing required
  *     fields, are deferred so the caller sees every problem at once via
  *     a separate validator pass.
- *  2. Validation is performed by `Phlix\Plugins\Manifest\ManifestSchema`
- *     in `phlix-server` (which owns the JSON Schema file). The validator
+ *  2. Validation runs against the plugin-manifest JSON Schema (bundled
+ *     here in `schemas/manifest.schema.json`; `phlix-server`'s
+ *     `Phlix\Plugins\Manifest\ManifestSchema` validates). The validator
  *     consumes a `Manifest` via {@see self::getRawData()} and
  *     {@see self::getUnknownFields()} and emits a list of
  *     {@see ManifestValidationError}.
@@ -193,7 +194,14 @@ class Manifest
         }
 
         $unknownFields = [];
+        /** @var array-key $key the `array<string, mixed>` key claim is not runtime truth */
         foreach (array_keys($data) as $key) {
+            // PHP folds a decimal-integer-looking key ("42") to int 42, so the
+            // `list<string>` promise needs the explicit cast: without it an
+            // int reaches the strict-typed `string $field` of the consumer's
+            // ManifestValidationError and throws a TypeError. The cast is
+            // wire-identical — the string form IS the key as written in JSON.
+            $key = (string) $key;
             if (!in_array($key, self::KNOWN_TOP_LEVEL_KEYS, true)) {
                 $unknownFields[] = $key;
             }

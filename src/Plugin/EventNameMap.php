@@ -36,7 +36,7 @@ use Phlix\Shared\Events\Playback\PlaybackStopped;
  * map before attaching listeners.
  *
  * One entry per event class published by this package's `src/Events/`
- * tree — the table above and that tree are the canonical pair (an
+ * tree — the map in this class and that tree are the canonical pair (an
  * earlier pointer here to `docs/dev/event-reference.md` shipped with
  * `phlix-server` named a file that does not exist; retired 2026-11).
  * When an event class is added or removed, update this table and

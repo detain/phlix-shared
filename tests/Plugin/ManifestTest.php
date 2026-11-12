@@ -13,6 +13,7 @@ namespace Phlix\Shared\Tests\Plugin;
 
 use Phlix\Shared\Plugin\Manifest;
 use Phlix\Shared\Plugin\ManifestType;
+use Phlix\Shared\Plugin\ManifestValidationError;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -156,5 +157,51 @@ final class ManifestTest extends TestCase
             ],
         ]);
         $this->assertSame(['ok' => ['type' => 'string']], $manifest->settings);
+    }
+
+    /**
+     * SHR-S5: PHP folds a decimal-integer-looking key ("42") to int 42, so
+     * array_keys() hands fromArray() an int for it. getUnknownFields()
+     * promises `list<string>`, and the consuming validator feeds each entry
+     * into the strict-typed `string $field` of ManifestValidationError — an
+     * int there is a TypeError. The cast must be wire-identical: the string
+     * form is exactly the key as written in the JSON, order preserved, and
+     * non-canonical integer spellings ("08", "-0", "1.5") stay as written.
+     */
+    public function test_getUnknownFields_returns_integer_like_keys_as_strings(): void
+    {
+        $manifest = Manifest::fromJson(
+            '{"name":"phlix-plugin-x","42":1,"extra":true,"-7":null,"08":0,"-0":0,"1.5":0}'
+        );
+
+        $unknown = $manifest->getUnknownFields();
+        $this->assertSame(['42', 'extra', '-7', '08', '-0', '1.5'], $unknown);
+
+        $fields = [];
+        foreach ($unknown as $key) {
+            $fields[] = (new ManifestValidationError($key, 'unknown_field', 'x'))->toArray()['field'];
+        }
+        $this->assertSame(
+            '["42","extra","-7","08","-0","1.5"]',
+            json_encode($fields, JSON_THROW_ON_ERROR),
+            'the unknown-field keys must serialise as JSON strings, exactly as written'
+        );
+    }
+
+    /**
+     * SHR-S5: the recognised top-level keys are the bundled schema's own
+     * `properties` (schemas/manifest.schema.json is the canonical schema;
+     * phlix-server's ManifestSchema validates against it), so the
+     * unknown-field report can never disagree with the schema.
+     */
+    public function test_known_top_level_keys_match_the_bundled_schema(): void
+    {
+        $source = file_get_contents(dirname(__DIR__, 2) . '/schemas/manifest.schema.json');
+        $this->assertIsString($source);
+        $schema = json_decode($source, true, 512, JSON_THROW_ON_ERROR);
+        $this->assertIsArray($schema);
+        $this->assertIsArray($schema['properties'] ?? null);
+
+        $this->assertSame(array_keys($schema['properties']), Manifest::KNOWN_TOP_LEVEL_KEYS);
     }
 }
