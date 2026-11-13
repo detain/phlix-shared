@@ -12,6 +12,8 @@ declare(strict_types=1);
 namespace Phlix\Shared\Tests\Schema;
 
 use Phlix\Shared\Schema\SchemaPaths;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 final class ServerSettingsSchemaTest extends TestCase
@@ -997,6 +999,7 @@ final class ServerSettingsSchemaTest extends TestCase
         $this->assertIsArray($property['default']);
 
         $default = $property['default'];
+        /** @var list<string> $default */
 
         // The default must be a non-empty list of distinct non-empty strings ...
         $this->assertNotEmpty($default);
@@ -1102,9 +1105,7 @@ final class ServerSettingsSchemaTest extends TestCase
         $this->assertNotContains('v4l2', $enum, 'The V4L2 hwaccel name is "v4l2m2m", not "v4l2".');
     }
 
-    /**
-     * @dataProvider propertyProvider
-     */
+    #[DataProvider('propertyProvider')]
     public function test_property_has_the_expected_json_schema_type(string $key, string $expectedType): void
     {
         $properties = self::properties();
@@ -1112,9 +1113,7 @@ final class ServerSettingsSchemaTest extends TestCase
         $this->assertSame($expectedType, $properties[$key]['type'] ?? null);
     }
 
-    /**
-     * @dataProvider propertyProvider
-     */
+    #[DataProvider('propertyProvider')]
     public function test_property_has_non_empty_group_and_description(string $key, string $expectedType): void
     {
         // $expectedType is part of the shared provider row but not asserted here.
@@ -1133,9 +1132,7 @@ final class ServerSettingsSchemaTest extends TestCase
         $this->assertNotSame('', $description, sprintf('Property "%s" description must be non-empty.', $key));
     }
 
-    /**
-     * @dataProvider propertyProvider
-     */
+    #[DataProvider('propertyProvider')]
     public function test_property_declares_a_valid_tier(string $key, string $expectedType): void
     {
         $this->assertNotSame('', $expectedType);
@@ -1145,9 +1142,7 @@ final class ServerSettingsSchemaTest extends TestCase
         $this->assertPropertyDeclaresTier($key, $properties[$key]);
     }
 
-    /**
-     * @dataProvider propertyProvider
-     */
+    #[DataProvider('propertyProvider')]
     public function test_property_default_is_type_consistent_and_within_bounds(string $key, string $expectedType): void
     {
         $this->assertNotSame('', $expectedType);
@@ -1159,9 +1154,7 @@ final class ServerSettingsSchemaTest extends TestCase
         $this->assertDefaultIsWithinBounds($key, $properties[$key]);
     }
 
-    /**
-     * @dataProvider propertyProvider
-     */
+    #[DataProvider('propertyProvider')]
     public function test_property_enum_options_are_fully_documented(string $key, string $expectedType): void
     {
         $this->assertNotSame('', $expectedType);
@@ -1171,9 +1164,7 @@ final class ServerSettingsSchemaTest extends TestCase
         $this->assertEnumOptionsAreFullyDocumented($key, $properties[$key]);
     }
 
-    /**
-     * @dataProvider propertyProvider
-     */
+    #[DataProvider('propertyProvider')]
     public function test_optional_extended_keywords_are_well_formed(string $key, string $expectedType): void
     {
         // $expectedType is part of the shared provider row but not asserted here.
@@ -1186,9 +1177,7 @@ final class ServerSettingsSchemaTest extends TestCase
         $this->assertFlagKeywordsAreBooleans($key, $properties[$key]);
     }
 
-    /**
-     * @dataProvider propertyProvider
-     */
+    #[DataProvider('propertyProvider')]
     public function test_property_has_label_and_help_text(string $key, string $expectedType): void
     {
         // $expectedType is part of the shared provider row but not asserted here.
@@ -1254,9 +1243,9 @@ final class ServerSettingsSchemaTest extends TestCase
     }
 
     /**
-     * @dataProvider constraintProvider
      * @param array<string, int|float> $constraints
      */
+    #[DataProvider('constraintProvider')]
     public function test_constrained_property_carries_its_numeric_bounds(string $key, array $constraints): void
     {
         $properties = self::properties();
@@ -1278,10 +1267,10 @@ final class ServerSettingsSchemaTest extends TestCase
     }
 
     /**
-     * @dataProvider schemaPinProvider
      *
      * @param array{type: string, default: mixed, minimum: int|float|null, maximum: int|float|null, enum: list<string>|null, restart: bool, secret: bool} $pin
      */
+    #[DataProvider('schemaPinProvider')]
     public function test_property_value_pin_matches_the_schema(string $key, array $pin): void
     {
         $properties = self::properties();
@@ -1507,8 +1496,8 @@ final class ServerSettingsSchemaTest extends TestCase
      * Excluded from the default suite (see `phpunit.xml`) because it performs
      * real network I/O; run it deliberately with `--group network`.
      *
-     * @group network
      */
+    #[Group('network')]
     public function test_help_links_resolve(): void
     {
         $urls = self::collectHelpLinkUrls(self::properties());

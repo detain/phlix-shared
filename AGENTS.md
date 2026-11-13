@@ -87,7 +87,7 @@ src/
   Support/   # Phlix\Shared\Support\* — PayloadAssert trait for wire DTOs
   Version.php
 tests/
-  (mirror of src/ — PHPUnit 10)
+  (mirror of src/ — PHPUnit 12; attributes, static data providers)
 ```
 
 ## Layout rationale

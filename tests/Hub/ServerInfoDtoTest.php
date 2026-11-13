@@ -13,11 +13,11 @@ namespace Phlix\Shared\Tests\Hub;
 
 use InvalidArgumentException;
 use Phlix\Shared\Hub\ServerInfoDto;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @covers \Phlix\Shared\Hub\ServerInfoDto
- */
+#[CoversClass(\Phlix\Shared\Hub\ServerInfoDto::class)]
 final class ServerInfoDtoTest extends TestCase
 {
     /**
@@ -129,9 +129,7 @@ final class ServerInfoDtoTest extends TestCase
         ServerInfoDto::fromPayload($payload);
     }
 
-    /**
-     * @dataProvider provideMissingRequiredFields
-     */
+    #[DataProvider('provideMissingRequiredFields')]
     public function test_missing_required_field_throws(string $field): void
     {
         $payload = self::full();
@@ -156,9 +154,7 @@ final class ServerInfoDtoTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider provideInvalidRequiredFieldTypes
-     */
+    #[DataProvider('provideInvalidRequiredFieldTypes')]
     public function test_invalid_required_field_type_throws(string $field, mixed $invalidValue): void
     {
         $payload = self::full();
@@ -206,9 +202,7 @@ final class ServerInfoDtoTest extends TestCase
         ServerInfoDto::fromPayload($payload);
     }
 
-    /**
-     * @dataProvider provideMissingRequiredFields
-     */
+    #[DataProvider('provideMissingRequiredFields')]
     public function test_empty_required_string_throws(string $field): void
     {
         $payload = self::full();

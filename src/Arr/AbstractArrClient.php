@@ -77,7 +77,7 @@ abstract class AbstractArrClient
         $scheme = parse_url($baseUrl, PHP_URL_SCHEME);
         if ($scheme === null || ($scheme !== 'http' && $scheme !== 'https')) {
             throw new RuntimeException(
-                'Invalid baseUrl scheme "' . ($scheme ?? 'null') . '": must be http or https'
+                'Invalid baseUrl scheme "' . (is_string($scheme) ? $scheme : 'null') . '": must be http or https'
             );
         }
 

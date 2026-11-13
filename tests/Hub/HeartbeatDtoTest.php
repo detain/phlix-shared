@@ -13,11 +13,11 @@ namespace Phlix\Shared\Tests\Hub;
 
 use InvalidArgumentException;
 use Phlix\Shared\Hub\HeartbeatDto;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @covers \Phlix\Shared\Hub\HeartbeatDto
- */
+#[CoversClass(\Phlix\Shared\Hub\HeartbeatDto::class)]
 final class HeartbeatDtoTest extends TestCase
 {
     /**
@@ -49,10 +49,13 @@ final class HeartbeatDtoTest extends TestCase
         $dto = HeartbeatDto::fromPayload($payload);
 
         $output = $dto->toPayload();
-        $this->assertIsArray($output['libraries']);
-        $this->assertCount(1, $output['libraries']);
-        $this->assertSame('lib-1', $output['libraries'][0]['library_id']);
-        $this->assertSame('Movies', $output['libraries'][0]['library_name']);
+        $libraries = $output['libraries'];
+        $this->assertIsArray($libraries);
+        $this->assertCount(1, $libraries);
+        $first = $libraries[0];
+        $this->assertIsArray($first);
+        $this->assertSame('lib-1', $first['library_id']);
+        $this->assertSame('Movies', $first['library_name']);
     }
 
     public function test_strict_libraries_throws_on_missing_library_id(): void
@@ -202,9 +205,7 @@ final class HeartbeatDtoTest extends TestCase
         HeartbeatDto::fromPayload($payload, strictLibraries: false);
     }
 
-    /**
-     * @dataProvider provideEmptyIdentityFields
-     */
+    #[DataProvider('provideEmptyIdentityFields')]
     public function test_empty_identity_field_throws(string $field): void
     {
         $payload = self::full();
@@ -231,8 +232,8 @@ final class HeartbeatDtoTest extends TestCase
      * server sends `scheme://host:port` URLs (HubClient /
      * PortForwardService), operators and fixtures send bare hosts/IPs.
      *
-     * @dataProvider provideValidHostnameCandidates
      */
+    #[DataProvider('provideValidHostnameCandidates')]
     public function test_valid_hostnameCandidate_is_accepted(string $candidate): void
     {
         $payload = self::full();
@@ -269,9 +270,7 @@ final class HeartbeatDtoTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider provideInvalidHostnameCandidates
-     */
+    #[DataProvider('provideInvalidHostnameCandidates')]
     public function test_invalid_hostnameCandidate_throws(string $candidate): void
     {
         $payload = self::full();

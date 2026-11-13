@@ -14,11 +14,11 @@ namespace Phlix\Shared\Tests\Relay;
 use InvalidArgumentException;
 use Phlix\Shared\Relay\RelayFrame;
 use Phlix\Shared\Relay\RelayFrameType;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @covers \Phlix\Shared\Relay\RelayFrame
- */
+#[CoversClass(\Phlix\Shared\Relay\RelayFrame::class)]
 final class RelayFrameTest extends TestCase
 {
     public function test_constructor_stores_properties(): void
@@ -58,9 +58,7 @@ final class RelayFrameTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider provide_out_of_range_seq
-     */
+    #[DataProvider('provide_out_of_range_seq')]
     public function test_seq_outside_uint32_range_throws(int $seq): void
     {
         $this->expectException(InvalidArgumentException::class);
@@ -107,9 +105,7 @@ final class RelayFrameTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider provide_type_check_methods
-     */
+    #[DataProvider('provide_type_check_methods')]
     public function test_is_data(RelayFrameType $type, bool $expected): void
     {
         $frame = new RelayFrame($type, 0, '');
@@ -128,9 +124,7 @@ final class RelayFrameTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider provide_heartbeat_cases
-     */
+    #[DataProvider('provide_heartbeat_cases')]
     public function test_is_heartbeat(RelayFrameType $type, bool $expected): void
     {
         $frame = new RelayFrame($type, 0, '');
@@ -149,9 +143,7 @@ final class RelayFrameTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider provide_client_connect_cases
-     */
+    #[DataProvider('provide_client_connect_cases')]
     public function test_is_client_connect(RelayFrameType $type, bool $expected): void
     {
         $frame = new RelayFrame($type, 0, '');
@@ -170,9 +162,7 @@ final class RelayFrameTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider provide_client_disconnect_cases
-     */
+    #[DataProvider('provide_client_disconnect_cases')]
     public function test_is_client_disconnect(RelayFrameType $type, bool $expected): void
     {
         $frame = new RelayFrame($type, 0, '');
@@ -191,9 +181,7 @@ final class RelayFrameTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider provide_disconnected_cases
-     */
+    #[DataProvider('provide_disconnected_cases')]
     public function test_is_disconnected(RelayFrameType $type, bool $expected): void
     {
         $frame = new RelayFrame($type, 0, '');
@@ -212,9 +200,7 @@ final class RelayFrameTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider provide_error_cases
-     */
+    #[DataProvider('provide_error_cases')]
     public function test_is_error(RelayFrameType $type, bool $expected): void
     {
         $frame = new RelayFrame($type, 0, '');

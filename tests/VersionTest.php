@@ -12,12 +12,11 @@ declare(strict_types=1);
 namespace Phlix\Shared\Tests;
 
 use Phlix\Shared\Version;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
-/**
- * @covers \Phlix\Shared\Version
- */
+#[CoversClass(\Phlix\Shared\Version::class)]
 final class VersionTest extends TestCase
 {
     public function test_version_is_valid_semver(): void

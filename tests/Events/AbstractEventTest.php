@@ -12,12 +12,11 @@ declare(strict_types=1);
 namespace Phlix\Shared\Tests\Events;
 
 use Phlix\Shared\Events\AbstractEvent;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Clock\ClockInterface;
 
-/**
- * @covers \Phlix\Shared\Events\AbstractEvent
- */
+#[CoversClass(\Phlix\Shared\Events\AbstractEvent::class)]
 final class AbstractEventTest extends TestCase
 {
     public function test_timestamp_set_at_construction(): void

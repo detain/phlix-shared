@@ -13,11 +13,10 @@ namespace Phlix\Shared\Tests\Auth;
 
 use InvalidArgumentException;
 use Phlix\Shared\Auth\JwtClaims;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @covers \Phlix\Shared\Auth\JwtClaims
- */
+#[CoversClass(\Phlix\Shared\Auth\JwtClaims::class)]
 final class JwtClaimsTest extends TestCase
 {
     public function test_fromPayload_with_full_payload_roundtrips(): void

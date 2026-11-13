@@ -15,6 +15,7 @@ use Phlix\Shared\Subtitle\Exception\QuotaExceeded;
 use Phlix\Shared\Subtitle\SubtitleCandidate;
 use Phlix\Shared\Subtitle\SubtitleFile;
 use Phlix\Shared\Subtitle\SubtitleSourceInterface;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use ReflectionMethod;
@@ -26,8 +27,8 @@ use ReflectionNamedType;
  * proves the contract is satisfiable end-to-end (search fan-out + on-demand,
  * quota-throwing download) through a fake implementer.
  *
- * @coversNothing
  */
+#[CoversNothing]
 final class SubtitleSourceInterfaceTest extends TestCase
 {
     public function test_is_an_interface(): void

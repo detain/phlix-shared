@@ -15,13 +15,12 @@ use Phlix\Shared\Events\AbstractEvent;
 use Phlix\Shared\Events\Auth\UserCreated;
 use Phlix\Shared\Events\Auth\UserLoggedIn;
 use Phlix\Shared\Events\Auth\UserLoggedOut;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @covers \Phlix\Shared\Events\Auth\UserCreated
- * @covers \Phlix\Shared\Events\Auth\UserLoggedIn
- * @covers \Phlix\Shared\Events\Auth\UserLoggedOut
- */
+#[CoversClass(\Phlix\Shared\Events\Auth\UserCreated::class)]
+#[CoversClass(\Phlix\Shared\Events\Auth\UserLoggedIn::class)]
+#[CoversClass(\Phlix\Shared\Events\Auth\UserLoggedOut::class)]
 final class UserCreatedTest extends TestCase
 {
     public function test_user_created_populates_readonly_props(): void

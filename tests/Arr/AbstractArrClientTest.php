@@ -11,10 +11,11 @@ declare(strict_types=1);
 
 namespace Phlix\Shared\Tests\Arr;
 
-use PHPUnit\Framework\TestCase;
 use Phlix\Shared\Arr\AbstractArrClient;
 use Phlix\Shared\Arr\RadarrClient;
 use Phlix\Shared\Tests\Arr\Transport\FakeArrTransport;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use ReflectionClass;
 use ReflectionMethod;
@@ -159,9 +160,7 @@ class AbstractArrClientTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider apiKeyLineBreakProvider
-     */
+    #[DataProvider('apiKeyLineBreakProvider')]
     public function testApiKeyWithLineBreakIsRejectedAtConstruction(string $apiKey): void
     {
         $this->expectException(RuntimeException::class);

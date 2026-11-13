@@ -13,6 +13,7 @@ namespace Phlix\Shared\Tests\Relay;
 
 use InvalidArgumentException;
 use Phlix\Shared\Relay\RelayHttpRequestHead;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 use function json_decode;
@@ -20,9 +21,7 @@ use function json_encode;
 
 use const JSON_THROW_ON_ERROR;
 
-/**
- * @covers \Phlix\Shared\Relay\RelayHttpRequestHead
- */
+#[CoversClass(\Phlix\Shared\Relay\RelayHttpRequestHead::class)]
 final class RelayHttpRequestHeadTest extends TestCase
 {
     public function test_round_trip_preserves_all_fields(): void

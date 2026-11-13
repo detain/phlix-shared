@@ -12,13 +12,12 @@ declare(strict_types=1);
 namespace Phlix\Shared\Tests\Plugin;
 
 use Phlix\Shared\Plugin\ConfigurableInterface;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use ReflectionMethod;
 
-/**
- * @coversNothing
- */
+#[CoversNothing]
 final class ConfigurableInterfaceTest extends TestCase
 {
     public function test_interface_declares_only_configure(): void

@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace Phlix\Shared\Tests\Metadata;
 
 use Phlix\Shared\Metadata\MetadataSourceInterface;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use ReflectionMethod;
@@ -23,8 +24,8 @@ use ReflectionNamedType;
  * against, and that the canonical source-name accessor is implementable and
  * returns the priority-map identity string.
  *
- * @coversNothing
  */
+#[CoversNothing]
 final class MetadataSourceInterfaceTest extends TestCase
 {
     public function test_is_an_interface(): void

@@ -13,11 +13,11 @@ namespace Phlix\Shared\Tests\Relay;
 
 use InvalidArgumentException;
 use Phlix\Shared\Relay\RelayFrameType;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @covers \Phlix\Shared\Relay\RelayFrameType
- */
+#[CoversClass(\Phlix\Shared\Relay\RelayFrameType::class)]
 final class RelayFrameTypeTest extends TestCase
 {
     /**
@@ -39,9 +39,7 @@ final class RelayFrameTypeTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider provideCases
-     */
+    #[DataProvider('provideCases')]
     public function test_enum_case_has_correct_value(RelayFrameType $case, int $expected, string $label): void
     {
         $this->assertSame($expected, $case->value);
@@ -138,9 +136,7 @@ final class RelayFrameTypeTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider provideLabelCases
-     */
+    #[DataProvider('provideLabelCases')]
     public function test_label_returns_correct_string(string $expected, RelayFrameType $case): void
     {
         $this->assertSame($expected, $case->label());

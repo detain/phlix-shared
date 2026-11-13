@@ -13,6 +13,8 @@ namespace Phlix\Shared\Tests\Schema;
 
 use Phlix\Shared\Schema\SchemaPaths;
 use PHPUnit\Framework\AssertionFailedError;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -305,9 +307,7 @@ final class HubSettingsSchemaTest extends TestCase
         }
     }
 
-    /**
-     * @dataProvider propertyProvider
-     */
+    #[DataProvider('propertyProvider')]
     public function test_property_has_the_expected_json_schema_type(string $key, string $expectedType): void
     {
         $properties = self::properties();
@@ -315,9 +315,7 @@ final class HubSettingsSchemaTest extends TestCase
         $this->assertSame($expectedType, $properties[$key]['type'] ?? null);
     }
 
-    /**
-     * @dataProvider propertyProvider
-     */
+    #[DataProvider('propertyProvider')]
     public function test_property_has_non_empty_group_and_description(string $key, string $expectedType): void
     {
         // $expectedType is part of the shared provider row but not asserted here.
@@ -336,9 +334,7 @@ final class HubSettingsSchemaTest extends TestCase
         $this->assertNotSame('', $description, sprintf('Property "%s" description must be non-empty.', $key));
     }
 
-    /**
-     * @dataProvider propertyProvider
-     */
+    #[DataProvider('propertyProvider')]
     public function test_property_has_label_and_help_text(string $key, string $expectedType): void
     {
         $this->assertNotSame('', $expectedType);
@@ -356,9 +352,7 @@ final class HubSettingsSchemaTest extends TestCase
         $this->assertNotSame('', $helpText, sprintf('Property "%s" helpText must be non-empty.', $key));
     }
 
-    /**
-     * @dataProvider propertyProvider
-     */
+    #[DataProvider('propertyProvider')]
     public function test_property_declares_a_valid_tier(string $key, string $expectedType): void
     {
         $this->assertNotSame('', $expectedType);
@@ -368,9 +362,7 @@ final class HubSettingsSchemaTest extends TestCase
         $this->assertPropertyDeclaresTier($key, $properties[$key]);
     }
 
-    /**
-     * @dataProvider propertyProvider
-     */
+    #[DataProvider('propertyProvider')]
     public function test_property_default_is_type_consistent_and_within_bounds(string $key, string $expectedType): void
     {
         $this->assertNotSame('', $expectedType);
@@ -382,9 +374,7 @@ final class HubSettingsSchemaTest extends TestCase
         $this->assertDefaultIsWithinBounds($key, $properties[$key]);
     }
 
-    /**
-     * @dataProvider propertyProvider
-     */
+    #[DataProvider('propertyProvider')]
     public function test_property_enum_options_are_fully_documented(string $key, string $expectedType): void
     {
         $this->assertNotSame('', $expectedType);
@@ -394,9 +384,7 @@ final class HubSettingsSchemaTest extends TestCase
         $this->assertEnumOptionsAreFullyDocumented($key, $properties[$key]);
     }
 
-    /**
-     * @dataProvider propertyProvider
-     */
+    #[DataProvider('propertyProvider')]
     public function test_optional_extended_keywords_are_well_formed(string $key, string $expectedType): void
     {
         $this->assertNotSame('', $expectedType);
@@ -412,8 +400,8 @@ final class HubSettingsSchemaTest extends TestCase
      * Every hub key names at least one technical concept, so every hub key
      * must carry at least one documentation link (plan §3.5).
      *
-     * @dataProvider propertyProvider
      */
+    #[DataProvider('propertyProvider')]
     public function test_property_carries_at_least_one_help_link(string $key, string $expectedType): void
     {
         $this->assertNotSame('', $expectedType);
@@ -427,9 +415,9 @@ final class HubSettingsSchemaTest extends TestCase
     }
 
     /**
-     * @dataProvider constraintProvider
      * @param array<string, int|float> $constraints
      */
+    #[DataProvider('constraintProvider')]
     public function test_constrained_property_carries_its_numeric_bounds(string $key, array $constraints): void
     {
         $properties = self::properties();
@@ -451,10 +439,10 @@ final class HubSettingsSchemaTest extends TestCase
     }
 
     /**
-     * @dataProvider schemaPinProvider
      *
      * @param array{type: string, default: mixed, minimum: int|float|null, maximum: int|float|null, enum: list<string>|null, restart: bool, secret: bool} $pin
      */
+    #[DataProvider('schemaPinProvider')]
     public function test_property_value_pin_matches_the_schema(string $key, array $pin): void
     {
         $properties = self::properties();
@@ -1022,8 +1010,8 @@ final class HubSettingsSchemaTest extends TestCase
      * Excluded from the default suite (see `phpunit.xml`); run deliberately
      * with `--group network`.
      *
-     * @group network
      */
+    #[Group('network')]
     public function test_help_links_resolve(): void
     {
         $urls = self::collectHelpLinkUrls(self::properties());

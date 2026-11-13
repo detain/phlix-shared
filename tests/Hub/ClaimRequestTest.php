@@ -13,11 +13,11 @@ namespace Phlix\Shared\Tests\Hub;
 
 use InvalidArgumentException;
 use Phlix\Shared\Hub\ClaimRequest;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @covers \Phlix\Shared\Hub\ClaimRequest
- */
+#[CoversClass(\Phlix\Shared\Hub\ClaimRequest::class)]
 final class ClaimRequestTest extends TestCase
 {
     /**
@@ -89,9 +89,7 @@ final class ClaimRequestTest extends TestCase
         ClaimRequest::fromPayload($payload);
     }
 
-    /**
-     * @dataProvider provideEmptyRequiredStrings
-     */
+    #[DataProvider('provideEmptyRequiredStrings')]
     public function test_empty_required_string_throws(string $field): void
     {
         $payload = self::full();
@@ -137,8 +135,8 @@ final class ClaimRequestTest extends TestCase
      * Same grammar as HeartbeatDto (the full matrix lives in
      * HeartbeatDtoTest); pinned here so the claim path cannot drift.
      *
-     * @dataProvider provideInvalidHostnameCandidates
      */
+    #[DataProvider('provideInvalidHostnameCandidates')]
     public function test_invalid_hostnameCandidate_throws(string $candidate): void
     {
         $payload = self::full();

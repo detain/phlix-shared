@@ -12,14 +12,13 @@ declare(strict_types=1);
 namespace Phlix\Shared\Tests\Plugin;
 
 use Phlix\Shared\Plugin\LifecycleInterface;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 use ReflectionClass;
 use ReflectionMethod;
 
-/**
- * @coversNothing
- */
+#[CoversNothing]
 final class LifecycleInterfaceTest extends TestCase
 {
     public function test_interface_declares_three_methods(): void

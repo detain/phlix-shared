@@ -13,11 +13,11 @@ namespace Phlix\Shared\Tests\Hub;
 
 use InvalidArgumentException;
 use Phlix\Shared\Hub\LibraryRef;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @covers \Phlix\Shared\Hub\LibraryRef
- */
+#[CoversClass(\Phlix\Shared\Hub\LibraryRef::class)]
 final class LibraryRefTest extends TestCase
 {
     public function test_from_payload_creates_instance(): void
@@ -46,9 +46,7 @@ final class LibraryRefTest extends TestCase
         $this->assertSame($payload, $ref->toPayload());
     }
 
-    /**
-     * @dataProvider provideMissingFieldCases
-     */
+    #[DataProvider('provideMissingFieldCases')]
     public function test_from_payload_throws_on_missing_field(string $field): void
     {
         $payload = ['library_id' => 'lib-1', 'library_name' => 'Movies'];
@@ -70,9 +68,7 @@ final class LibraryRefTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider provideEmptyFieldCases
-     */
+    #[DataProvider('provideEmptyFieldCases')]
     public function test_from_payload_throws_on_empty_field(string $field): void
     {
         $payload = ['library_id' => 'lib-1', 'library_name' => 'Movies'];
@@ -94,9 +90,7 @@ final class LibraryRefTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider provideWrongTypeCases
-     */
+    #[DataProvider('provideWrongTypeCases')]
     public function test_from_payload_throws_on_wrong_type(string $field, mixed $value): void
     {
         $payload = ['library_id' => 'lib-1', 'library_name' => 'Movies'];

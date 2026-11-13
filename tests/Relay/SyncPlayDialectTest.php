@@ -11,9 +11,11 @@ declare(strict_types=1);
 
 namespace Phlix\Shared\Tests\Relay;
 
-use PHPUnit\Framework\AssertionFailedError;
-use PHPUnit\Framework\TestCase;
 use Phlix\Shared\Relay\SyncPlayDialect;
+use PHPUnit\Framework\AssertionFailedError;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use RuntimeException;
 
@@ -37,8 +39,8 @@ use RuntimeException;
  *      empty). Layer 2 is only trustworthy because layer 3 proves the
  *      machinery teeth it claims.
  *
- * @covers \Phlix\Shared\Relay\SyncPlayDialect
  */
+#[CoversClass(\Phlix\Shared\Relay\SyncPlayDialect::class)]
 final class SyncPlayDialectTest extends TestCase
 {
     /**
@@ -164,9 +166,7 @@ final class SyncPlayDialectTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider provideInvalidTypes
-     */
+    #[DataProvider('provideInvalidTypes')]
     public function test_is_valid_type_rejects_non_canonical_forms(string $type): void
     {
         self::assertFalse(SyncPlayDialect::isValidType($type));
@@ -257,9 +257,7 @@ PHP;
         ];
     }
 
-    /**
-     * @dataProvider provideBrokenServerShapes
-     */
+    #[DataProvider('provideBrokenServerShapes')]
     public function test_the_server_parser_fails_loud_on_broken_shapes(string $fixture, string $expectedInMessage): void
     {
         try {

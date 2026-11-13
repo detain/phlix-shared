@@ -13,11 +13,11 @@ namespace Phlix\Shared\Tests\Relay;
 
 use InvalidArgumentException;
 use Phlix\Shared\Relay\RelayHttpRequest;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @covers \Phlix\Shared\Relay\RelayHttpRequest
- */
+#[CoversClass(\Phlix\Shared\Relay\RelayHttpRequest::class)]
 final class RelayHttpRequestTest extends TestCase
 {
     public function test_round_trip_preserves_all_fields(): void
@@ -107,9 +107,7 @@ final class RelayHttpRequestTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider unsafePathProvider
-     */
+    #[DataProvider('unsafePathProvider')]
     public function test_assert_safe_rejects_unsafe_path(string $path): void
     {
         $req = new RelayHttpRequest('GET', $path, '', [], '');
@@ -137,9 +135,7 @@ final class RelayHttpRequestTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider disallowedMethodProvider
-     */
+    #[DataProvider('disallowedMethodProvider')]
     public function test_assert_safe_rejects_disallowed_method(string $method): void
     {
         $req = new RelayHttpRequest($method, '/api/v1/libraries', '', [], '');
@@ -304,8 +300,8 @@ final class RelayHttpRequestTest extends TestCase
      * Red-first at the parent commit: the value screen covered only the
      * path, so these payloads cleared assertSafe() untouched.
      *
-     * @dataProvider controlByteProvider
      */
+    #[DataProvider('controlByteProvider')]
     public function test_assert_safe_rejects_control_bytes_in_header_values(string $value): void
     {
         $req = new RelayHttpRequest('GET', '/x', '', ['Accept' => $value], '');
@@ -314,9 +310,7 @@ final class RelayHttpRequestTest extends TestCase
         $req->assertSafe();
     }
 
-    /**
-     * @dataProvider controlByteProvider
-     */
+    #[DataProvider('controlByteProvider')]
     public function test_assert_safe_rejects_control_bytes_in_header_names(string $name): void
     {
         $req = new RelayHttpRequest('GET', '/x', '', [$name => 'ok'], '');
@@ -325,9 +319,7 @@ final class RelayHttpRequestTest extends TestCase
         $req->assertSafe();
     }
 
-    /**
-     * @dataProvider controlByteProvider
-     */
+    #[DataProvider('controlByteProvider')]
     public function test_assert_safe_rejects_control_bytes_in_query(string $query): void
     {
         $req = new RelayHttpRequest('GET', '/x', $query, [], '');
@@ -472,8 +464,8 @@ final class RelayHttpRequestTest extends TestCase
      * name ("Authorization ") was not forbidden — and lenient downstream
      * parsers trim it back to the real header.
      *
-     * @dataProvider paddedForbiddenHeaderProvider
      */
+    #[DataProvider('paddedForbiddenHeaderProvider')]
     public function test_padded_forbidden_header_name_is_still_forbidden(string $name): void
     {
         $this->assertTrue(RelayHttpRequest::isForbiddenHeader($name));

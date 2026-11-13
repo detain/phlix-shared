@@ -13,11 +13,10 @@ namespace Phlix\Shared\Tests\Relay;
 
 use Phlix\Shared\Relay\RelayHttpRequestChunk;
 use Phlix\Shared\Relay\RelayHttpRequestHead;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @covers \Phlix\Shared\Relay\RelayHttpRequestChunk
- */
+#[CoversClass(\Phlix\Shared\Relay\RelayHttpRequestChunk::class)]
 final class RelayHttpRequestChunkTest extends TestCase
 {
     public function test_kind_constants_exist(): void

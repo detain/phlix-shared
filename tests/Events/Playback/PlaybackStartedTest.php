@@ -16,14 +16,13 @@ use Phlix\Shared\Events\Playback\PlaybackPaused;
 use Phlix\Shared\Events\Playback\PlaybackResumed;
 use Phlix\Shared\Events\Playback\PlaybackStarted;
 use Phlix\Shared\Events\Playback\PlaybackStopped;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @covers \Phlix\Shared\Events\Playback\PlaybackStarted
- * @covers \Phlix\Shared\Events\Playback\PlaybackPaused
- * @covers \Phlix\Shared\Events\Playback\PlaybackResumed
- * @covers \Phlix\Shared\Events\Playback\PlaybackStopped
- */
+#[CoversClass(\Phlix\Shared\Events\Playback\PlaybackStarted::class)]
+#[CoversClass(\Phlix\Shared\Events\Playback\PlaybackPaused::class)]
+#[CoversClass(\Phlix\Shared\Events\Playback\PlaybackResumed::class)]
+#[CoversClass(\Phlix\Shared\Events\Playback\PlaybackStopped::class)]
 final class PlaybackStartedTest extends TestCase
 {
     public function test_playback_started_populates_readonly_props(): void

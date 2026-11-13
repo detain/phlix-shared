@@ -14,6 +14,7 @@ namespace Phlix\Shared\Tests\Relay;
 use Phlix\Shared\Relay\RelayFrame;
 use Phlix\Shared\Relay\RelayFrameType;
 use Phlix\Shared\Relay\RelayWireCodecInterface;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use ReflectionMethod;
@@ -24,8 +25,8 @@ use ReflectionNamedType;
  * signatures the relay wire codec must implement, and proves the contract is
  * satisfiable end-to-end through a fake implementer.
  *
- * @coversNothing
  */
+#[CoversNothing]
 final class RelayWireCodecInterfaceTest extends TestCase
 {
     public function test_is_an_interface(): void

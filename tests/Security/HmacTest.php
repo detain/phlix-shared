@@ -12,11 +12,10 @@ declare(strict_types=1);
 namespace Phlix\Shared\Tests\Security;
 
 use Phlix\Shared\Security\Hmac;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @covers \Phlix\Shared\Security\Hmac
- */
+#[CoversClass(\Phlix\Shared\Security\Hmac::class)]
 final class HmacTest extends TestCase
 {
     public function testComputeReturnsSha256Prefix(): void

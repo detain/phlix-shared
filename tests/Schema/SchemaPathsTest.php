@@ -12,12 +12,11 @@ declare(strict_types=1);
 namespace Phlix\Shared\Tests\Schema;
 
 use Phlix\Shared\Schema\SchemaPaths;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
-/**
- * @covers \Phlix\Shared\Schema\SchemaPaths
- */
+#[CoversClass(\Phlix\Shared\Schema\SchemaPaths::class)]
 final class SchemaPathsTest extends TestCase
 {
     public function test_dir_points_at_the_bundled_schemas_directory(): void
@@ -111,6 +110,7 @@ final class SchemaPathsTest extends TestCase
         $schema = json_decode((string) file_get_contents(SchemaPaths::mediaItem()), true);
         $this->assertIsArray($schema);
 
+        /** @var array{properties: array{rating: array{enum?: mixed}}} $schema */
         $ratingEnum = $schema['properties']['rating']['enum'] ?? [];
         $this->assertIsArray($ratingEnum);
 
@@ -139,7 +139,9 @@ final class SchemaPathsTest extends TestCase
         // and nullable, so existing consumers are unaffected.
         foreach (['trailer_url', 'trailer_key', 'trailer_site', 'logo_url', 'still_url'] as $field) {
             $this->assertArrayHasKey($field, $properties, "media-item schema must declare '{$field}'.");
-            $type = $properties[$field]['type'] ?? null;
+            $declared = $properties[$field];
+            $this->assertIsArray($declared, "'{$field}' must be declared.");
+            $type = $declared['type'] ?? null;
             $this->assertIsArray($type, "'{$field}' type must be a union.");
             $this->assertContains('null', $type, "'{$field}' must be nullable.");
         }
@@ -157,6 +159,7 @@ final class SchemaPathsTest extends TestCase
         $schema = json_decode((string) file_get_contents(SchemaPaths::libraryQuery()), true);
         $this->assertIsArray($schema);
 
+        /** @var array{properties: array{ratings: array{items: array{enum?: mixed}}}} $schema */
         $ratingsEnum = $schema['properties']['ratings']['items']['enum'] ?? [];
         $this->assertIsArray($ratingsEnum);
         foreach (['G', 'PG', 'PG-13', 'R', 'NC-17', 'X', 'UNRATED', 'TV-Y', 'TV-Y7', 'TV-G', 'TV-PG', 'TV-14', 'TV-MA'] as $rating) {

@@ -12,10 +12,10 @@
     },
     "require-dev": {
         "ext-curl": "*",
-        "phpunit/phpunit": "^10.0",
-        "phpstan/phpstan": "^2.0",
-        "squizlabs/php_codesniffer": "^3.10",
-        "vimeo/psalm": "^5.0"
+        "phpunit/phpunit": "^12.5",
+        "phpstan/phpstan": "^2.3",
+        "squizlabs/php_codesniffer": "^4.0",
+        "vimeo/psalm": "^6.5"
     },
     "suggest": {
         "ext-curl": "Required only for the bundled blocking Arr\\Transport\\CurlArrTransport (CLI/test use). Event-loop (Workerman/Webman) consumers should inject an async ArrTransportInterface instead and do not need ext-curl.",

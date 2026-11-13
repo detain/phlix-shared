@@ -12,11 +12,11 @@ declare(strict_types=1);
 namespace Phlix\Shared\Tests\Schema;
 
 use Phlix\Shared\Schema\SchemaPaths;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @covers \Phlix\Shared\Schema\SchemaPaths
- */
+#[CoversClass(\Phlix\Shared\Schema\SchemaPaths::class)]
 final class WebhookEventsCatalogTest extends TestCase
 {
     private const TYPE_PATTERN = '/^[a-z]+(?:\.[a-z_]+)*$/';
@@ -118,9 +118,7 @@ final class WebhookEventsCatalogTest extends TestCase
         $this->assertCount(7, $actual);
     }
 
-    /**
-     * @dataProvider eventTypeProvider
-     */
+    #[DataProvider('eventTypeProvider')]
     public function test_event_has_non_empty_group_label_and_description(string $type): void
     {
         $byType = self::eventsByType();
@@ -134,9 +132,7 @@ final class WebhookEventsCatalogTest extends TestCase
         }
     }
 
-    /**
-     * @dataProvider eventTypeProvider
-     */
+    #[DataProvider('eventTypeProvider')]
     public function test_event_type_is_well_formed(string $type): void
     {
         $this->assertMatchesRegularExpression(self::TYPE_PATTERN, $type);

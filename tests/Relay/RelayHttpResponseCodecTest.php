@@ -15,16 +15,15 @@ use InvalidArgumentException;
 use Phlix\Shared\Relay\RelayHttpResponseChunk;
 use Phlix\Shared\Relay\RelayHttpResponseCodec;
 use Phlix\Shared\Relay\RelayHttpResponseHead;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 use function str_repeat;
 use function strlen;
 
-/**
- * @covers \Phlix\Shared\Relay\RelayHttpResponseCodec
- * @covers \Phlix\Shared\Relay\RelayHttpResponseHead
- * @covers \Phlix\Shared\Relay\RelayHttpResponseChunk
- */
+#[CoversClass(\Phlix\Shared\Relay\RelayHttpResponseCodec::class)]
+#[CoversClass(\Phlix\Shared\Relay\RelayHttpResponseHead::class)]
+#[CoversClass(\Phlix\Shared\Relay\RelayHttpResponseChunk::class)]
 final class RelayHttpResponseCodecTest extends TestCase
 {
     public function test_head_round_trip(): void

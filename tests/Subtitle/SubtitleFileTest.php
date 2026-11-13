@@ -13,13 +13,12 @@ namespace Phlix\Shared\Tests\Subtitle;
 
 use InvalidArgumentException;
 use Phlix\Shared\Subtitle\SubtitleFile;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
-/**
- * @covers \Phlix\Shared\Subtitle\SubtitleFile
- */
+#[CoversClass(\Phlix\Shared\Subtitle\SubtitleFile::class)]
 final class SubtitleFileTest extends TestCase
 {
     public function test_full_field_round_trip(): void

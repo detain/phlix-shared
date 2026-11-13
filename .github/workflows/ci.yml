@@ -8,8 +8,8 @@ on:
 
 jobs:
   # Every `uses:` line below is pinned to a commit SHA (estate law —
-  # M-SHARED-36): actions/checkout@… = v6/v6.1.0, setup-php@… = v2.40.0,
-  # codecov@… = current v6 HEAD, codacy@… = v1.3.0. Do not float any of them
+  # M-SHARED-36): actions/checkout@… = v7.0.1, setup-php@… = v2.40.0,
+  # codecov@… = v7.1.1, codacy@… = v1.3.0. Do not float any of them
   # back to a moving tag.
   composer-validate:
     name: Composer Validation
@@ -17,7 +17,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Setup PHP
         uses: shivammathur/setup-php@4424c9aab975b57bd706ee5a39c6b4334d6e4f60
@@ -32,15 +32,11 @@ jobs:
   # code-parsing gates run on every supported version instead of a
   # single-version assumption. composer-validate and composer-audit stay
   # 8.3-only on purpose: they operate on version-independent lock corpora.
-  # The psalm gate is 8.3-only too, and the first matrix run proved why: the
-  # LOCKED vimeo/psalm 5.26.1 declares a `~8.3.0` ceiling, so a fresh
-  # `composer install` on an 8.4 runner rejects the whole lock. The 8.4 legs
-  # below therefore install with `--ignore-platform-req=php` — the sole lock
-  # violator is psalm, which those legs never run (reproduced against real
-  # PHP 8.4.27: plain install dies in lock verification, the ignored install
-  # proceeds). Running psalm's code under 8.4 was measured green locally, but
-  # it is outside the tool's declared support, so the gate stays where psalm
-  # says it works.
+  # The psalm gate is in the matrix too since the vimeo/psalm 6.x upgrade
+  # (6.5.0 declares `~8.3.0 || ~8.4.0`; the old locked 5.26.1 had a `~8.3.0`
+  # ceiling that forced `--ignore-platform-req=php` on the 8.4 legs). A plain
+  # `composer install` now resolves the lock on both legs. PHP 8.5 is NOT in
+  # the matrix: psalm 6.5 has no 8.5 support, so the lock would be rejected.
   phpcs:
     name: "PHP CodeSniffer (PSR-12) — PHP ${{ matrix.php }}"
     runs-on: ubuntu-26.04
@@ -51,7 +47,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Setup PHP
         uses: shivammathur/setup-php@4424c9aab975b57bd706ee5a39c6b4334d6e4f60
@@ -60,7 +56,7 @@ jobs:
           extensions: json
 
       - name: Install Composer dependencies
-        run: composer install --no-interaction --prefer-dist ${{ matrix.php == '8.4' && '--ignore-platform-req=php' || '' }}
+        run: composer install --no-interaction --prefer-dist
 
       # 2026-10-02 CI-gate audit — the `-n` that used to sit in this command
       # suppressed warnings from BOTH the report and the exit math, and tests/
@@ -93,7 +89,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Setup PHP
         uses: shivammathur/setup-php@4424c9aab975b57bd706ee5a39c6b4334d6e4f60
@@ -102,25 +98,27 @@ jobs:
           extensions: json
 
       - name: Install Composer dependencies
-        run: composer install --no-interaction --prefer-dist ${{ matrix.php == '8.4' && '--ignore-platform-req=php' || '' }}
+        run: composer install --no-interaction --prefer-dist
 
       - name: Run PHPStan
         run: ./vendor/bin/phpstan analyze --no-progress --error-format=github
 
-  # 8.3-only by design (see the matrix-law comment above): the locked
-  # vimeo/psalm 5.26.1 declares `~8.3.0` as its PHP ceiling.
   psalm:
-    name: Psalm Static Analysis
+    name: "Psalm Static Analysis — PHP ${{ matrix.php }}"
     runs-on: ubuntu-26.04
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.3', '8.4']
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Setup PHP
         uses: shivammathur/setup-php@4424c9aab975b57bd706ee5a39c6b4334d6e4f60
         with:
-          php-version: '8.3'
+          php-version: ${{ matrix.php }}
           extensions: json
 
       - name: Install Composer dependencies
@@ -139,7 +137,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Setup PHP
         uses: shivammathur/setup-php@4424c9aab975b57bd706ee5a39c6b4334d6e4f60
@@ -149,13 +147,13 @@ jobs:
           coverage: xdebug
 
       - name: Install Composer dependencies
-        run: composer install --no-interaction --prefer-dist ${{ matrix.php == '8.4' && '--ignore-platform-req=php' || '' }}
+        run: composer install --no-interaction --prefer-dist
 
       - name: Run PHPUnit
         run: ./vendor/bin/phpunit --colors=always
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@f2274c2c340e0c81c8f7dc407b2a477b8935f171
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5
         with:
           files: ./coverage.xml
           flags: phpunit
@@ -176,7 +174,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Setup PHP
         uses: shivammathur/setup-php@4424c9aab975b57bd706ee5a39c6b4334d6e4f60

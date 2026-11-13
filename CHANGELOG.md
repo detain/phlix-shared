@@ -6,6 +6,23 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+Dev-toolchain upgrade (2026-11-13, no runtime/API change): `require-dev` moves
+to phpunit 12.5 (was 10.5), squizlabs/php_codesniffer 4.0 (was 3.13), vimeo/psalm
+6.5 (was 5.26), phpstan 2.3.5, with the lock refreshed (74 packages audited, no
+advisories). All newest majors co-install on PHP 8.3 and 8.4; nothing was held
+back. PHPUnit 12 dropped docblock metadata, so every `@covers`, `@coversNothing`,
+`@dataProvider` and `@group` in `tests/` became the equivalent attribute and
+`phpunit.xml` was migrated to the 12.5 schema. This un-hid tests that 10.x ran
+only partially: the suite went from 680 to 1798 tests because data-provider
+cases now actually run, and the `network` group exclusion is honoured again.
+Test-code type narrowing was added for phpstan 2.3.5, `AbstractArrClient` no
+longer concatenates a possibly-`false` `parse_url()` result into its scheme
+error message (psalm 6 `PossiblyFalseOperand`; `false` now reports `null`), and
+CI bumps `actions/checkout` to v7.0.1 and `codecov/codecov-action` to v7.1.1
+(SHA-pinned). The psalm gate now runs on PHP 8.3 and 8.4 and the 8.4 legs no
+longer need `--ignore-platform-req=php` (psalm 6.5 declares `~8.4.0`). PHP 8.5
+stays out of the matrix because psalm 6.5 does not support it.
+
 Upgrade order note (SHR-S1 / SHR-1, owner ruling 2026-11-13): the whole-payload
 `hostnameCandidates` rejection shipped in 0.55.0 is only safe for fleets whose
 servers sanitize `gethostname()`-derived candidates first. phlix-server

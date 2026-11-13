@@ -11,9 +11,10 @@ declare(strict_types=1);
 
 namespace Phlix\Shared\Tests\Arr;
 
-use PHPUnit\Framework\TestCase;
 use Phlix\Shared\Arr\TrashGuidesProvider;
 use Phlix\Shared\Tests\Support\Arr\TrashGuidesTlsMaterial;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -60,7 +61,7 @@ class TrashGuidesProviderTest extends TestCase
     public function testConstructorAcceptsLogger(): void
     {
         // Test that logger parameter is accepted without error
-        $logger = $this->createMock(LoggerInterface::class);
+        $logger = $this->createStub(LoggerInterface::class);
         $provider = new TrashGuidesProvider($logger);
 
         $this->assertInstanceOf(TrashGuidesProvider::class, $provider);
@@ -185,9 +186,7 @@ class TrashGuidesProviderTest extends TestCase
         $this->assertStringContainsString('2024-01-15', $array['synced_at']);
     }
 
-    /**
-     * @dataProvider provideValidJsonStrings
-     */
+    #[DataProvider('provideValidJsonStrings')]
     public function testParseJsonAcceptsValidJson(string $json): void
     {
         $provider = new TrashGuidesProvider();
@@ -241,9 +240,7 @@ class TrashGuidesProviderTest extends TestCase
         $parseJson->invoke($provider, '"just a string"');
     }
 
-    /**
-     * @dataProvider provideUrlsForVersionDerivation
-     */
+    #[DataProvider('provideUrlsForVersionDerivation')]
     public function testDeriveVersionFromUrl(string $url, string $expectedPattern): void
     {
         $provider = new TrashGuidesProvider();

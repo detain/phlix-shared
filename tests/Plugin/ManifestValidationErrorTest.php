@@ -12,11 +12,10 @@ declare(strict_types=1);
 namespace Phlix\Shared\Tests\Plugin;
 
 use Phlix\Shared\Plugin\ManifestValidationError;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @covers \Phlix\Shared\Plugin\ManifestValidationError
- */
+#[CoversClass(\Phlix\Shared\Plugin\ManifestValidationError::class)]
 final class ManifestValidationErrorTest extends TestCase
 {
     public function test_readonly_props_populated(): void

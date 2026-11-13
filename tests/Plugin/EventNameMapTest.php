@@ -24,11 +24,11 @@ use Phlix\Shared\Events\Playback\PlaybackResumed;
 use Phlix\Shared\Events\Playback\PlaybackStarted;
 use Phlix\Shared\Events\Playback\PlaybackStopped;
 use Phlix\Shared\Plugin\EventNameMap;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @covers \Phlix\Shared\Plugin\EventNameMap
- */
+#[CoversClass(\Phlix\Shared\Plugin\EventNameMap::class)]
 final class EventNameMapTest extends TestCase
 {
     /**
@@ -53,18 +53,18 @@ final class EventNameMapTest extends TestCase
     }
 
     /**
-     * @dataProvider aliasProvider
      * @param class-string $fqcn
      */
+    #[DataProvider('aliasProvider')]
     public function test_fromAlias_returns_fqcn(string $alias, string $fqcn): void
     {
         $this->assertSame($fqcn, EventNameMap::fromAlias($alias));
     }
 
     /**
-     * @dataProvider aliasProvider
      * @param class-string $fqcn
      */
+    #[DataProvider('aliasProvider')]
     public function test_toAlias_returns_alias(string $alias, string $fqcn): void
     {
         $this->assertSame($alias, EventNameMap::toAlias($fqcn));

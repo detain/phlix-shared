@@ -12,11 +12,10 @@ declare(strict_types=1);
 namespace Phlix\Shared\Tests\Auth;
 
 use Phlix\Shared\Auth\AuthResult;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @covers \Phlix\Shared\Auth\AuthResult
- */
+#[CoversClass(\Phlix\Shared\Auth\AuthResult::class)]
 final class AuthResultTest extends TestCase
 {
     public function testSuccessResultIsSuccess(): void

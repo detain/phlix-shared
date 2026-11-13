@@ -14,12 +14,11 @@ namespace Phlix\Shared\Tests\Plugin;
 use Phlix\Shared\Plugin\Manifest;
 use Phlix\Shared\Plugin\ManifestType;
 use Phlix\Shared\Plugin\ManifestValidationError;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
-/**
- * @covers \Phlix\Shared\Plugin\Manifest
- */
+#[CoversClass(\Phlix\Shared\Plugin\Manifest::class)]
 final class ManifestTest extends TestCase
 {
     public function test_fromJson_throws_on_malformed_json(): void

@@ -13,13 +13,12 @@ namespace Phlix\Shared\Tests\Subtitle\Exception;
 
 use DateTimeImmutable;
 use Phlix\Shared\Subtitle\Exception\QuotaExceeded;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
-/**
- * @covers \Phlix\Shared\Subtitle\Exception\QuotaExceeded
- */
+#[CoversClass(\Phlix\Shared\Subtitle\Exception\QuotaExceeded::class)]
 final class QuotaExceededTest extends TestCase
 {
     public function test_is_a_runtime_exception(): void

@@ -12,11 +12,10 @@ declare(strict_types=1);
 namespace Phlix\Shared\Tests\Subtitle;
 
 use Phlix\Shared\Subtitle\SubtitleCandidate;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @covers \Phlix\Shared\Subtitle\SubtitleCandidate
- */
+#[CoversClass(\Phlix\Shared\Subtitle\SubtitleCandidate::class)]
 final class SubtitleCandidateTest extends TestCase
 {
     public function test_full_field_round_trip(): void

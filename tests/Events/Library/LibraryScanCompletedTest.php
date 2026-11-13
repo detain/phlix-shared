@@ -17,15 +17,14 @@ use Phlix\Shared\Events\Library\LibraryScanStarted;
 use Phlix\Shared\Events\Library\MediaItemAdded;
 use Phlix\Shared\Events\Library\MediaItemRemoved;
 use Phlix\Shared\Events\Library\MediaItemUpdated;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @covers \Phlix\Shared\Events\Library\LibraryScanCompleted
- * @covers \Phlix\Shared\Events\Library\LibraryScanStarted
- * @covers \Phlix\Shared\Events\Library\MediaItemAdded
- * @covers \Phlix\Shared\Events\Library\MediaItemUpdated
- * @covers \Phlix\Shared\Events\Library\MediaItemRemoved
- */
+#[CoversClass(\Phlix\Shared\Events\Library\LibraryScanCompleted::class)]
+#[CoversClass(\Phlix\Shared\Events\Library\LibraryScanStarted::class)]
+#[CoversClass(\Phlix\Shared\Events\Library\MediaItemAdded::class)]
+#[CoversClass(\Phlix\Shared\Events\Library\MediaItemUpdated::class)]
+#[CoversClass(\Phlix\Shared\Events\Library\MediaItemRemoved::class)]
 final class LibraryScanCompletedTest extends TestCase
 {
     public function test_scan_started_props(): void

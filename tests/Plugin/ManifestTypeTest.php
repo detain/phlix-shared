@@ -12,11 +12,11 @@ declare(strict_types=1);
 namespace Phlix\Shared\Tests\Plugin;
 
 use Phlix\Shared\Plugin\ManifestType;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @covers \Phlix\Shared\Plugin\ManifestType
- */
+#[CoversClass(\Phlix\Shared\Plugin\ManifestType::class)]
 final class ManifestTypeTest extends TestCase
 {
     public function test_has_eleven_cases(): void
@@ -35,10 +35,12 @@ final class ManifestTypeTest extends TestCase
         $this->assertIsString($source);
         $schema = json_decode($source, true, 512, JSON_THROW_ON_ERROR);
         $this->assertIsArray($schema);
-        $this->assertIsArray($schema['properties']['type']['enum'] ?? null);
+        /** @var array{properties: array{type: array{enum?: mixed}}} $schema */
+        $typeEnum = $schema['properties']['type']['enum'] ?? null;
+        $this->assertIsArray($typeEnum);
 
         $this->assertSame(
-            $schema['properties']['type']['enum'],
+            $typeEnum,
             array_map(static fn (ManifestType $case): string => $case->value, ManifestType::cases())
         );
     }
@@ -63,9 +65,7 @@ final class ManifestTypeTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider caseProvider
-     */
+    #[DataProvider('caseProvider')]
     public function test_value_round_trip(string $value, ManifestType $expected): void
     {
         $this->assertSame($value, $expected->value);

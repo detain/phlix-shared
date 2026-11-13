@@ -13,11 +13,11 @@ namespace Phlix\Shared\Tests\Relay;
 
 use InvalidArgumentException;
 use Phlix\Shared\Relay\RelayHttpResponseHead;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @covers \Phlix\Shared\Relay\RelayHttpResponseHead
- */
+#[CoversClass(\Phlix\Shared\Relay\RelayHttpResponseHead::class)]
 final class RelayHttpResponseHeadTest extends TestCase
 {
     public function test_round_trip_preserves_all_fields(): void
@@ -129,9 +129,7 @@ final class RelayHttpResponseHeadTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider provide_in_range_head_jsons
-     */
+    #[DataProvider('provide_in_range_head_jsons')]
     public function test_from_json_accepts_status_range_boundaries(string $json, int $status): void
     {
         $decoded = RelayHttpResponseHead::fromJson($json);

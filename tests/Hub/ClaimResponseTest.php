@@ -13,11 +13,11 @@ namespace Phlix\Shared\Tests\Hub;
 
 use InvalidArgumentException;
 use Phlix\Shared\Hub\ClaimResponse;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @covers \Phlix\Shared\Hub\ClaimResponse
- */
+#[CoversClass(\Phlix\Shared\Hub\ClaimResponse::class)]
 final class ClaimResponseTest extends TestCase
 {
     /**
@@ -58,9 +58,7 @@ final class ClaimResponseTest extends TestCase
         ClaimResponse::fromPayload($payload);
     }
 
-    /**
-     * @dataProvider provideEmptyRequiredStrings
-     */
+    #[DataProvider('provideEmptyRequiredStrings')]
     public function test_empty_required_string_throws(string $field): void
     {
         $payload = self::full();
@@ -83,9 +81,7 @@ final class ClaimResponseTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider provideValidHubBaseUrls
-     */
+    #[DataProvider('provideValidHubBaseUrls')]
     public function test_valid_hubBaseUrl_is_accepted(string $url): void
     {
         $payload = self::full();
@@ -110,9 +106,7 @@ final class ClaimResponseTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider provideInvalidHubBaseUrls
-     */
+    #[DataProvider('provideInvalidHubBaseUrls')]
     public function test_invalid_hubBaseUrl_throws(string $url): void
     {
         $payload = self::full();

@@ -12,11 +12,10 @@ declare(strict_types=1);
 namespace Phlix\Shared\Tests\Auth;
 
 use Phlix\Shared\Auth\UserInfo;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @covers \Phlix\Shared\Auth\UserInfo
- */
+#[CoversClass(\Phlix\Shared\Auth\UserInfo::class)]
 final class UserInfoTest extends TestCase
 {
     public function testConstructorWithAllParameters(): void
