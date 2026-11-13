@@ -6,6 +6,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+Upgrade order note (SHR-S1 / SHR-1, owner ruling 2026-11-13): the whole-payload
+`hostnameCandidates` rejection shipped in 0.55.0 is only safe for fleets whose
+servers sanitize `gethostname()`-derived candidates first. phlix-server
+`HostnameCandidateSanitizer` (maps `_` etc. to the RFC 1123 grammar and drops
+non-conforming candidates; server commit 5f974a28) therefore lands BEFORE any
+hub deploy that enforces this grammar. Bump order: server (sanitizer) -> shared
+0.55.x pin -> hub. No shared code change.
+
 Fix (outbound request, SHR-S8 / SHR-12, SHR-23): `SonarrClient::addSeries()` and
 `RadarrClient::addMovie()` now POST the real *arr v3 resource shape. The
 root-folder key is `rootFolderPath` (was the unknown `rootFolder`, which
