@@ -6,6 +6,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+Schema copy (HUB-S47 / HUB-35): wire-visible `helpText` copy changes in
+`schemas/hub-settings.schema.json` for `hub.maintenance_mode`,
+`federation.enabled`, `auth.signups_disabled`, `server.rate_limit` and
+`server.metrics.enabled`: reworded into plain operator-facing language (lead
+with what the setting does; wire codes and ports demoted to a trailing
+sentence). No keys, types, bounds, defaults or enums changed. Consumers must
+re-vendor to see the new copy.
+
 ## [0.55.0] - 2026-11-12
 
 Minor: release cut of the SHR-S1..S13 review-round batch (changelog hygiene,
