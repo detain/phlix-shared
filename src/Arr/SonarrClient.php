@@ -131,21 +131,34 @@ class SonarrClient extends AbstractArrClient implements ArrClientInterface
      * @param int $tvdbId The TVDB ID of the series to add.
      * @param int $qualityProfileId The quality profile ID to use.
      * @param string $rootFolder The root folder path (e.g. `/tv`).
-     * @param string|null $monitor Monitoring option (default 'all').
+     * @param string|null $monitor Monitoring option (default 'all'), sent as `addOptions.monitor`.
+     * @param string|null $title Optional series title (some Sonarr builds require it on add).
      * @return array<string, mixed> Created series data.
      */
     public function addSeries(
         int $tvdbId,
         int $qualityProfileId,
         string $rootFolder,
-        ?string $monitor = 'all'
+        ?string $monitor = 'all',
+        ?string $title = null
     ): array {
+        $monitor = $monitor ?? 'all';
+        // Real Sonarr v3 SeriesResource shape: `rootFolderPath` (not
+        // `rootFolder`), top-level `monitored`, and the monitor strategy
+        // nested under `addOptions.monitor`.
         $payload = [
             'tvdbId' => $tvdbId,
             'qualityProfileId' => $qualityProfileId,
-            'rootFolder' => $rootFolder,
-            'monitor' => $monitor ?? 'all',
+            'rootFolderPath' => $rootFolder,
+            'monitored' => $monitor !== 'none',
+            'addOptions' => [
+                'monitor' => $monitor,
+                'searchForMissingEpisodes' => true,
+            ],
         ];
+        if ($title !== null && $title !== '') {
+            $payload['title'] = $title;
+        }
 
         /** @var array<string, mixed> */
         return $this->post('/api/v3/series', $payload);

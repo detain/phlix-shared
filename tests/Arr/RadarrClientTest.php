@@ -144,6 +144,16 @@ class RadarrClientTest extends TestCase
         $this->assertEquals(123456, $result['tmdbId']);
         $this->assertEquals('post', $this->mockableClient->getLastMethodCalled());
         $this->assertEquals('/api/v3/movie', $this->mockableClient->getLastPathCalled());
+        $this->assertSame(
+            [
+                'tmdbId' => 123456,
+                'qualityProfileId' => 2,
+                'rootFolderPath' => '/movies',
+                'monitored' => true,
+                'addOptions' => ['monitor' => 'movieOnly', 'searchForMovie' => true],
+            ],
+            $this->mockableClient->getLastBodyCalled()
+        );
     }
 
     public function testTriggerDownloadSendsMoviesSearchCommand(): void

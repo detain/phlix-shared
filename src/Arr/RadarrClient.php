@@ -201,27 +201,33 @@ class RadarrClient extends AbstractArrClient implements ArrClientInterface
     /**
      * Adds a new movie to Radarr.
      *
-     * @param int|array<int> $tmdbId The TMDB ID or array of TMDB IDs.
+     * @param int $tmdbId The TMDB ID (Radarr adds exactly one movie per call).
      * @param int $qualityProfileId The quality profile ID to use.
      * @param string $rootFolder The root folder path.
      * @param bool $monitored Whether to monitor the movie (default true).
+     * @param string|null $title Optional movie title (some Radarr builds require it on add).
      * @return array<string, mixed> Created movie data.
      */
     public function addMovie(
-        int|array $tmdbId,
+        int $tmdbId,
         int $qualityProfileId,
         string $rootFolder,
-        bool $monitored = true
+        bool $monitored = true,
+        ?string $title = null
     ): array {
         $payload = [
             'tmdbId' => $tmdbId,
             'qualityProfileId' => $qualityProfileId,
-            'rootFolder' => $rootFolder,
+            'rootFolderPath' => $rootFolder,
             'monitored' => $monitored,
             'addOptions' => [
+                'monitor' => $monitored ? 'movieOnly' : 'none',
                 'searchForMovie' => true,
             ],
         ];
+        if ($title !== null && $title !== '') {
+            $payload['title'] = $title;
+        }
 
         /** @var array<string, mixed> */
         return $this->post('/api/v3/movie', $payload);

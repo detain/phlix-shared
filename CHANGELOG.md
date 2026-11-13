@@ -6,14 +6,27 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+Fix (outbound request, SHR-S8 / SHR-12, SHR-23): `SonarrClient::addSeries()` and
+`RadarrClient::addMovie()` now POST the real *arr v3 resource shape. The
+root-folder key is `rootFolderPath` (was the unknown `rootFolder`, which
+Sonarr/Radarr ignore, so adds lacked a root folder); Sonarr's monitor strategy
+moves to `addOptions.monitor` with a top-level `monitored` boolean (was a bare
+top-level `monitor`); Radarr gains `addOptions.monitor`
+(`movieOnly`/`none`) beside `searchForMovie`. Both methods take an optional
+trailing `?string $title` sent as `title` when given. BREAKING (dormant seam):
+`RadarrClient::addMovie()` now takes a single `int $tmdbId` (was `int|array`;
+the endpoint adds one movie per call), matching `addSeries(int $tvdbId, ...,
+string $rootFolder)`. `CurlArrTransport` keeps `CURLOPT_SSL_VERIFYPEER=true` /
+`VERIFYHOST=2` stated explicitly per request (pinned by test). Docs:
+`phlix-docs/docs/dev/arr-clients.md`.
+
 Pinned: `QuotaExceeded::getResetTimeUtc()` wire format (SHR-S7 / SHR-29).
 Input accepts both `Z` and `+00:00` (and any numeric offset); output is always
 the single canonical `DateTimeImmutable::ATOM` UTC form (`+00:00`, no
 fractional seconds), so `2022-04-08T13:03:16.000Z` and
 `2022-04-08T13:03:16+00:00` both emit `2022-04-08T13:03:16+00:00`. This is a
-wire-visible change for consumers that string-compare the value (e.g.
-phlix-plugin-opensubtitles, updated to expect `+00:00`); pinned in
-`QuotaExceededTest`.
+wire-visible change: consumers that string-compare the value must expect
+`+00:00`; pinned in `QuotaExceededTest`.
 
 Schema copy (HUB-S47 / HUB-35): wire-visible `helpText` copy changes in
 `schemas/hub-settings.schema.json` for `hub.maintenance_mode`,
@@ -37,8 +50,7 @@ reconciling this file against the git tags: `## [0.5.0]` and `## [0.9.0]` have
 no git tag (their content shipped in `v0.5.1` and the `v0.9.x` tags
 respectively); tags `v0.7.1`, `v0.8.1`, `v0.9.2` and `v0.17.0` have no heading
 of their own here. Most headings through `[0.9.0]` use an em dash date
-separator (`[0.5.1]` uses a hyphen) and later ones a hyphen; the difference
-is historical and deliberately kept.
+separator (`[0.5.1]` uses a hyphen) and later ones a hyphen; the difference is historical and deliberately kept.
 `src/Support/PayloadAssert.php` carried `@since 0.2.1`, a version that never
 existed (no tag, no heading); the trait first shipped in `v0.11.1` (see the
 `Hub\PayloadAssert` bullet there, which predates its move to `Support\`) and the

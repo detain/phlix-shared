@@ -179,8 +179,12 @@ class SonarrClientTest extends TestCase
             [
                 'tvdbId' => 123456,
                 'qualityProfileId' => 2,
-                'rootFolder' => '/tv',
-                'monitor' => 'future',
+                'rootFolderPath' => '/tv',
+                'monitored' => true,
+                'addOptions' => [
+                    'monitor' => 'future',
+                    'searchForMissingEpisodes' => true,
+                ],
             ],
             $this->mockableClient->getLastBodyCalled()
         );
@@ -199,6 +203,24 @@ class SonarrClientTest extends TestCase
         $this->assertSame('int', (string) $params[0]->getType());
         $this->assertSame('rootFolder', $params[2]->getName());
         $this->assertSame('string', (string) $params[2]->getType());
+    }
+
+    public function testAddSeriesUnmonitoredAndTitle(): void
+    {
+        $this->mockableClient->setMockResponse(['id' => 11]);
+        $this->mockableClient->addSeries(1, 2, '/tv', 'none', 'Show');
+        $body = $this->mockableClient->getLastBodyCalled();
+        $this->assertSame(
+            [
+                'tvdbId' => 1,
+                'qualityProfileId' => 2,
+                'rootFolderPath' => '/tv',
+                'monitored' => false,
+                'addOptions' => ['monitor' => 'none', 'searchForMissingEpisodes' => true],
+                'title' => 'Show',
+            ],
+            $body
+        );
     }
 
     public function testTriggerDownloadSendsEpisodeSearchCommand(): void

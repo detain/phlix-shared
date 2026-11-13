@@ -79,6 +79,8 @@ class InjectedTransportTest extends TestCase
         $decoded = json_decode($sentBody, true);
         $this->assertIsArray($decoded);
         $this->assertSame(123456, $decoded['tmdbId']);
+        $this->assertSame('/movies', $decoded['rootFolderPath']);
+        $this->assertArrayNotHasKey('rootFolder', $decoded);
     }
 
     public function testInjectedTransportStatusErrorsStillMap(): void
