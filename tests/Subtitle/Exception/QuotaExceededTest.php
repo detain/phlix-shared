@@ -103,6 +103,16 @@ final class QuotaExceededTest extends TestCase
         );
     }
 
+    public function test_z_and_plus_zero_inputs_emit_the_same_canonical_form(): void
+    {
+        $z = (new QuotaExceeded('x', resetTimeUtc: '2026-07-22T06:30:00Z'))->getResetTimeUtc();
+        $off = (new QuotaExceeded('x', resetTimeUtc: '2026-07-22T06:30:00+00:00'))->getResetTimeUtc();
+
+        $this->assertSame('2026-07-22T06:30:00+00:00', $z);
+        $this->assertSame($z, $off);
+        $this->assertSame($z, (new QuotaExceeded('x', resetTimeUtc: $z))->getResetTimeUtc());
+    }
+
     public function test_offsetless_string_reset_time_is_read_as_utc(): void
     {
         $previous = date_default_timezone_get();
