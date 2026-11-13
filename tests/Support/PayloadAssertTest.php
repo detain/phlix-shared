@@ -13,7 +13,7 @@ namespace Phlix\Shared\Tests\Support;
 
 use InvalidArgumentException;
 use Phlix\Shared\Support\PayloadAssert;
-use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\CoversTrait;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -82,7 +82,7 @@ trait PayloadAssertTraitStub
     }
 }
 
-#[CoversClass(\Phlix\Shared\Support\PayloadAssert::class)]
+#[CoversTrait(\Phlix\Shared\Support\PayloadAssert::class)]
 final class PayloadAssertTest extends TestCase
 {
     use PayloadAssertTraitStub;
