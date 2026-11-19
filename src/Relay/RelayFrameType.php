@@ -105,6 +105,22 @@ use InvalidArgumentException;
  * that still encodes one of these values must be able to decode it without
  * hard-failing the framer. They must never be used to encode a new frame.
  *
+ * ## Frame-type rollout law (owner ruling Q5a / O-10)
+ *
+ * This enum is the frozen wire vocabulary of the relay tunnel: the integer
+ * values are the protocol itself. A value can never be reissued, reordered
+ * or repurposed — the retired 0x09–0x0F cases stay reserved exactly so.
+ * Adding a frame type is therefore never a local edit: it requires a
+ * coordinated rollout across the contracts spec, phlix-hub and
+ * phlix-server, and the ordering rule is skip-tolerant-first — the tolerant
+ * decode legs (the server `Hub/RelayMessageFramer` skip-oracle and the hub
+ * `Relay/FrameDecoder` + `FrameEncoder` unknown-value machinery, which
+ * `SHARED-056-DESIGN.md` C-07 deliberately keeps per-repo) must ship on
+ * every consumer BEFORE any producer may emit the new value. Each repo's
+ * local alias or re-declared copy of these constants is convenience for
+ * reading, not authority for the wire: this enum plus the contracts spec
+ * are the single source of truth (v0.57 charter ruling Q5a / O-10).
+ *
  * @package Phlix\Shared\Relay
  * @since 0.5.0
  */
