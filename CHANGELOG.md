@@ -97,6 +97,13 @@ behavior for existing consumers.
   (`?:` swallows a crafted `'0'` reason on a HEAD-only reply — disclosed,
   red-first pin flips). The `BodylessResponse` pair itself cannot move (both
   extend the Workerman response — G-14); table + resolver are the shared surface.
+- `Http\StaticPathPolicy` — the one static-deny vocabulary `['php','map','tpl']`
+  (R20-03; the hub docblock's own "byte-coordinated" wish becomes one SOURCE)
+  with the `strtolower(pathinfo(EXT))` strict predicate in the hub's
+  public-static API shape. The server's defensive `(string)` cast is kept
+  (disclosed no-op on real inputs); the pathinfo dotless-segment law
+  (`/public/php` denied) is pinned as pre-existing observable behavior;
+  body-cap policy stays per-repo (caps legitimately differ).
 ## [0.56.0] - 2026-11-19
 
 Minor: refactor-wave S0 release cut (program `refactor-1119`, design doc
