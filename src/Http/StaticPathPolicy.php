@@ -60,6 +60,9 @@ final class StaticPathPolicy
      */
     public static function extensionOf(string $path): string
     {
+        /** @psalm-suppress RedundantCastGivenDocblockType - the lifted server twin's
+         *  defensive cast stays verbatim (M-18 disclosure); the cast pins
+         *  pathinfo()'s native string|false return without relying on the docblock */
         return (string) pathinfo($path, PATHINFO_EXTENSION);
     }
 
