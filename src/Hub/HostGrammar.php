@@ -37,8 +37,13 @@ use InvalidArgumentException;
  * This is shape validation only — it says a string is syntactically a
  * host or URL, not that it is reachable, public, or trustworthy.
  *
- * @internal Shared-package implementation detail of the Hub DTOs; not a
- *           consumer API and may change without a major bump.
+ * Promoted from a shared-package implementation detail to a PUBLIC-STABLE
+ * surface: the grammar rules below are the estate's one host/URL shape
+ * law, and consumers (admin candidate editors, federation peer intake,
+ * relay dial paths) may depend on them; reshaping this API now is a
+ * major-bump event. Promotion stamped at v0.57 leg 0.13 (M-34); the
+ * executable pin of that status is
+ * {@see \Phlix\Shared\Tests\Hub\HostGrammarPromotionTest}.
  *
  * @package Phlix\Shared\Hub
  * @since 0.55.0

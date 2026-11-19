@@ -160,6 +160,13 @@ behavior for existing consumers.
   charter §4-6 static-corpus equality harness that gates the consumer
   delegation legs (PUSH-GATED; the real-DB ledger rehearsal stays
   per-repo).
+- `Hub\HostGrammar` promoted to a public-stable surface (M-34): the former
+  internal-detail marker comes off the grammar kernel — its host/URL shape
+  law (authority forms, userinfo/query/fragment refusal, punycode-only
+  non-ASCII, 1–65535 ports, printable-ASCII bytes only) is now contractually
+  consumer-facing and reshaping it is a major-bump event. Docblock-only
+  flip, zero behaviour change; the promotion status itself is pinned by a
+  reflection suite that reddens if the marker ever returns.
 ## [0.56.0] - 2026-11-19
 
 Minor: refactor-wave S0 release cut (program `refactor-1119`, design doc
