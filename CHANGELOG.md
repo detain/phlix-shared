@@ -136,6 +136,11 @@ behavior for existing consumers.
   camelCase `toArray()` key order is the shared admin-parser law;
   `updateCommand` keeps its never-executed law; the fork-free marker-fetch
   contract (S170-defence) is now one source.
+- `Metrics\MetricsRepositoryInterface` — the S1/S4 exact-twin read-side
+  contract (diff proven: namespace/prose only; "server-wide"/"hub-wide"
+  generalizes to application-wide): four methods, the shipped default
+  windows (60; 60/60; 10; 15/20) and row shapes pinned by characterization,
+  so both hosts' metrics panels share one contract.
 ## [0.56.0] - 2026-11-19
 
 Minor: refactor-wave S0 release cut (program `refactor-1119`, design doc
