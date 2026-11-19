@@ -104,12 +104,12 @@ final class MigrationChecksumTest extends TestCase
         // The charter §4-6 static-corpus proof diffs normalized text of
         // every migration file across hosts; it needs the kernel exposed.
         self::assertSame("A;\n", MigrationChecksum::normalize("-- c\nA;\n"));
-        self::assertSame('A;', MigrationChecksum::normalize('  # cA;   '));
+        self::assertSame('A;', MigrationChecksum::normalize("  # c\rA;   "));
     }
 
     public function testChecksumEqualsMd5OfNormalizeOnEveryShape(): void
     {
-        foreach (["A;\n", '-- x', "A;\n", '', "A\r\nB -- keep\n"] as $sql) {
+        foreach (["A;\n", '-- x', "\rA;\r\n", '', "A\r\nB -- keep\n"] as $sql) {
             self::assertSame(
                 md5(MigrationChecksum::normalize($sql)),
                 MigrationChecksum::checksum($sql),
