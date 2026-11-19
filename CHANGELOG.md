@@ -130,6 +130,12 @@ behavior for existing consumers.
   byte stays in FrameCodec (negative pin in the suite) and per-repo watchdog
   grace semantics (server `pingInterval + pingTimeout`) are NOT folded into
   the VO — disclosed in the class docblock; adoption rides S1 1.7 / S2 2.7.
+- `Updates\{CoreUpdateStatus, VersionMarkerFetcherInterface}` — the S74/S75
+  exact twins lifted as-is (diff proven: namespace/prose only; the two prose
+  variants of the no-fork rationale merge into one shared docblock). The
+  camelCase `toArray()` key order is the shared admin-parser law;
+  `updateCommand` keeps its never-executed law; the fork-free marker-fetch
+  contract (S170-defence) is now one source.
 ## [0.56.0] - 2026-11-19
 
 Minor: refactor-wave S0 release cut (program `refactor-1119`, design doc
