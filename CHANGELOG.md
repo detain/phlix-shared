@@ -33,6 +33,15 @@ behavior for existing consumers.
   per-site INTERPRETATION policy (loss vs refusal vs already-current success)
   stays at the call sites by design, and the server's scanner-delegate pin
   retires with S1 1.8 adoption.
+- `Database\UpsertSyntax` — the hub HUB-S14 class lifted as the estate single
+  copy: portable `ON DUPLICATE KEY UPDATE` authored once in MySQL 8.0.19+ row-
+  alias form, `adapt()` rewrites to `VALUES(col)` on MariaDB/pre-8.0.19,
+  process-global flavor memo under the documented single-engine assumption.
+  Divergences recorded: none — the server never grew a twin (adoption makes
+  the hub class a delegator and the server connect() path GAINS the one
+  `detect()` call it currently lacks); the hub's repository-emits test leg
+  stays per-repo, ported here are the pure detection/rewrite legs plus a
+  stateless `rewrite()` pin.
 
 ## [0.56.0] - 2026-11-19
 
