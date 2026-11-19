@@ -10,7 +10,8 @@
  * === shared MigrationChecksum::checksum(bytes) was asserted for ALL 174 files
  * at harvest time (gate log V057B-m31-corpus.log).
  *
- * Generation tips: phlix-server be05e7b131d4b17545e75b5d675c28d76044a96a / phlix-hub e62a2d62c4e7e702caadc163be776f7fac7550c3.
+ * Generation tips: phlix-server be05e7b131d4b17545e75b5d675c28d76044a96a /
+ * phlix-hub e62a2d62c4e7e702caadc163be776f7fac7550c3.
  * Rows ordered by (repo, relpath) strcmp; relpath is basename under <repo>/migrations/.
  *
  * @copyright 2026 Joe Huss <detain@interserver.net>
