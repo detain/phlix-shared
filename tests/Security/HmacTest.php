@@ -211,4 +211,67 @@ final class HmacTest extends TestCase
             );
         }
     }
+
+    public function testComputeDefaultSeparatorBytesAreUnchanged(): void
+    {
+        // BC law: the colon envelope this class documented since 0.10.0 must
+        // be the default-arm output to the byte, after the separator seam.
+        $this->assertSame(
+            'sha256:' . hash_hmac('sha256', 'payload', 'secret'),
+            Hmac::compute('payload', 'secret')
+        );
+        $this->assertSame(
+            'sha256:b82fcb791acec57859b989b430a826488ce2e479fdf92326bd0a2e8375a42ba4',
+            Hmac::compute('payload', 'secret')
+        );
+        $this->assertTrue(Hmac::verify('payload', Hmac::compute('payload', 'secret'), 'secret'));
+    }
+
+    public function testComputeEqualsSeparatorProducesTheWebhookLegacyEnvelope(): void
+    {
+        // G-03: the webhook wire's legacy header is exactly `sha256=<hex>`
+        // (receiver gates on the literal). The equals arm must reproduce it
+        // byte-identically so the S1.10 adoption can delegate the envelope.
+        $this->assertSame(
+            'sha256=' . hash_hmac('sha256', 'payload', 'secret'),
+            Hmac::compute('payload', 'secret', Hmac::SEPARATOR_EQUALS)
+        );
+        $this->assertSame(
+            'sha256=b82fcb791acec57859b989b430a826488ce2e479fdf92326bd0a2e8375a42ba4',
+            Hmac::compute('payload', 'secret', Hmac::SEPARATOR_EQUALS)
+        );
+    }
+
+    public function testSeparatorConstantsCarryTheWireLiterals(): void
+    {
+        $this->assertSame(':', Hmac::SEPARATOR_COLON);
+        $this->assertSame('=', Hmac::SEPARATOR_EQUALS);
+    }
+
+    public function testVerifyHonoursTheSeparatorAndCrossSeparationFails(): void
+    {
+        $equalsSig = Hmac::compute('payload', 'secret', Hmac::SEPARATOR_EQUALS);
+        $colonSig = Hmac::compute('payload', 'secret');
+
+        $this->assertTrue(Hmac::verify('payload', $equalsSig, 'secret', Hmac::SEPARATOR_EQUALS));
+        $this->assertTrue(Hmac::verify('payload', $colonSig, 'secret'));
+
+        // A signature computed under one envelope never verifies under the
+        // other — the separator is part of the compared string, and
+        // hash_equals does the whole job (no pre-checks to add).
+        $this->assertFalse(Hmac::verify('payload', $equalsSig, 'secret'));
+        $this->assertFalse(Hmac::verify('payload', $colonSig, 'secret', Hmac::SEPARATOR_EQUALS));
+    }
+
+    public function testDeprecatedAliasStillDelegatesUnderBothSeparators(): void
+    {
+        foreach ([Hmac::SEPARATOR_COLON, Hmac::SEPARATOR_EQUALS] as $separator) {
+            $signature = Hmac::compute('payload', 'secret', $separator);
+
+            $this->assertSame(
+                Hmac::verify('payload', $signature, 'secret', $separator),
+                Hmac::verifySha256Hex('payload', $signature, 'secret', $separator)
+            );
+        }
+    }
 }
