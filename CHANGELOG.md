@@ -120,6 +120,16 @@ behavior for existing consumers.
   intentionally NOT unified (server legacy `?token=` behind
   QueryTokenGatePolicy vs hub bearer-only S237); credential-never-echoed
   (S2b/S237) law pinned.
+- `Relay\LivenessWindows` — the 3x liveness-margin law becomes executable
+  (C-09): value object over a ping-cadence/reap-window pair with
+  `assertMargin()` refusing mis-coupled tunings at boot instead of reaping
+  ghosts (HB-0.1). Prose provenance pinned: hub `SyncPlayRelayWorker` 30/90
+  ("the same 3x margin"), hub `IdleReaper` 90s window on the server 30s ping
+  ("~3 heartbeats of headroom"), server `RelayConfig` 30s cadence. The
+  charter API is exact — `new(int, int)` + `assertMargin()`; the ping frame
+  byte stays in FrameCodec (negative pin in the suite) and per-repo watchdog
+  grace semantics (server `pingInterval + pingTimeout`) are NOT folded into
+  the VO — disclosed in the class docblock; adoption rides S1 1.7 / S2 2.7.
 ## [0.56.0] - 2026-11-19
 
 Minor: refactor-wave S0 release cut (program `refactor-1119`, design doc
