@@ -42,6 +42,18 @@ behavior for existing consumers.
   `detect()` call it currently lacks); the hub's repository-emits test leg
   stays per-repo, ported here are the pure detection/rewrite legs plus a
   stateless `rewrite()` pin.
+- `Database\MysqlError` — the consolidated D-16 detector (Q9=a: the landed
+  consolidated class, not the design's earlier scattered-detector sketch —
+  `driverErrorCode`/`duplicateKeyField(Throwable)` never existed on disk).
+  Lifted byte-exact from `final class` to EOF across all three copies
+  (shared == server == hub, `diff`-proven): named wire vocabulary (8 consts),
+  `isDuplicateKey(int|string)` with the numeric-string coercion arm,
+  `isDeadlock(int)`, and `driverCode(array|string|null)` carrying the
+  wire-authoritative-over-text law — anchored-segment parse, bracketed
+  connect-failure shapes deliberately unmatched, echo-decoy refusal, and the
+  ambiguous multi-segment string arm returning null (never a last-wins
+  guess). The full reviewed suite (28 cases incl the 13 message shapes)
+  ports with it; the estate twins retire at S1/S2 adoption.
 
 ## [0.56.0] - 2026-11-19
 
