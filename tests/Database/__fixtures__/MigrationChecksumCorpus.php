@@ -3,7 +3,7 @@
 /**
  * Migration checksum corpus fixture — generated data, hand-edit only via re-harvest.
  *
- * Produced by /tmp/opencode/refactor-exec-1119/harvest-m31.php on 2026-11-20 for
+ * Produced by /tmp/opencode/refactor-exec-1119/harvest-m31.php on 2026-11-19 for
  * v0.57 leg 0.12 (M-31) r1 cure: every consumer migration file, hashed by the
  * CONSUMER's own MigrationRunner::checksum (server via reflection on the private
  * static; hub public) at the generation tips recorded below. consumer_checksum
