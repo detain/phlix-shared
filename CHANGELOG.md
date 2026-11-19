@@ -4,15 +4,25 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.57.0] - 2026-11-20
 
-v0.57 candidate components (program `refactor-1119`, SHARED-057-CHARTER
-legs 0.9–0.13, lanes V057-A/V057-B). Additive only: the new namespaces
-(`Database/`, `Settings/`, `RateLimit/`, and the remaining legs as they
-land) lift the verified server/hub twins into shared kernels; zero
-existing shared public API changes. Consumer delegation (server S1 /
-hub S2 waves) retires the twins; nothing in these entries changes
-behavior for existing consumers.
+Minor: refactor-wave S1 release cut (program `refactor-1119`,
+`SHARED-057-CHARTER.md` legs 0.9–0.13, lanes V057-A/V057-B). New SSOT
+components land additive across `Database/`, `Settings/`, `RateLimit/`,
+`Http/`, `Relay/`, `Updates/`, `Metrics/`, `Runtime/` and `Console/`, plus
+the `Hub\HostGrammar` surface promotion; zero existing shared public API
+changes. Consumer adoption (server S1 / hub S2 delegation waves) retires
+the estate twins — nothing in this cut changes behavior for existing
+consumers. Disclosed forward items: `Http\ReasonPhrases` ships the hub
+strict-empty law and server-side migration to it IS the named-bug fix
+(`?:` swallowing a crafted `'0'` reason — A-12); the Clock row O-9 is
+acknowledged — `unixMs()` round law shipped 0.56.0 and the server truncate
+lineage flips only on its own adoption leg as a disclosed golden move; and
+`Relay\RelayFrameType` now carries the owner-approved frame-type rollout
+law (charter ruling Q5a / O-10). The dev-toolchain and history notes at the
+end of this section were folded from an orphaned second `[Unreleased]`
+header (base damage from the 0.55.x/0.56.0 era); their content is preserved
+verbatim.
 
 - `Database\Uuid` — the CSPRNG v4 mint of server `Phlix\Common\Uuid` and its
   hub `Ids::uuidV4()` twin (same shape — erratum E-4 records that the twins
@@ -167,6 +177,73 @@ behavior for existing consumers.
   consumer-facing and reshaping it is a major-bump event. Docblock-only
   flip, zero behaviour change; the promotion status itself is pinned by a
   reflection suite that reddens if the marker ever returns.
+
+- `Relay\RelayFrameType` — the frame-type rollout law lands in the enum
+  header (charter ruling Q5a / O-10, the C-07 doc action): the enum is the
+  frozen wire vocabulary; adding a type is a contracts+hub+server
+  coordinated rollout, skip-tolerant-first (tolerant decode legs ship
+  everywhere before any producer emits a new value); per-repo aliases are
+  convenience, not authority. Docblock-only, zero behaviour change.
+
+Dev-toolchain and history notes, preserved verbatim from the orphaned
+second `[Unreleased]` header they were recorded under (folded into this
+release at the cut; base-damage repair, no content change):
+
+Dev-toolchain upgrade (2026-11-13, no runtime/API change): `require-dev` moves
+to phpunit 12.5 (was 10.5), squizlabs/php_codesniffer 4.0 (was 3.13), vimeo/psalm
+6.5 (was 5.26), phpstan 2.3.5, with the lock refreshed (74 packages audited, no
+advisories). All newest majors co-install on PHP 8.3 and 8.4; nothing was held
+back. PHPUnit 12 dropped docblock metadata, so every `@covers`, `@coversNothing`,
+`@dataProvider` and `@group` in `tests/` became the equivalent attribute and
+`phpunit.xml` was migrated to the 12.5 schema. This un-hid tests that 10.x ran
+only partially: the suite went from 680 to 1798 tests because data-provider
+cases now actually run, and the `network` group exclusion is honoured again.
+Test-code type narrowing was added for phpstan 2.3.5, `AbstractArrClient` no
+longer concatenates a possibly-`false` `parse_url()` result into its scheme
+error message (psalm 6 `PossiblyFalseOperand`; `false` now reports `null`), and
+CI bumps `actions/checkout` to v7.0.1 and `codecov/codecov-action` to v7.1.1
+(SHA-pinned). The psalm gate now runs on PHP 8.3 and 8.4 and the 8.4 legs no
+longer need `--ignore-platform-req=php` (psalm 6.5 declares `~8.4.0`). PHP 8.5
+stays out of the matrix because psalm 6.5 does not support it.
+
+Upgrade order note (SHR-S1 / SHR-1, owner ruling 2026-11-13): the whole-payload
+`hostnameCandidates` rejection shipped in 0.55.0 is only safe for fleets whose
+servers sanitize `gethostname()`-derived candidates first. phlix-server
+`HostnameCandidateSanitizer` (maps `_` etc. to the RFC 1123 grammar and drops
+non-conforming candidates; server commit 5f974a28) therefore lands BEFORE any
+hub deploy that enforces this grammar. Bump order: server (sanitizer) -> shared
+0.55.x pin -> hub. No shared code change.
+
+Fix (outbound request, SHR-S8 / SHR-12, SHR-23): `SonarrClient::addSeries()` and
+`RadarrClient::addMovie()` now POST the real *arr v3 resource shape. The
+root-folder key is `rootFolderPath` (was the unknown `rootFolder`, which
+Sonarr/Radarr ignore, so adds lacked a root folder); Sonarr's monitor strategy
+moves to `addOptions.monitor` with a top-level `monitored` boolean (was a bare
+top-level `monitor`); Radarr gains `addOptions.monitor`
+(`movieOnly`/`none`) beside `searchForMovie`. Both methods take an optional
+trailing `?string $title` sent as `title` when given. BREAKING (dormant seam):
+`RadarrClient::addMovie()` now takes a single `int $tmdbId` (was `int|array`;
+the endpoint adds one movie per call), matching `addSeries(int $tvdbId, ...,
+string $rootFolder)`. `CurlArrTransport` keeps `CURLOPT_SSL_VERIFYPEER=true` /
+`VERIFYHOST=2` stated explicitly per request (pinned by test). Docs:
+`phlix-docs/docs/dev/arr-clients.md`.
+
+Pinned: `QuotaExceeded::getResetTimeUtc()` wire format (SHR-S7 / SHR-29).
+Input accepts both `Z` and `+00:00` (and any numeric offset); output is always
+the single canonical `DateTimeImmutable::ATOM` UTC form (`+00:00`, no
+fractional seconds), so `2022-04-08T13:03:16.000Z` and
+`2022-04-08T13:03:16+00:00` both emit `2022-04-08T13:03:16+00:00`. This is a
+wire-visible change: consumers that string-compare the value must expect
+`+00:00`; pinned in `QuotaExceededTest`.
+
+Schema copy (HUB-S47 / HUB-35): wire-visible `helpText` copy changes in
+`schemas/hub-settings.schema.json` for `hub.maintenance_mode`,
+`federation.enabled`, `auth.signups_disabled`, `server.rate_limit` and
+`server.metrics.enabled`: reworded into plain operator-facing language (lead
+with what the setting does; wire codes and ports demoted to a trailing
+sentence). No keys, types, bounds, defaults or enums changed. Consumers must
+re-vendor to see the new copy.
+
 ## [0.56.0] - 2026-11-19
 
 Minor: refactor-wave S0 release cut (program `refactor-1119`, design doc
@@ -240,62 +317,6 @@ waves — nothing in this cut changes behavior for existing consumers.
   hello/hello-ack JSON shapes), adopted from the sibling FRAME-lane scaffold
   (commit `d8f712c`); inert until S1/S2 consumer adoption.
 
-## [Unreleased]
-
-Dev-toolchain upgrade (2026-11-13, no runtime/API change): `require-dev` moves
-to phpunit 12.5 (was 10.5), squizlabs/php_codesniffer 4.0 (was 3.13), vimeo/psalm
-6.5 (was 5.26), phpstan 2.3.5, with the lock refreshed (74 packages audited, no
-advisories). All newest majors co-install on PHP 8.3 and 8.4; nothing was held
-back. PHPUnit 12 dropped docblock metadata, so every `@covers`, `@coversNothing`,
-`@dataProvider` and `@group` in `tests/` became the equivalent attribute and
-`phpunit.xml` was migrated to the 12.5 schema. This un-hid tests that 10.x ran
-only partially: the suite went from 680 to 1798 tests because data-provider
-cases now actually run, and the `network` group exclusion is honoured again.
-Test-code type narrowing was added for phpstan 2.3.5, `AbstractArrClient` no
-longer concatenates a possibly-`false` `parse_url()` result into its scheme
-error message (psalm 6 `PossiblyFalseOperand`; `false` now reports `null`), and
-CI bumps `actions/checkout` to v7.0.1 and `codecov/codecov-action` to v7.1.1
-(SHA-pinned). The psalm gate now runs on PHP 8.3 and 8.4 and the 8.4 legs no
-longer need `--ignore-platform-req=php` (psalm 6.5 declares `~8.4.0`). PHP 8.5
-stays out of the matrix because psalm 6.5 does not support it.
-
-Upgrade order note (SHR-S1 / SHR-1, owner ruling 2026-11-13): the whole-payload
-`hostnameCandidates` rejection shipped in 0.55.0 is only safe for fleets whose
-servers sanitize `gethostname()`-derived candidates first. phlix-server
-`HostnameCandidateSanitizer` (maps `_` etc. to the RFC 1123 grammar and drops
-non-conforming candidates; server commit 5f974a28) therefore lands BEFORE any
-hub deploy that enforces this grammar. Bump order: server (sanitizer) -> shared
-0.55.x pin -> hub. No shared code change.
-
-Fix (outbound request, SHR-S8 / SHR-12, SHR-23): `SonarrClient::addSeries()` and
-`RadarrClient::addMovie()` now POST the real *arr v3 resource shape. The
-root-folder key is `rootFolderPath` (was the unknown `rootFolder`, which
-Sonarr/Radarr ignore, so adds lacked a root folder); Sonarr's monitor strategy
-moves to `addOptions.monitor` with a top-level `monitored` boolean (was a bare
-top-level `monitor`); Radarr gains `addOptions.monitor`
-(`movieOnly`/`none`) beside `searchForMovie`. Both methods take an optional
-trailing `?string $title` sent as `title` when given. BREAKING (dormant seam):
-`RadarrClient::addMovie()` now takes a single `int $tmdbId` (was `int|array`;
-the endpoint adds one movie per call), matching `addSeries(int $tvdbId, ...,
-string $rootFolder)`. `CurlArrTransport` keeps `CURLOPT_SSL_VERIFYPEER=true` /
-`VERIFYHOST=2` stated explicitly per request (pinned by test). Docs:
-`phlix-docs/docs/dev/arr-clients.md`.
-
-Pinned: `QuotaExceeded::getResetTimeUtc()` wire format (SHR-S7 / SHR-29).
-Input accepts both `Z` and `+00:00` (and any numeric offset); output is always
-the single canonical `DateTimeImmutable::ATOM` UTC form (`+00:00`, no
-fractional seconds), so `2022-04-08T13:03:16.000Z` and
-`2022-04-08T13:03:16+00:00` both emit `2022-04-08T13:03:16+00:00`. This is a
-wire-visible change: consumers that string-compare the value must expect
-`+00:00`; pinned in `QuotaExceededTest`.
-
-Schema copy (HUB-S47 / HUB-35): wire-visible `helpText` copy changes in
-`schemas/hub-settings.schema.json` for `hub.maintenance_mode`,
-`federation.enabled`, `auth.signups_disabled`, `server.rate_limit` and
-`server.metrics.enabled`: reworded into plain operator-facing language (lead
-with what the setting does; wire codes and ports demoted to a trailing
-sentence). No keys, types, bounds, defaults or enums changed. Consumers must
-re-vendor to see the new copy.
 
 ## [0.55.0] - 2026-11-12
 

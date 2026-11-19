@@ -19,7 +19,7 @@ optional `config/trash_guides.php` local read; see [`AGENTS.md`](AGENTS.md) (in 
 
 ## Status
 
-**v0.56.0** (`Phlix\Shared\Version::VERSION`). At the working tip, `schemas/server-settings.schema.json` carries 87 keys (51 `restart: true`, 36 `restart: false`; a census of the working tree, not a v0.56.0 tag-time stamp); `schemas/hub-settings.schema.json` carries 18 keys in lockstep with `phlix-hub`'s `HubSettingsRepository::ALLOWED_KEYS`. Cumulative surface:
+**v0.57.0** (`Phlix\Shared\Version::VERSION`). At the working tip, `schemas/server-settings.schema.json` carries 87 keys (51 `restart: true`, 36 `restart: false`; a census of the working tree, not a v0.57.0 tag-time stamp); `schemas/hub-settings.schema.json` carries 18 keys in lockstep with `phlix-hub`'s `HubSettingsRepository::ALLOWED_KEYS`. Cumulative surface:
 
 - `Phlix\Shared\Plugin\{LifecycleInterface, ConfigurableInterface, Manifest, ManifestType, ManifestValidationError, EventNameMap}`
 - `Phlix\Shared\Events\{AbstractEvent, Playback\*, Library\*, Auth\*}` — 12 event DTOs.
@@ -73,6 +73,53 @@ optional `config/trash_guides.php` local read; see [`AGENTS.md`](AGENTS.md) (in 
   (unconditional throw on encode, null-vs-rethrow discrimination on inbound decode); the
   monotonic-free epoch clocks with the `unixMs()` round law and a pure `msFromUnixSeconds()`
   fixture seam; and pure reconnect-math `stepped()`/`jittered()` backoff with an injectable rng.
+- `Phlix\Shared\Database\{Uuid, WriteResult, UpsertSyntax, MysqlError, MigrationChecksum}` —
+  the estate database kernels cut from the server/hub twins (0.57.0+): the CSPRNG v4
+  mint with the published `V4_PATTERN` and the `randomHex()` entropy-law seam; the
+  write-outcome predicate (`'0'`-means-success trap documented as law) with the hub's
+  row-count fold; the portable upsert rewriter (`ON DUPLICATE KEY UPDATE` alias form
+  rewritten to `VALUES(col)` on MariaDB/pre-8.0.19); the consolidated MySQL
+  driver-code detector (named wire vocabulary, wire-authoritative-over-text parse);
+  and the SV-4.9 migration-ledger checksum kernel — its committed 174-file
+  corpus-equality fixture proves kernel ≡ both repos' normalizers (the consumer
+  real-DB ledger rehearsal legs stay per-repo).
+- `Phlix\Shared\Settings\SettingsCodec` — the settings-column value codec (0.57.0+):
+  `decode()` byte-identical to both repos' private ancestors; `encode()` ships the
+  hub's strict `JSON_THROW_ON_ERROR` posture (the server silent variant is the
+  disclosed divergence ending at S1 1.8 adoption); plus the pure `effective()`
+  decision arm and the `clampValue()` reader primitive.
+- `Phlix\Shared\RateLimit\{RateLimiterInterface, RateLimitState, RateLimiter, RateLimitException}` —
+  the auth-surface attempt-counter family (0.57.0+): bounded in-memory engine with
+  expired-sweep-then-soonest-reset eviction and injectable clock; the hub-superset
+  exception (`MESSAGE_PREFIX` wire copy, rounded-up minutes `retryAfterMessage()`);
+  the hub-only `multiWorkerNotice()` copy-verbatim advisory (emission stays consumer
+  glue). `DbRateLimiter`/`RateLimitProfiles` deliberately stay per-repo.
+- `Phlix\Shared\Http\{ErrorEnvelope, ReasonPhrases, StaticPathPolicy, TrustedProxyResolver, WebSocketHandshake}` —
+  the HTTP kernel family (0.57.0+): the `{error, code}`-plus-additive body law with
+  the 429/503 shape builders; the hub strict-empty reason law with a byte-faithful
+  copy of the vendored Workerman `PHRASES` table (server migration to it is the
+  named-`'0'`-bug fix); the `php`/`map`/`tpl` static-deny vocabulary in the hub's
+  public predicate shape; the SV-4.15 trusted-proxy/XFF resolver; and the
+  `Sec-WebSocket-Protocol` string kit (bearer offer/token/echo-line kernels —
+  carrier policy intentionally stays per-repo).
+- `Phlix\Shared\Relay\LivenessWindows` — the 3x liveness-margin law made
+  executable (C-09/HB-0.1): a value object over ping-cadence/reap-window pairs whose
+  `assertMargin()` refuses mis-coupled tunings at boot instead of reaping ghosts.
+- `Phlix\Shared\Updates\{CoreUpdateStatus, VersionMarkerFetcherInterface}`,
+  `Phlix\Shared\Metrics\MetricsRepositoryInterface`,
+  `Phlix\Shared\Runtime\HookDeliveryException`,
+  `Phlix\Shared\Console\JsonEnvelope` — the exact-twin lifts (0.57.0+): the
+  updates-marker pair (S74/S75; camelCase admin-parser key order, fork-free marker
+  fetch contract); the metrics read-side interface (S1/S4; window defaults pinned);
+  the hook-delivery failure marker (S433: both failure shapes loud, an inconclusive
+  check is never a pass); and the CLI `--json` envelope string kernels (key order,
+  list normalization, throw-on-error; the Symfony-bound trait glue and
+  `JSON_OUTPUT_MARKER` stay per-repo).
+- `Phlix\Shared\Hub\HostGrammar` — promoted from an internal detail to a public
+  stable surface at 0.57.0 (M-34): its host/URL shape law is now contractually
+  consumer-facing and reshaping it is a major-bump event; the promotion status is
+  pinned by a reflection suite that reddens if the old `@internal` marker returns.
+
 - `Phlix\Shared\Schema\SchemaPaths` — pure path resolver for the bundled `schemas/` files (0.7.0+).
 - `Phlix\Shared\Version` — the single `VERSION` constant consumers pin and report.
 
@@ -250,7 +297,7 @@ see [`AGENTS.md`](AGENTS.md) in the git checkout).
 `detain/phlix-shared` is published on Packagist:
 
 ```bash
-composer require detain/phlix-shared:^0.56
+composer require detain/phlix-shared:^0.57
 ```
 
 ## Package layout
