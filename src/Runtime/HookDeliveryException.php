@@ -11,8 +11,6 @@ declare(strict_types=1);
 
 namespace Phlix\Shared\Runtime;
 
-use RuntimeException;
-
 /**
  * Thrown when the runtime-hook allowlist delivery cannot be proven applied.
  *
@@ -29,6 +27,6 @@ use RuntimeException;
  * scored as a pass — the same "gate that proves nothing" defect class S146
  * removed from the CI jobs.
  */
-final class HookDeliveryException extends RuntimeException
+final class HookDeliveryException extends \RuntimeException
 {
 }

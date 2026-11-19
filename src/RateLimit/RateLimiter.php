@@ -13,9 +13,6 @@ namespace Phlix\Shared\RateLimit;
 
 use Closure;
 
-use function count;
-use function time;
-
 /**
  * Worker-local, TTL-windowed rate limiter backed by a BOUNDED array with
  * active eviction.
