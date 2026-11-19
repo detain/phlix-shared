@@ -103,7 +103,7 @@ final class ReasonPhrases
         504 => 'Gateway Timeout',
         505 => 'HTTP Version Not Supported',
         506 => 'Variant Also Negotiates', // RFC 2295
-        507 => 'Insufficient Storage', // WebDAV; RFC 5842
+        507 => 'Insufficient Storage', // WebDAV; RFC 4918
         508 => 'Loop Detected', // WebDAV; RFC 5842
         510 => 'Not Extended', // RFC 2774
         511 => 'Network Authentication Required', // RFC 6585

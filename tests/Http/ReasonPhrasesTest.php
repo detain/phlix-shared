@@ -71,10 +71,29 @@ final class ReasonPhrasesTest extends TestCase
     public function testTableShapeCensusValuesAreNeverEmpty(): void
     {
         // The typed const carries the key/value types; the observable law to
-        // pin is the vendor-copy census: non-trivial map, no empty phrases.
+        // pin is the vendor-copy census: non-trivial map, no empty phrases,
+        // and the exact 63-entry size of the vendored Workerman PHRASES map
+        // at the provenance tip we copied from (r1 cure: keep the count in
+        // the pin, not in prose — a donor-map drift must redden consciously).
         foreach (ReasonPhrases::PHRASES as $status => $phrase) {
             self::assertNotSame('', $phrase, (string) $status);
         }
-        self::assertGreaterThanOrEqual(40, count(ReasonPhrases::PHRASES));
+        self::assertCount(63, ReasonPhrases::PHRASES);
+    }
+
+    public function testLegacyElvisGrammarCharacterizedAsTheBugThisKernelFixes(): void
+    {
+        // Executed contrast (M-17 divergence pin, characterization stamp):
+        // the OLD server grammar resolved the reason as
+        // `$reason ?: $defaultPhrase`, and PHP's elvis swallows the
+        // string '0' — a caller that legitimately said '0' got the table
+        // phrase instead. The old arm is emulated inline here so the delta
+        // is measured, not asserted; the shared kernel's strict-empty law
+        // (ReasonPhrases::resolve) keeps '0' verbatim. The emulation is a
+        // parameterised closure so the elvis arm runs on real inputs.
+        $legacyGrammar = static fn(string $reason): string => $reason ?: 'Internal Server Error';
+        self::assertSame('Internal Server Error', $legacyGrammar('0'), 'Elvis must swallow "0" — the bug class.');
+
+        self::assertSame('0', ReasonPhrases::resolve('0', 500), 'Shared kernel keeps the explicit "0".');
     }
 }
