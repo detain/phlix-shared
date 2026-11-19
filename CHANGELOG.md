@@ -4,6 +4,25 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+v0.57 candidate components (program `refactor-1119`, SHARED-057-CHARTER
+leg 0.12, lane V057-A). Additive only: the new `Database/` and `Settings/`
+namespaces lift the verified server/hub twins into shared kernels; zero
+existing shared public API changes. Consumer delegation (server S1 1.8 /
+hub S2 2.10 waves) retires the twins; nothing in these entries changes
+behavior for existing consumers.
+
+- `Database\Uuid` — the CSPRNG v4 mint of server `Phlix\Common\Uuid` and its
+  hub `Ids::uuidV4()` twin (same shape — erratum E-4 records that the twins
+  were never claimed byte-identical), plus `V4_PATTERN` published (the
+  server kept it private; consumers want the ONE boundary regex) and the
+  new `randomHex(int<1,max>)` entropy-law-as-API surface closing the
+  design's E-13/D-07 token-size scatter: server `Token::hex()` and hub
+  `Ids::token()` are the same one-liner and delegate on adoption. No
+  runtime domain guard invented — non-positive sizes fail loudly in
+  `random_bytes()` natively, exactly as in both twins.
+
 ## [0.56.0] - 2026-11-19
 
 Minor: refactor-wave S0 release cut (program `refactor-1119`, design doc
