@@ -81,6 +81,15 @@ behavior for existing consumers.
   clock. `DbRateLimiter`/`RateLimitProfiles` deliberately stay per-repo
   (storage wiring, not contract).
 
+- `Http\ErrorEnvelope` — the estate `{error, code}`+additive body law lifted
+  from the byte-identical `Response::error()` emit lines (server :212 / hub
+  :230) and the W4 PREP `rateLimitedBody()`/`retryAfterHeader()` pair both
+  hosts already share (A-04). The hub 503 maintenance frame rides the same
+  law as a call-site composition; the kernel splits from the design sketch's
+  signature on disclosure — the seconds value never rides the body on either
+  host (it is a `Retry-After` header only), inventing a key would move wire
+  bytes. Status/header glue, header-order corpus pins, and the server's
+  legacy `errorPlain()` half-envelope stay per-repo by design.
 ## [0.56.0] - 2026-11-19
 
 Minor: refactor-wave S0 release cut (program `refactor-1119`, design doc
