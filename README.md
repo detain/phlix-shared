@@ -19,11 +19,15 @@ optional `config/trash_guides.php` local read; see [`AGENTS.md`](AGENTS.md) (in 
 
 ## Status
 
-**v0.55.0** (`Phlix\Shared\Version::VERSION`). At the working tip, `schemas/server-settings.schema.json` carries 87 keys (51 `restart: true`, 36 `restart: false`; a census of the working tree, not a v0.55.0 tag-time stamp); `schemas/hub-settings.schema.json` carries 18 keys in lockstep with `phlix-hub`'s `HubSettingsRepository::ALLOWED_KEYS`. Cumulative surface:
+**v0.56.0** (`Phlix\Shared\Version::VERSION`). At the working tip, `schemas/server-settings.schema.json` carries 87 keys (51 `restart: true`, 36 `restart: false`; a census of the working tree, not a v0.56.0 tag-time stamp); `schemas/hub-settings.schema.json` carries 18 keys in lockstep with `phlix-hub`'s `HubSettingsRepository::ALLOWED_KEYS`. Cumulative surface:
 
 - `Phlix\Shared\Plugin\{LifecycleInterface, ConfigurableInterface, Manifest, ManifestType, ManifestValidationError, EventNameMap}`
 - `Phlix\Shared\Events\{AbstractEvent, Playback\*, Library\*, Auth\*}` — 12 event DTOs.
-- `Phlix\Shared\Auth\{JwtClaims, ProviderInterface, AuthResult, UserInfo}`
+- `Phlix\Shared\Auth\{JwtClaims, ProviderInterface, AuthResult, UserInfo, SessionFamily, FamilyRefusalReason, GrantConsume, FamilyGrace, PasswordHasher}`
+  — `SessionFamily` is the claim/type/grace vocabulary (its `TYPE_*` constants alias `JwtClaims`);
+  `FamilyRefusalReason`/`GrantConsume` are the session-family rotation enums and `FamilyGrace`
+  the pure within-grace arithmetic; `PasswordHasher` is the argon2id SSOT seam with the
+  timing-burn dummy hash and burn-then-false `verify()` built in (0.56.0+).
 - `Phlix\Shared\Metadata\MetadataSourceInterface` — the typed contract a metadata-source plugin
   implements (`sourceName()`, `supportedMediaTypes()`, `search()`, `getDetails()`, `getImages()`) so
   the server's `SourceRegistry` can register/deregister it on plugin enable/disable without the old
@@ -33,7 +37,8 @@ optional `config/trash_guides.php` local read; see [`AGENTS.md`](AGENTS.md) (in 
   `searchByPath()`/`searchByHash()`/`searchByImdbId()` fan-out returning `SubtitleCandidate` values, and the
   quota-consuming `download()` that may throw `QuotaExceeded` (0.42.0+).
 - `Phlix\Shared\Hub\{ClaimRequest, ClaimResponse, ServerInfoDto, HeartbeatDto, LibraryRef}`
-- `Phlix\Shared\Relay\{RelayFrameType, RelayWireCodecInterface, RelayFrame, SyncPlayDialect}` — channel-mux protocol (0.5+);
+- `Phlix\Shared\Relay\{RelayFrameType, RelayWireCodecInterface, RelayFrame, FrameCodec, SyncPlayDialect}` — channel-mux protocol (0.5+);
+  `FrameCodec` is the canonical binary frame encoder (encode legs + hello/hello-ack JSON shapes; 0.56.0+);
   `SyncPlayDialect` is the canonical `syncplay_*` wire message-type catalog (shipped in v0.55.0);
   plus `Relay\{RelayHttpRequest, RelayHttpRequestHead, RelayHttpRequestChunk, RelayHttpRequestCodec}` and
   `Relay\{RelayHttpResponseHead, RelayHttpResponseChunk, RelayHttpResponseCodec}` —
@@ -43,15 +48,31 @@ optional `config/trash_guides.php` local read; see [`AGENTS.md`](AGENTS.md) (in 
   TrashGuides provider; `Arr\Transport\{ArrTransportInterface, CurlArrTransport}` is the pluggable
   wire layer underneath.
 - `Phlix\Shared\Security\Hmac` — the shared `compute()`/`verify()` seam for timing-safe
-  HMAC-SHA256 in the `sha256:<hex>` colon-hex format. Honest status: no production consumer
+  HMAC-SHA256 in the `sha256:<hex>` colon-hex format, plus an additive envelope-separator
+  arm (`SEPARATOR_EQUALS` serves the webhook legacy `sha256=<hex>` shape; the colon default
+  keeps every existing byte identical). Honest status: no production consumer
   imports it today — server webhooks sign with raw `hash_hmac()` and plugin-manifest checks are
   a trusted-digest allowlist, not a keyed HMAC — it is kept as the single-source keyed-signature
   primitive for a future consumer (there is no `sign()` method).
+- `Phlix\Shared\Security\{Base64Url, Pkce, Jwt, JwtTokenParts, JwtException, CredentialDigest, OriginPolicy, Ed25519Pem}` —
+  the estate security kernels cut from the server/hub duplicates (0.56.0+): strict/lax base64url
+  codec; the hub S256-only PKCE guard set plus a verifier generator; an HS256 JWT mint/verify
+  with the `alg`/`typ`-before-signature pin and frozen attack-vector corpus; the sha256
+  credential-digest seam (never for user passwords); the CSRF-origin brain kernel (pure
+  forwarded/proto/localhost/same-site/verb/sec-fetch guards and `custodyMode`, proven
+  zero server/hub divergence); and Ed25519 PEM/JWK primitives with the kid fingerprint
+  parameterized per emitting shape. Consumer delegation to these is the S1/S2 adoption waves.
 - `Phlix\Shared\Support\PayloadAssert` — the presence/type assertion trait used by the wire DTOs
   that parse payloads through it: `ClaimRequest`, `ClaimResponse`, `ServerInfoDto`,
   `HeartbeatDto` and `JwtClaims`. `Hub\LibraryRef` is the deliberate manual-validation exception
   (its `fromPayload()` rejects empty strings inline); `Auth\UserInfo` is a constructor value
   object that parses no payload at all.
+- `Phlix\Shared\Support\{EnvConfig, Json, Clock, Backoff}` — the shared runtime helpers (0.56.0+):
+  pure `getenv` readers with the bool/opt-out word laws (no shell probes, no logging
+  side-effects — charter-pinned deltas from the server original); the strict JSON seam
+  (unconditional throw on encode, null-vs-rethrow discrimination on inbound decode); the
+  monotonic-free epoch clocks with the `unixMs()` round law and a pure `msFromUnixSeconds()`
+  fixture seam; and pure reconnect-math `stepped()`/`jittered()` backoff with an injectable rng.
 - `Phlix\Shared\Schema\SchemaPaths` — pure path resolver for the bundled `schemas/` files (0.7.0+).
 - `Phlix\Shared\Version` — the single `VERSION` constant consumers pin and report.
 
@@ -229,7 +250,7 @@ see [`AGENTS.md`](AGENTS.md) in the git checkout).
 `detain/phlix-shared` is published on Packagist:
 
 ```bash
-composer require detain/phlix-shared:^0.55
+composer require detain/phlix-shared:^0.56
 ```
 
 ## Package layout

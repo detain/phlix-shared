@@ -4,6 +4,79 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.56.0] - 2026-11-19
+
+Minor: refactor-wave S0 release cut (program `refactor-1119`, design doc
+`SHARED-056-DESIGN.md`). New SSOT components land additive across
+`Security/`, `Auth/`, `Support/` and `Relay/`; zero existing shared public API
+changes. This release carries design legs 0.1–0.8 plus the sibling-frame relay
+scaffold; legs 0.9–0.13 (RateLimit, Http, LivenessWindows, db predicates,
+HostGrammar un-`@internal`) were scoped out by owner ruling and ride a later
+minor. Consumer adoption (server/hub delegating to these kernels) is the S1/S2
+waves — nothing in this cut changes behavior for existing consumers.
+
+- `Security\Base64Url` — codec with the strict and lax decode arms of both
+  parents' lineages; no implicit `false` ever escapes the seam.
+- `Security\Pkce` — the hub S256-only guard set verbatim, plus additive
+  `generateCodeVerifier()` (43–128-char budget, `random_bytes`).
+- `Security\{Jwt, JwtTokenParts, JwtException}` — HS256 mint/verify with the
+  `alg`/`typ`-before-signature pin (bug2 law: honest-HMAC `alg:none` tokens are
+  refused by header law, not by signature luck); frozen vector corpus for the
+  strict, typ-less legacy, and `alg:none` attack header shapes; every secret
+  seam enforces `MIN_SECRET_BYTES = 32`.
+- `Security\CredentialDigest` — `hash('sha256')` + `hash_equals` seam for
+  digest-stored non-password credentials (SyncPlay join passwords, OAuth/MCP/
+  invite digests); user passwords stay on `Auth\PasswordHasher`. The B-16/
+  B-19 SPEC-pinned sha256 wire forms are deliberately not harmonized.
+- `Security\OriginPolicy` — the CSRF-origin brain kernel: union of server and
+  hub `CookiePolicy` pure functions (`httpsForwarded`/`httpsForwardedValue`,
+  `localhostHost`, `originIsSameSite`, `stateChangingMethod`, tri-state
+  `secFetchBelt`, `stateChangingRequestOriginAllowed`, `custodyMode`). A
+  3,026-vector three-way sweep proved zero server/hub divergence (owner row
+  O-1 resolved); pinned quirks (empty-Origin skip, raw-port strict axis vs
+  default-port lenient axis) are preserved as law, not polished.
+- `Security\Ed25519Pem` — PEM/JWK primitives: build/parse (native + PKCS#8
+  arms), `fingerprint()` parameterized by prefix bytes (8 = server's 11-char
+  kid, null = hub's full 43-char — E-1: emitted kid bytes of neither repo
+  change), `toJwk()`. The native reader is a superset accepting both parent
+  dialects; an overlong body takes its first 64 bytes (server posture,
+  disclosed).
+- `Security\Hmac` — additive envelope-separator arm (`SEPARATOR_COLON` default
+  keeps every existing byte identical; `SEPARATOR_EQUALS` serves the webhook
+  legacy `sha256=<hex>` envelope). Adoption with byte-identity gates is S1.10.
+- `Auth\SessionFamily` — claim/type/grace vocabulary; `TYPE_ACCESS`/`TYPE_REFRESH`
+  alias the existing `JwtClaims` constants (single definition site), values
+  verified identical in both repos pre-move.
+- `Auth\{FamilyRefusalReason, GrantConsume, FamilyGrace}` — the eight-case
+  refusal ladder as an enum, the consume-outcome trio, and the pure
+  within-grace arithmetic (SQL arms stay repo-side).
+- `Auth\PasswordHasher` — argon2id options pinned to the measured PHP 8.3
+  defaults (m=65536,t=4,p=1), with the timing-burn dummy hash and the
+  burn-then-false `verify()` widening built into the seam (B-06: placement,
+  not caller discipline).
+- `Support\EnvConfig` — pure readers (`integer`/`text`/`nullableText`/`bool`/
+  `boolOptOut`/`boolValue`) copied from the server live file minus
+  `availableCpuCount` (charter: no shell probes) and minus the junk-value
+  `error_log` warning (charter: no logging side-effects; same verdict, silent
+  here — disclosed). `(int)`-cast law (`'12x'` → `12`) diverges from hub
+  `is_numeric` readers and is disclosed for the boot-gate sweep.
+- `Support\Json` — strict seam: `encode()` throws unconditionally (D-05; the
+  default `UNESCAPED_SLASHES|UNESCAPED_UNICODE` is policy — wire bytes differ
+  from each repo's live flag sets at adoption, an S1/S2 duty), `encodePretty()`
+  pins the server HTTP flag set verbatim, `decodeInbound()` returns null on
+  malformed input but rethrows the depth-exhaustion class (structural
+  impossibility), guarded against `depth < 1` by design.
+- `Support\Clock` — `unixMs()` ships the ROUND law (hub/TS parity); the server
+  truncate lineage is documented and owner row O-9 stays OPEN on the server
+  adoption leg (flipping it moves ms-arithmetic golden pins — a disclosed
+  golden move, not this cut). `msFromUnixSeconds()` is the pure fixture seam.
+- `Support\Backoff` — pure `stepped()` (reproduces the hub reconnect ladder)
+  and `jittered()` (server `RelayConsumer` math verbatim) with an injectable
+  rng; park-at-cap state machines stay repo-side by design.
+- `Relay\FrameCodec` — canonical binary frame encoder (encode legs +
+  hello/hello-ack JSON shapes), adopted from the sibling FRAME-lane scaffold
+  (commit `d8f712c`); inert until S1/S2 consumer adoption.
+
 ## [Unreleased]
 
 Dev-toolchain upgrade (2026-11-13, no runtime/API change): `require-dev` moves
