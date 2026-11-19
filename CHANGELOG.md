@@ -90,6 +90,13 @@ behavior for existing consumers.
   host (it is a `Retry-After` header only), inventing a key would move wire
   bytes. Status/header glue, header-order corpus pins, and the server's
   legacy `errorPlain()` half-envelope stay per-repo by design.
+- `Http\ReasonPhrases` — the hub's strict-empty reason law verbatim (null/`''`
+  fall to the table; an explicit `'0'` SURVIVES — A-12) plus a byte-faithful
+  copy of the vendored Workerman `PHRASES` map both hosts already read through
+  their parent. Server-side migration to this kernel IS the named-bug fix
+  (`?:` swallows a crafted `'0'` reason on a HEAD-only reply — disclosed,
+  red-first pin flips). The `BodylessResponse` pair itself cannot move (both
+  extend the Workerman response — G-14); table + resolver are the shared surface.
 ## [0.56.0] - 2026-11-19
 
 Minor: refactor-wave S0 release cut (program `refactor-1119`, design doc
