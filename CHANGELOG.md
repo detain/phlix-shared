@@ -146,6 +146,12 @@ behavior for existing consumers.
   failure shapes (detected mismatch, inconclusive probe) are loud and a
   check that cannot decide may never be scored as a pass (the S146
   gate-that-proves-nothing class).
+- `Console\JsonEnvelope` — the CLI `--json` envelope bytes as string kernels
+  from the re-converged `JsonOutput` trait twins (A-06): key-ordered
+  `{"ok":true,"data":[…]}` / `{"ok":false,"error":"…"}`, list normalisation,
+  unescaped slashes/unicode, throw-on-error halting. The Symfony-bound trait
+  glue (`isJsonMode`/`fail()` exit chooser) and `JSON_OUTPUT_MARKER` stay
+  per-repo — pinned negative law.
 ## [0.56.0] - 2026-11-19
 
 Minor: refactor-wave S0 release cut (program `refactor-1119`, design doc
