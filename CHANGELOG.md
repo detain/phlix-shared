@@ -141,6 +141,11 @@ behavior for existing consumers.
   generalizes to application-wide): four methods, the shipped default
   windows (60; 60/60; 10; 15/20) and row shapes pinned by characterization,
   so both hosts' metrics panels share one contract.
+- `Runtime\HookDeliveryException` — the exact twin lifted (plain final
+  RuntimeException marker). The S433 narrative is preserved verbatim: BOTH
+  failure shapes (detected mismatch, inconclusive probe) are loud and a
+  check that cannot decide may never be scored as a pass (the S146
+  gate-that-proves-nothing class).
 ## [0.56.0] - 2026-11-19
 
 Minor: refactor-wave S0 release cut (program `refactor-1119`, design doc
