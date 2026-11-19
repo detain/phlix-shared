@@ -110,6 +110,16 @@ behavior for existing consumers.
   env parsing, and the VARCHAR(191) overflow defence are unchanged; the
   shared suite is the twins' identical 12-method + 13-row CIDR
   characterization ported byte-faithful.
+- `Http\WebSocketHandshake` — the string-level `Sec-WebSocket-Protocol` kit
+  (RFC 7230 per-entry OWS trim: `bearer-chat` is NOT an offer):
+  `offersBearerSubprotocol`, `bearerSubprotocolToken` (first non-marker
+  entry), `negotiatedSubprotocolEchoLine` (RFC 6455 §4.2.2 at-most-one-
+  offered-id selection; `''` replaces the twins' null no-echo arm; the
+  generalization beyond bearer-only disclosed). The Workerman
+  `upgradeHeader` adapter stays per-repo (G-14) and the carrier POLICY is
+  intentionally NOT unified (server legacy `?token=` behind
+  QueryTokenGatePolicy vs hub bearer-only S237); credential-never-echoed
+  (S2b/S237) law pinned.
 ## [0.56.0] - 2026-11-19
 
 Minor: refactor-wave S0 release cut (program `refactor-1119`, design doc
