@@ -54,6 +54,20 @@ behavior for existing consumers.
   ambiguous multi-segment string arm returning null (never a last-wins
   guess). The full reviewed suite (28 cases incl the 13 message shapes)
   ports with it; the estate twins retire at S1/S2 adoption.
+- `Settings\SettingsCodec` — the settings-column value codec lifted from the
+  two private repo pairs: `decode()` is byte-identical across server, hub and
+  this kernel (`diff`-proven three-way); `encode()` ships the hub's STRICTER
+  `JSON_THROW_ON_ERROR` posture on the json and non-scalar-default arms — the
+  server's silent `(string) json_encode` variant (which persisted `''` for
+  unencodable payloads) is the disclosed divergence this leg ends: server
+  adoption (S1 1.8) is a behavior change that must catch `JsonException` into
+  its 400 envelope, red-first pin owed at adoption. Plus the two pure reader
+  primitives both repos grew independently: `effective()` (the getEffective
+  decision arm, byte-identical on disk; the `['value']` row unwrap and
+  getEffectiveMany stay per-repo storage/IO) and `clampValue()` (the hub
+  resolvers' `clampInt` generalized to int|float, covering charter D-05's
+  scattered bound sites; out-of-range answers with the (int) bounds, no
+  min>max laundering guard invented).
 
 ## [0.56.0] - 2026-11-19
 
