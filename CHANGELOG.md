@@ -7,10 +7,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased]
 
 v0.57 candidate components (program `refactor-1119`, SHARED-057-CHARTER
-leg 0.12, lane V057-A). Additive only: the new `Database/` and `Settings/`
-namespaces lift the verified server/hub twins into shared kernels; zero
-existing shared public API changes. Consumer delegation (server S1 1.8 /
-hub S2 2.10 waves) retires the twins; nothing in these entries changes
+legs 0.9–0.13, lanes V057-A/V057-B). Additive only: the new namespaces
+(`Database/`, `Settings/`, `RateLimit/`, and the remaining legs as they
+land) lift the verified server/hub twins into shared kernels; zero
+existing shared public API changes. Consumer delegation (server S1 /
+hub S2 waves) retires the twins; nothing in these entries changes
 behavior for existing consumers.
 
 - `Database\Uuid` — the CSPRNG v4 mint of server `Phlix\Common\Uuid` and its
@@ -68,6 +69,17 @@ behavior for existing consumers.
   resolvers' `clampInt` generalized to int|float, covering charter D-05's
   scattered bound sites; out-of-range answers with the (int) bounds, no
   min>max laundering guard invented).
+- `RateLimit\RateLimiterInterface`, `RateLimit\RateLimitState`,
+  `RateLimit\RateLimiter`, `RateLimit\RateLimitException` (leg 0.9, M-11) —
+  the auth-surface attempt-counter family. Interface, state and engine
+  bodies were byte-ident server/hub twins modulo namespace and header prose;
+  `RateLimitException` ships the hub superset (`MESSAGE_PREFIX` wire copy +
+  the rounded-UP minutes `retryAfterMessage()` arms) and the engine ships
+  the hub-only `multiWorkerNotice()` (verbatim notice copy; emission stays
+  consumer glue). Engine semantics unchanged: bounded per-worker map,
+  expired-sweep-then-soonest-reset eviction, clamped ctor args, injectable
+  clock. `DbRateLimiter`/`RateLimitProfiles` deliberately stay per-repo
+  (storage wiring, not contract).
 
 ## [0.56.0] - 2026-11-19
 

@@ -1,0 +1,249 @@
+<?php
+
+/**
+ * RateLimiter.
+ *
+ * @copyright 2026 Joe Huss <detain@interserver.net>
+ * @license   MIT
+ */
+
+declare(strict_types=1);
+
+namespace Phlix\Shared\RateLimit;
+
+use Closure;
+
+use function count;
+use function time;
+
+/**
+ * Worker-local, TTL-windowed rate limiter backed by a BOUNDED array with
+ * active eviction.
+ *
+ * Each key tracks an attempt count and a window-reset timestamp. When the
+ * window expires the bucket restarts; over the configured maximum the
+ * bucket reports {@see RateLimitState::$limited}. The backing array is
+ * capped (`$cap`, default 10k keys): on insert, expired buckets are swept
+ * first and, if the map is still at the cap, the OLDEST-resetting bucket
+ * is evicted. This deliberately avoids the classic resident-memory leak of
+ * an unbounded per-worker map (one entry per distinct IP, never reclaimed
+ * in a resident worker, growing slowly but forever under
+ * Workerman/Swoole) — the leak hub finding B1 recorded against the
+ * previous `private static array $rateLimitStore` in the hub
+ * `AuthManager`. There is no `static` state here; the map is an instance
+ * field with a hard size ceiling.
+ *
+ * Consolidation law (v0.57 leg 0.9, M-11): the server and hub engine
+ * bodies were byte-ident on disk modulo namespace and header prose (diff
+ * proven at the recorded tips). The only real delta is the hub-only
+ * {@see multiWorkerNotice()} boot-notice arm, which ships here verbatim
+ * (canonical = hub). Its emission point stays consumer glue (the hub's
+ * HTTP worker setup); the notice copy is hub-blessed product wording — a
+ * server-side adopter calls it or words its own, the kernel just stops
+ * being authored twice.
+ *
+ * SCOPE / CAVEAT: state is held in THIS worker process only. Under
+ * `workers > 1` (or multiple boxes) each worker keeps an independent
+ * count, so the effective limit is per-worker, not global. That is
+ * acceptable for single-box deployments where a soft per-worker budget
+ * suffices. A cluster-safe backend (shared DB table / shared memory) can
+ * be substituted later by binding a different {@see RateLimiterInterface}
+ * implementation — call sites are unaffected.
+ *
+ * NOT thread-safe in the OS-thread sense, but Workerman + Swoole coroutine
+ * workers are single-threaded per process and array mutations here contain
+ * no coroutine yield points, so concurrent coroutines cannot interleave
+ * mid-update.
+ */
+final class RateLimiter implements RateLimiterInterface
+{
+    /**
+     * Hub Minor 38 — the per-worker dilution of the HTTP-side in-memory
+     * profiles is DOCUMENTED-AS-SPEC (class SCOPE note; the hub's
+     * `DbRateLimiter` exists only for login/signup), but it must never be
+     * news to an operator at the moment the pool fans out. Returns the boot
+     * notice when an HTTP pool of $httpWorkers > 1 arms these profiles
+     * (effective budget = max × workers), and null for a single-worker
+     * pool where the local counter IS the global one. Pure function: the
+     * emission point lives in consumer HTTP worker setup; tests pin the
+     * law here.
+     *
+     * @param int $httpWorkers the armed HTTP worker count
+     *
+     * @return string|null the notice, or null when no notice applies
+     */
+    public static function multiWorkerNotice(int $httpWorkers): ?string
+    {
+        if ($httpWorkers <= 1) {
+            return null;
+        }
+
+        return '[phlix-hub] NOTE: ' . $httpWorkers . ' HTTP workers — the in-memory rate-limit '
+            . 'profiles (every surface except the DB-backed login/signup) count PER WORKER, so '
+            . 'their effective budget is max x ' . $httpWorkers . '. Deliberate as-spec; the four '
+            . 'count=1 WebSocket surfaces (:8802-:8805) are unaffected. See README rate-limit '
+            . 'section and CommonServicesProvider scope notes.';
+    }
+
+    /**
+     * Bucket map keyed by the caller's opaque key.
+     *
+     * @var array<string, array{count: int, reset_at: int}>
+     */
+    private array $buckets = [];
+
+    /** Validated window length in seconds (>= 1). */
+    private readonly int $windowSeconds;
+
+    /** Validated maximum attempts per window (>= 1). */
+    private readonly int $maxAttempts;
+
+    /** Validated key-count ceiling (>= 1). */
+    private readonly int $cap;
+
+    /**
+     * Monotonic-enough clock returning a unix timestamp. Injectable so
+     * tests can advance time deterministically; defaults to time().
+     *
+     * @var Closure(): int
+     */
+    private readonly Closure $clock;
+
+    /**
+     * @param int                    $windowSeconds length of the counting window in seconds
+     * @param int                    $maxAttempts   attempts allowed within a window before `limited`
+     * @param int                    $cap           maximum number of distinct keys retained in memory
+     * @param (callable(): int)|null $clock         unix-timestamp source (defaults to time())
+     */
+    public function __construct(
+        int $windowSeconds = 900,
+        int $maxAttempts = 5,
+        int $cap = 10000,
+        ?callable $clock = null,
+    ) {
+        $this->windowSeconds = $windowSeconds > 0 ? $windowSeconds : 1;
+        $this->maxAttempts = $maxAttempts > 0 ? $maxAttempts : 1;
+        $this->cap = $cap > 0 ? $cap : 1;
+
+        $this->clock = $clock !== null
+            ? Closure::fromCallable($clock)
+            : static fn (): int => time();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function hit(string $key): RateLimitState
+    {
+        $now = ($this->clock)();
+
+        $bucket = $this->buckets[$key] ?? null;
+        if ($bucket === null || $bucket['reset_at'] <= $now) {
+            // Fresh window. Make room before inserting a brand-new key.
+            if ($bucket === null) {
+                $this->evictIfNeeded($now);
+            }
+            $bucket = ['count' => 1, 'reset_at' => $now + $this->windowSeconds];
+        } else {
+            $bucket['count']++;
+        }
+
+        $this->buckets[$key] = $bucket;
+
+        return $this->stateFor($bucket);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function reset(string $key): void
+    {
+        unset($this->buckets[$key]);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function peek(string $key): RateLimitState
+    {
+        $now = ($this->clock)();
+        $bucket = $this->buckets[$key] ?? null;
+
+        if ($bucket === null || $bucket['reset_at'] <= $now) {
+            return new RateLimitState(
+                count: 0,
+                remaining: $this->maxAttempts,
+                resetAt: 0,
+                limited: false,
+                limit: $this->maxAttempts,
+            );
+        }
+
+        return $this->stateFor($bucket);
+    }
+
+    /**
+     * Number of buckets currently retained. Exposed for tests/observability;
+     * never exceeds the configured cap.
+     */
+    public function size(): int
+    {
+        return count($this->buckets);
+    }
+
+    /**
+     * Build a state snapshot from a live bucket.
+     *
+     * @param array{count: int, reset_at: int} $bucket
+     */
+    private function stateFor(array $bucket): RateLimitState
+    {
+        $count = $bucket['count'];
+        $remaining = $this->maxAttempts - $count;
+
+        return new RateLimitState(
+            count: $count,
+            remaining: $remaining > 0 ? $remaining : 0,
+            resetAt: $bucket['reset_at'],
+            limited: $count >= $this->maxAttempts,
+            limit: $this->maxAttempts,
+        );
+    }
+
+    /**
+     * Active eviction: drop expired buckets first, then — if still at the
+     * cap — drop the bucket whose window resets soonest (the oldest /
+     * closest-to-expiry entry). Keeps the map bounded by `$cap`.
+     */
+    private function evictIfNeeded(int $now): void
+    {
+        if (count($this->buckets) < $this->cap) {
+            return;
+        }
+
+        // Sweep expired entries first — cheap reclamation.
+        foreach ($this->buckets as $k => $bucket) {
+            if ($bucket['reset_at'] <= $now) {
+                unset($this->buckets[$k]);
+            }
+        }
+
+        if (count($this->buckets) < $this->cap) {
+            return;
+        }
+
+        // Still full of live buckets: evict the soonest-expiring one.
+        $oldestKey = null;
+        $oldestReset = PHP_INT_MAX;
+        foreach ($this->buckets as $k => $bucket) {
+            if ($bucket['reset_at'] < $oldestReset) {
+                $oldestReset = $bucket['reset_at'];
+                $oldestKey = $k;
+            }
+        }
+
+        if ($oldestKey !== null) {
+            unset($this->buckets[$oldestKey]);
+        }
+    }
+}
