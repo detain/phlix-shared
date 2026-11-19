@@ -22,6 +22,17 @@ behavior for existing consumers.
   `Ids::token()` are the same one-liner and delegate on adoption. No
   runtime domain guard invented — non-positive sizes fail loudly in
   `random_bytes()` natively, exactly as in both twins.
+- `Database\WriteResult` — the server predicate verbatim in semantics (the
+  measured `query()` return contract, traps 1–3: unreachable-but-kept `false`
+  arm, the falsy string `'0'` that means SUCCESS on CHAR(36)-PK inserts, the
+  whitespace-sensitive keyword split) PLUS the hub fold-in `affectedRows()`
+  (two byte-identical hub privates narrowed to one public; non-numeric/absent
+  reads 0 — the conservative side of the single-winner law). Divergences
+  recorded at consolidation: none in bodies (server twin already promoted
+  from its private ancestor; hub privates byte-identical to each other); the
+  per-site INTERPRETATION policy (loss vs refusal vs already-current success)
+  stays at the call sites by design, and the server's scanner-delegate pin
+  retires with S1 1.8 adoption.
 
 ## [0.56.0] - 2026-11-19
 
