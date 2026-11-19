@@ -104,6 +104,12 @@ behavior for existing consumers.
   (disclosed no-op on real inputs); the pathinfo dotless-segment law
   (`/public/php` denied) is pinned as pre-existing observable behavior;
   body-cap policy stays per-repo (caps legitimately differ).
+- `Http\TrustedProxyResolver` — the SV-4.15 exact twin lifted verbatim (diff
+  proven: namespace/prose only, plus the hub's psalm-suppress line, kept
+  here). Loopback-only default, right-to-left XFF walk, `TRUSTED_PROXIES`
+  env parsing, and the VARCHAR(191) overflow defence are unchanged; the
+  shared suite is the twins' identical 12-method + 13-row CIDR
+  characterization ported byte-faithful.
 ## [0.56.0] - 2026-11-19
 
 Minor: refactor-wave S0 release cut (program `refactor-1119`, design doc
