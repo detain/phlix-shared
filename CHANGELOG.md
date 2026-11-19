@@ -152,6 +152,14 @@ behavior for existing consumers.
   unescaped slashes/unicode, throw-on-error halting. The Symfony-bound trait
   glue (`isJsonMode`/`fail()` exit chooser) and `JSON_OUTPUT_MARKER` stay
   per-repo — pinned negative law.
+- `Database\MigrationChecksum` — the SV-4.9 ledger checksum kernel, twin
+  bodies byte-identical, lifted once (the hub copy is itself labelled
+  verbatim-from-server): full-line `--`/`#` comments and per-line trailing
+  whitespace vanish from the hash; inline comments and real SQL tokens
+  survive; newline-style-independent. `normalize()` is exposed for the
+  charter §4-6 static-corpus equality harness that gates the consumer
+  delegation legs (PUSH-GATED; the real-DB ledger rehearsal stays
+  per-repo).
 ## [0.56.0] - 2026-11-19
 
 Minor: refactor-wave S0 release cut (program `refactor-1119`, design doc
