@@ -39,6 +39,26 @@ landed call site abandons a never-raised lease, so the reset is a no-op
 there and faithful here. `MysqlTxLockStateTest` grows the open-lease
 abandon arms.
 
+Added: `Database\TxLease` — the per-ceremony binding of a coroutine to
+the `MysqlTxLockState` ledger (the TXMUTEX-B v0.58 funding item). The
+machine is the whole ledger with identity-taking verbs; the lease is one
+coroutine's view of it: the state, coroutine id, park seam and push seam
+bound once, every verb delegated through the binding so a ceremony can
+no longer argue with itself about which id it passed (the drift class
+the estate incidents were), plus the ONE begin ceremony the server and
+the hub landed identically (acquire, start under a catch that releases
+the lease WITHOUT spending the poison budget, fold-abandon on a falsy
+vendor answer, mark-open on a truthy one, budget reset on exit) as a
+single faithful home. End ceremonies deliberately stay split: the
+server's poison refusal keeps the lease and the hub's releases it, so
+the lease exposes the claim verdicts and hand-off unchanged and each
+repo keeps its own sequence. Purely additive; zero existing shared
+public API changes. Deviation with evidence: the name is the v0.58 list
+item — DESIGN-TX-MUTEX.md never defined a lease class (its Option-B
+naming is MysqlTxLockState + MysqlRetryPolicy), and the owner's v0.58
+funding ordered exactly the bound-ledger surface the landed consumer
+differentials prove; `TxLeaseTest` characterizes the binding, not the
+machine (the machine's laws stay pinned by `MysqlTxLockStateTest`).
 ## [0.57.0] - 2026-11-20
 
 Minor: refactor-wave S1 release cut (program `refactor-1119`,
