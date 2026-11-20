@@ -87,6 +87,16 @@ re-point; no consumer behavior moved in this package.
   vectors and a full signature/constructor equality walk — the lifted
   semantics are the substrate's, not a re-reading of them.
 
+* Docs: `HostGrammar` carries its enforcement posture in the class
+  docblock (v0.59 bank row 7, the S2-ADOPT SHR-S1 row): hub-side
+  grammar ENFORCEMENT stays an open owner row — the class validates
+  shape only, and being consulted on a path is a consumer decision.
+  The bank's internal-tag proposal is discharged as this prose note
+  rather than a literal internal-marker tag: the v0.57 promotion
+  stamp's executable pin (`HostGrammarPromotionTest`) convicts such a
+  marker on a PUBLIC-STABLE class, and the note states exactly what
+  the marker was meant to say.
+
 ## [0.58.0] - 2026-11-21
 
 Minor: transaction-mutex release cut (program `refactor-1119`, the

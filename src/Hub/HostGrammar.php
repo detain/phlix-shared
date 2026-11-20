@@ -37,6 +37,16 @@ use InvalidArgumentException;
  * This is shape validation only — it says a string is syntactically a
  * host or URL, not that it is reachable, public, or trustworthy.
  *
+ * Enforcement posture (v0.59 bank row 7, the S2-ADOPT SHR-S1 row): the
+ * sanitizer-on-server landed first in S1; hub-side grammar ENFORCEMENT
+ * stays an open owner row — this class being consulted on a path is a
+ * consumer decision, and the bank's internal-tag cleanup proposal is
+ * discharged as exactly this note: the promotion stamp below FORBIDS a
+ * literal internal-marker tag here (an executable pin convicts it), and
+ * what the marker was meant to say — "validates shape, enforces
+ * nothing" — is now stated in the docblock where both consumers and the
+ * stamp can read it.
+ *
  * Promoted from a shared-package implementation detail to a PUBLIC-STABLE
  * surface: the grammar rules below are the estate's one host/URL shape
  * law, and consumers (admin candidate editors, federation peer intake,
