@@ -4,7 +4,17 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.59.0] - 2026-11-21
+
+Minor: v0.59.0 release cut (program `refactor-1119`, owner order
+2026-11-21 "do the 0.59 bank" — the shared-tree half of the consolidated
+v0.59 bank in full). Every landing is additive except one documented
+widening: `MysqlTxLockState::handOff()` returns `bool` and carries an
+optional coroutine-identity bind, with unbound calls keeping the legacy
+posture byte-for-byte. Consumer rewiring — server/hub re-pins,
+`GrantConsume->won()` shims, sign-arm re-pointing onto the new kernel
+arms, the RowMap hand-roll migration — runs in successor lanes against
+this tag.
 
 Tests: renamed `Database\MysqlRetryPolicyTest`'s
 `test_the_lost_in_autocommit_verdict_replays_exactly_once` to
