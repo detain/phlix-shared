@@ -4,7 +4,14 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.58.0] - 2026-11-21
+
+Minor: transaction-mutex release cut (program `refactor-1119`, the
+TXMUTEX-B Option-B shared leg ratified by the owner ruling 2c/1a, plus the
+v0.58 funding item `TxLease` funded 2026-11-21). Additive only: zero
+existing shared public API changes; the consumer delegation that retires
+the estate twins has already landed on both hosts (server adoption wave,
+hub adoption wave) and rode differential proofs against this machine.
 
 Added: the transaction-mutex state machine `Database\MysqlTxLockState`
 with its end-claim verdict `Database\TxEnd` — the Option-B single
@@ -59,6 +66,14 @@ naming is MysqlTxLockState + MysqlRetryPolicy), and the owner's v0.58
 funding ordered exactly the bound-ledger surface the landed consumer
 differentials prove; `TxLeaseTest` characterizes the binding, not the
 machine (the machine's laws stay pinned by `MysqlTxLockStateTest`).
+
+Also this cut: `tests/Relay/SyncPlayDialectTest.php` widened its catalog
+pin's token parser from quoted-string-only to quoted-or-canonical-self-alias
+(the server S1.7 delegation shape is legal; the acceptance law is unchanged —
+crossed, self, foreign and undeclared aliases and missing terminators still
+convict), and the falsy-fold provenance docblock in `MysqlTxLockState` was
+corrected to name both clearing landed arms (docs-only).
+
 ## [0.57.0] - 2026-11-20
 
 Minor: refactor-wave S1 release cut (program `refactor-1119`,

@@ -19,7 +19,7 @@ optional `config/trash_guides.php` local read; see [`AGENTS.md`](AGENTS.md) (in 
 
 ## Status
 
-**v0.57.0** (`Phlix\Shared\Version::VERSION`). At the working tip, `schemas/server-settings.schema.json` carries 87 keys (51 `restart: true`, 36 `restart: false`; a census of the working tree, not a v0.57.0 tag-time stamp); `schemas/hub-settings.schema.json` carries 18 keys in lockstep with `phlix-hub`'s `HubSettingsRepository::ALLOWED_KEYS`. Cumulative surface:
+**v0.58.0** (`Phlix\Shared\Version::VERSION`). At the working tip, `schemas/server-settings.schema.json` carries 87 keys (51 `restart: true`, 36 `restart: false`; a census of the working tree, not a v0.58.0 tag-time stamp); `schemas/hub-settings.schema.json` carries 18 keys in lockstep with `phlix-hub`'s `HubSettingsRepository::ALLOWED_KEYS`. Cumulative surface:
 
 - `Phlix\Shared\Plugin\{LifecycleInterface, ConfigurableInterface, Manifest, ManifestType, ManifestValidationError, EventNameMap}`
 - `Phlix\Shared\Events\{AbstractEvent, Playback\*, Library\*, Auth\*}` — 12 event DTOs.
@@ -83,6 +83,19 @@ optional `config/trash_guides.php` local read; see [`AGENTS.md`](AGENTS.md) (in 
   and the SV-4.9 migration-ledger checksum kernel — its committed 174-file
   corpus-equality fixture proves kernel ≡ both repos' normalizers (the consumer
   real-DB ledger rehearsal legs stay per-repo).
+- `Phlix\Shared\Database\{MysqlTxLockState, TxEnd, MysqlRetryPolicy, MysqlRetryVerdict, TxLease}` —
+  the transaction-mutex machine family (0.58.0+): `MysqlTxLockState` is the
+  Option-B ledger SSOT extracted from the server/hub TXMUTEX-A union (holder
+  identity, nesting, the one-shot poison mark with cleared-on-reconnect, the
+  cancel-checked acquire, and the clear-holder-before-push `handOff()` law)
+  with `TxEnd`'s total end-claim verdict; `MysqlRetryPolicy`/`MysqlRetryVerdict`
+  are the statement-failure decision table (gone-in-transaction never replays
+  and poisons; gone-in-autocommit replays exactly once; 1213 rolls back the
+  whole transaction; 1205 keeps it usable); and `TxLease` binds one coroutine
+  to the ledger — state, coroutine id, park seam and push seam bound once —
+  carrying the single begin ceremony the server and hub landed identically,
+  while the end ceremonies stay per-repo by design. The lock channel itself
+  stays consumer-side; the family is pure state and decision, zero I/O.
 - `Phlix\Shared\Settings\SettingsCodec` — the settings-column value codec (0.57.0+):
   `decode()` byte-identical to both repos' private ancestors; `encode()` ships the
   hub's strict `JSON_THROW_ON_ERROR` posture (the server silent variant is the
@@ -297,7 +310,7 @@ see [`AGENTS.md`](AGENTS.md) in the git checkout).
 `detain/phlix-shared` is published on Packagist:
 
 ```bash
-composer require detain/phlix-shared:^0.57
+composer require detain/phlix-shared:^0.58
 ```
 
 ## Package layout
