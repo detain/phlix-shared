@@ -216,15 +216,23 @@ final class NotTheServer
      */
     public const TYPE_ALPHA = 'syncplay_alpha';
     public const TYPE_BETA = 'syncplay_beta';
+    public const TYPE_GROUP_CREATE = SyncPlayDialect::TYPE_GROUP_CREATE;
+    public const TYPE_ERROR = \Phlix\Shared\Relay\SyncPlayDialect::TYPE_ERROR;
     public const PROTOCOL_VERSION = 7;
     private const UNLISTED = ['syncplay_beta'];
 }
 PHP;
 
         self::assertSame(
-            ['TYPE_ALPHA' => 'syncplay_alpha', 'TYPE_BETA' => 'syncplay_beta'],
+            [
+                'TYPE_ALPHA' => 'syncplay_alpha',
+                'TYPE_BETA' => 'syncplay_beta',
+                'TYPE_GROUP_CREATE' => 'syncplay_group_create',
+                'TYPE_ERROR' => 'syncplay_error',
+            ],
             self::parseServerTypeConstants($fixture),
-            'The parser must collect exactly the public TYPE_* string constants of the supplied source.'
+            'The parser must collect exactly the public TYPE_* string constants of the supplied source,'
+            . ' resolving canonical SyncPlayDialect aliases to their wire values.',
         );
     }
 
@@ -245,6 +253,26 @@ PHP;
             'integer value' => [
                 '<?php final class X { public const TYPE_A = 7; }',
                 'quoted string',
+            ],
+            'self-alias instead of the canonical catalog' => [
+                '<?php final class X { public const TYPE_A = self::TYPE_A; }',
+                'SyncPlayDialect::TYPE_A alias',
+            ],
+            'crossed alias (wrong member)' => [
+                '<?php final class X { public const TYPE_A = SyncPlayDialect::TYPE_B; }',
+                'SyncPlayDialect::TYPE_A alias',
+            ],
+            'foreign-class alias' => [
+                '<?php final class X { public const TYPE_A = OtherThing::TYPE_A; }',
+                'SyncPlayDialect::TYPE_A alias',
+            ],
+            'alias to an undeclared member' => [
+                '<?php final class X { public const TYPE_NOT_A_MEMBER = SyncPlayDialect::TYPE_NOT_A_MEMBER; }',
+                'catalog does not declare',
+            ],
+            'alias missing terminator' => [
+                "<?php final class X { public const TYPE_GROUP_CREATE = SyncPlayDialect::TYPE_GROUP_CREATE }",
+                'semicolon',
             ],
             'value outside the wire family' => [
                 "<?php final class X { public const TYPE_A = 'other_a'; }",
@@ -436,10 +464,17 @@ PHP;
      *
      * `token_get_all()` makes comments single tokens, so the docblock JSON
      * decoy that lives in the real server file (and prose in any future
-     * edit) can never masquerade as a declaration. Every shape deviation
-     * — missing `=`, non-string value, foreign-prefixed value, missing
-     * terminator, duplicate name, or an empty result — throws: the parser
-     * reads a closed list or says loudly that it could not.
+     * edit) can never masquerade as a declaration. Two value shapes are
+     * legal: a quoted string, or a self-alias to the same-named canonical
+     * member of the shared catalog (`TYPE_INFO = SyncPlayDialect::TYPE_INFO`
+     * — the server's S1.7 delegation form, srv 3b878403; the alias arm is
+     * {@see self::resolveDialectAlias()}). Every other shape deviation
+     * — missing `=`, bare/non-string value, foreign or crossed alias,
+     * foreign-prefixed value, missing terminator, duplicate name, or an
+     * empty result — throws: the parser reads a closed list or says loudly
+     * that it could not. Widening the accepted GRAMMAR never widens the
+     * acceptance law: resolved alias values re-pass the family check here
+     * and the canonical set-equality in {@see self::assertCanonicalSet()}.
      *
      * @return array<string, string> const name => wire value
      */
@@ -474,16 +509,18 @@ PHP;
             }
 
             [$valueIndex, $value] = self::nextMeaningful($tokens, $equalsIndex);
-            if (!is_array($value) || $value[0] !== T_CONSTANT_ENCAPSED_STRING) {
-                throw new RuntimeException(sprintf('Constant %s does not declare a quoted string value.', $constName));
+            if (is_array($value) && $value[0] === T_CONSTANT_ENCAPSED_STRING) {
+                $wireValue = trim($value[1], "'\"");
+                $consumedIndex = $valueIndex;
+            } else {
+                [$wireValue, $consumedIndex] = self::resolveDialectAlias($tokens, $valueIndex, $constName);
             }
 
-            [, $terminator] = self::nextMeaningful($tokens, $valueIndex);
+            [, $terminator] = self::nextMeaningful($tokens, $consumedIndex);
             if ($terminator !== ';') {
                 throw new RuntimeException(sprintf('Constant %s is not closed by a semicolon.', $constName));
             }
 
-            $wireValue = trim($value[1], "'\"");
             if (!str_starts_with($wireValue, 'syncplay_')) {
                 throw new RuntimeException(sprintf(
                     'Constant %s declares "%s" — outside the syncplay_ wire family.',
@@ -504,6 +541,65 @@ PHP;
         }
 
         return $types;
+    }
+
+    /**
+     * The S1.7 delegation arm: a TYPE_* constant forwarded to the
+     * same-named canonical member of the shared catalog
+     * (`TYPE_INFO = SyncPlayDialect::TYPE_INFO`, srv 3b878403). Accepted
+     * ONLY as a self-alias — the referent class' final name segment must
+     * be `SyncPlayDialect`, the referenced member must be the constant's
+     * own name, and the target must actually exist in the catalog. Every
+     * other expression shape (bare word, integer, `self::`, a foreign
+     * class, a crossed member) throws with the widened message, so the
+     * pin keeps convicting genuinely missing/mismatched TYPE_* values.
+     *
+     * @param list<array{0: int, 1: string, 2: int}|string> $tokens
+     *
+     * @return array{0: string, 1: int} wire value, index of the consumed member token
+     */
+    private static function resolveDialectAlias(array $tokens, int $valueIndex, string $constName): array
+    {
+        $reject = sprintf(
+            'Constant %s does not declare a quoted string value or a SyncPlayDialect::%s alias.',
+            $constName,
+            $constName
+        );
+
+        $base = $tokens[$valueIndex];
+        if (
+            !is_array($base)
+            || ($base[0] !== T_STRING && $base[0] !== T_NAME_QUALIFIED && $base[0] !== T_NAME_FULLY_QUALIFIED)
+            || explode('\\', $base[1])[count(explode('\\', $base[1])) - 1] !== 'SyncPlayDialect'
+        ) {
+            throw new RuntimeException($reject);
+        }
+
+        [$colonIndex, $colon] = self::nextMeaningful($tokens, $valueIndex);
+        if (!is_array($colon) || $colon[0] !== T_DOUBLE_COLON) {
+            throw new RuntimeException($reject);
+        }
+
+        [$memberIndex, $member] = self::nextMeaningful($tokens, $colonIndex);
+        if (!is_array($member) || $member[0] !== T_STRING || $member[1] !== $constName) {
+            throw new RuntimeException($reject);
+        }
+
+        $referent = SyncPlayDialect::class . '::' . $constName;
+        if (!defined($referent)) {
+            throw new RuntimeException(sprintf(
+                'Constant %s forwards to %s, which the catalog does not declare.',
+                $constName,
+                $referent
+            ));
+        }
+
+        $wireValue = constant($referent);
+        if (!is_string($wireValue)) {
+            throw new RuntimeException(sprintf('%s resolved to a non-string value.', $referent));
+        }
+
+        return [$wireValue, $memberIndex];
     }
 
     /**
