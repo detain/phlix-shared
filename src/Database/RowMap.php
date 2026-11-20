@@ -91,7 +91,12 @@ final class RowMap
         if (!is_array($value)) {
             return [];
         }
+        /** @var array<string, mixed> $out */
         $out = [];
+        /**
+         * @var mixed $entry
+         * @psalm-suppress MixedAssignment
+         */
         foreach ($value as $key => $entry) {
             if (is_string($key)) {
                 $out[$key] = $entry;
@@ -112,7 +117,12 @@ final class RowMap
         if (!is_array($rows)) {
             return [];
         }
+        /** @var list<array<string, mixed>> $out */
         $out = [];
+        /**
+         * @var mixed $row
+         * @psalm-suppress MixedAssignment
+         */
         foreach ($rows as $row) {
             if (is_array($row)) {
                 $out[] = self::fromMixed($row);
@@ -130,6 +140,7 @@ final class RowMap
      */
     public static function str(array $row, string $col, string $default): string
     {
+        /** @var mixed $value */
         $value = $row[$col] ?? null;
         return is_string($value) ? $value : $default;
     }
@@ -143,6 +154,7 @@ final class RowMap
      */
     public static function nullableStr(array $row, string $col): ?string
     {
+        /** @var mixed $value */
         $value = $row[$col] ?? null;
         return is_string($value) ? $value : null;
     }
@@ -156,6 +168,7 @@ final class RowMap
      */
     public static function int(array $row, string $col, int $default): int
     {
+        /** @var mixed $value */
         $value = $row[$col] ?? null;
         return is_int($value) ? $value : $default;
     }
@@ -169,6 +182,7 @@ final class RowMap
      */
     public static function nullableInt(array $row, string $col): ?int
     {
+        /** @var mixed $value */
         $value = $row[$col] ?? null;
         return is_int($value) ? $value : null;
     }
@@ -183,6 +197,7 @@ final class RowMap
      */
     public static function intFromNumeric(array $row, string $col, int $default): int
     {
+        /** @var mixed $value */
         $value = $row[$col] ?? null;
         return is_numeric($value) ? (int) $value : $default;
     }
@@ -196,6 +211,7 @@ final class RowMap
      */
     public static function nullableIntFromNumeric(array $row, string $col): ?int
     {
+        /** @var mixed $value */
         $value = $row[$col] ?? null;
         return is_numeric($value) ? (int) $value : null;
     }
@@ -209,6 +225,7 @@ final class RowMap
      */
     public static function floatFromNumeric(array $row, string $col, float $default): float
     {
+        /** @var mixed $value */
         $value = $row[$col] ?? null;
         return is_numeric($value) ? (float) $value : $default;
     }
@@ -223,6 +240,7 @@ final class RowMap
      */
     public static function stringFromScalar(array $row, string $col, string $default): string
     {
+        /** @var mixed $value */
         $value = $row[$col] ?? null;
         if (is_string($value)) {
             return $value;
@@ -245,6 +263,7 @@ final class RowMap
      */
     public static function nullableStringFromScalar(array $row, string $col): ?string
     {
+        /** @var mixed $value */
         $value = $row[$col] ?? null;
         if ($value === null) {
             return null;
@@ -272,6 +291,7 @@ final class RowMap
      */
     public static function nullableScalarStr(array $row, string $col): ?string
     {
+        /** @var mixed $value */
         $value = $row[$col] ?? null;
         if ($value === null) {
             return null;
@@ -294,6 +314,7 @@ final class RowMap
      */
     public static function boolFromCast(array $row, string $col, bool $defaultWhenNull): bool
     {
+        /** @var mixed $value */
         $value = $row[$col] ?? null;
         return $value === null ? $defaultWhenNull : (bool) $value;
     }
@@ -349,6 +370,7 @@ final class RowMap
      */
     public static function nullableNonEmptyStr(array $row, string $col): ?string
     {
+        /** @var mixed $value */
         $value = $row[$col] ?? null;
         return is_string($value) && $value !== '' ? $value : null;
     }

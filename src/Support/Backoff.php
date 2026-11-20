@@ -103,7 +103,7 @@ final class Backoff
             return 0;
         }
 
-        return (int) min($current * $factor, $cap);
+        return min($current * $factor, $cap);
     }
 
     private function __construct()
