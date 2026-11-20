@@ -76,6 +76,36 @@ final class Backoff
         return (int) round($exponential * $multiplier);
     }
 
+    /**
+     * The delay-from-state sibling of {@see self::stepped()}: the next
+     * step of a backoff whose state is the CURRENT DELAY rather than an
+     * attempt index — `min($current * $factor, $cap)`, parking at the
+     * cap. Minted for the federation reconnect lane the hub holds as
+     * hub-local state (`FederationPeerManager`: `min($delay * 2, CAP)`
+     * over the byte-pinned park-at-cap ladder [5, 10, 20, 40, 60, 60]),
+     * so that shape finally has a kernel home; the attempt-indexed
+     * forms stay untouched.
+     *
+     * Degenerate state reads as no-wait, mirroring `stepped()`'s
+     * `attempt < 0 → 0` convention: a non-positive current delay, a
+     * non-positive factor, or a non-positive cap all yield 0 — the
+     * curve never manufactures a wait from a state that carries none.
+     * Overflow saturates to the cap by comparison (the widened float
+     * product simply exceeds it), never to a negative.
+     *
+     * @param int $current the delay the state machine currently holds, in seconds
+     * @param int $factor the step multiplier (the hub ladder uses 2)
+     * @param int $cap the park ceiling, in seconds
+     */
+    public static function nextStepped(int $current, int $factor, int $cap): int
+    {
+        if ($current <= 0 || $factor <= 0 || $cap <= 0) {
+            return 0;
+        }
+
+        return (int) min($current * $factor, $cap);
+    }
+
     private function __construct()
     {
     }

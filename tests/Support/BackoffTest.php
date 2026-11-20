@@ -117,4 +117,50 @@ final class BackoffTest extends TestCase
 
         self::assertSame(13, Backoff::jittered(1, 5, 60, 0.3, $halfUp));
     }
+
+    public function test_next_stepped_reproduces_the_hub_park_at_cap_ladder(): void
+    {
+        // The hub's byte-pinned reconnect curve: state starts at 5 and
+        // every wake doubles it, parked at 60 — expressed kernel-side.
+        $ladder = [];
+        $delay = 5;
+        for ($tick = 0; $tick < 6; $tick++) {
+            $ladder[] = $delay = Backoff::nextStepped($delay, 2, 60);
+        }
+
+        self::assertSame([10, 20, 40, 60, 60, 60], $ladder);
+    }
+
+    public function test_next_stepped_honors_a_custom_factor(): void
+    {
+        self::assertSame(15, Backoff::nextStepped(5, 3, 100));
+        self::assertSame(45, Backoff::nextStepped(15, 3, 100));
+        self::assertSame(100, Backoff::nextStepped(45, 3, 100), '45 * 3 = 135 parks at the cap');
+    }
+
+    public function test_next_stepped_parks_when_state_already_exceeds_the_cap(): void
+    {
+        self::assertSame(60, Backoff::nextStepped(100, 2, 60));
+        self::assertSame(60, Backoff::nextStepped(60, 2, 60));
+    }
+
+    public function test_next_stepped_degenerate_states_yield_no_wait(): void
+    {
+        // Mirrors stepped()'s attempt < 0 -> 0 convention: a state that
+        // carries no delay, no multiplier, or no ceiling manufactures none.
+        self::assertSame(0, Backoff::nextStepped(0, 2, 60));
+        self::assertSame(0, Backoff::nextStepped(-5, 2, 60));
+        self::assertSame(0, Backoff::nextStepped(5, 0, 60));
+        self::assertSame(0, Backoff::nextStepped(5, -2, 60));
+        self::assertSame(0, Backoff::nextStepped(5, 2, 0));
+        self::assertSame(0, Backoff::nextStepped(5, 2, -60));
+    }
+
+    public function test_next_stepped_overflow_saturates_to_the_cap(): void
+    {
+        // The doubled product widens to float and simply exceeds the
+        // ceiling; the answer is the cap, never a negative int cast.
+        self::assertSame(300, Backoff::nextStepped(PHP_INT_MAX, 2, 300));
+        self::assertSame(60, Backoff::nextStepped(intdiv(PHP_INT_MAX, 2) + 3, 2, 60));
+    }
 }

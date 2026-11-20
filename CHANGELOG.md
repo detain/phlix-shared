@@ -97,6 +97,18 @@ re-point; no consumer behavior moved in this package.
   marker on a PUBLIC-STABLE class, and the note states exactly what
   the marker was meant to say.
 
+* Added: `Backoff::nextStepped($current, $factor, $cap)` — the
+  delay-from-state sibling the federation reconnect lane was waiting
+  for (v0.59 bank row, S2-ADOPT 2.7 finding): the hub's hub-local
+  park-at-cap curve is `min($delay * 2, CAP)` over the byte-pinned
+  ladder [5, 10, 20, 40, 60, 60], and this kernel form reproduces that
+  ladder exactly from state (a pinned test walks it), so the ladder now
+  has a shared home instead of only a hub arithmetic expression; the
+  attempt-indexed `stepped()`/`jittered()` forms are untouched.
+  Degenerate states (non-positive current, factor, or cap) yield 0 —
+  mirroring `stepped()`'s no-wait convention — and an overflowing
+  product saturates to the cap, never to a negative.
+
 ## [0.58.0] - 2026-11-21
 
 Minor: transaction-mutex release cut (program `refactor-1119`, the
