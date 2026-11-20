@@ -133,4 +133,41 @@ final class Base64UrlTest extends TestCase
             self::assertSame($bytes, Base64Url::decode(Base64Url::encode($bytes), true), "length {$length}");
         }
     }
+
+    /**
+     * v0.59 bank row 6a: the padded strict arm is the legacy WebAuthn
+     * decoder's posture — invent the '=' padding back to the 4-char
+     * boundary, then decode STRICTLY, so a ragged tail or embedded
+     * whitespace can never be silently stripped into a shorter read the
+     * way the lax arm of decode() would.
+     */
+    public function testDecodePaddedRoundTripsEveryWriterLengthIncludingUnpaddedRaggedTails(): void
+    {
+        for ($length = 1; $length <= 40; $length++) {
+            $bytes = random_bytes($length);
+            self::assertSame(
+                $bytes,
+                Base64Url::decodePadded(Base64Url::encode($bytes)),
+                "writer output at {$length} bytes survives the padded strict arm"
+            );
+        }
+    }
+
+    public function testDecodePaddedRefusesWhatOnlyALengthTolerantReaderWouldAccept(): void
+    {
+        // Garbage and embedded whitespace are refused outright, matching
+        // the consumer's `=== false || === ''` throw guard collapsed to
+        // this class' '' law; the differential harness pinned the whole
+        // grid (gates/item6-differential.log).
+        self::assertSame('', Base64Url::decodePadded('!!!!'));
+        self::assertSame('', Base64Url::decodePadded("p0\n"));
+        self::assertSame('', Base64Url::decodePadded('AA AA'));
+        self::assertSame('', Base64Url::decodePadded('AAAAA'));
+        self::assertSame('', Base64Url::decodePadded(''));
+
+        // The url alphabet is fine here (normalized first, like the
+        // consumer did), and standard alphabet passes through untouched.
+        self::assertSame(base64_decode('ab+c/d==', true), Base64Url::decodePadded('ab-c_d'));
+        self::assertSame('foo', Base64Url::decodePadded('Zm9v'));
+    }
 }

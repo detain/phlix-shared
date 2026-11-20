@@ -227,6 +227,71 @@ final class Ed25519PemTest extends TestCase
         $this->assertSame('k1', $jwk['kid']);
     }
 
+    /**
+     * v0.59 bank row 6b: the byte-exact arm is the hub legacy parser's
+     * posture, reproduced without one observable delta (differential
+     * grid pinned at gates/item6-differential.log, 20 PEM vectors,
+     * zero divergence). The interesting pins are the PAIRS where this
+     * arm and the lenient native parse diverge BY DESIGN: equal-64
+     * instead of at-least-64 (oversized refused, not truncated), and
+     * no url normalization (url-safe bodies are corruption here).
+     */
+    public function testParsePemByteExactAcceptsTheLegacyStandardDialect(): void
+    {
+        $secret = self::secretKey();
+        $pem = "-----BEGIN ED25519 PRIVATE KEY-----\n"
+            . base64_encode($secret) . "\n-----END ED25519 PRIVATE KEY-----\n";
+
+        $parsed = Ed25519Pem::parsePemByteExact($pem);
+
+        $this->assertNotNull($parsed);
+        $this->assertSame($secret, $parsed['secret']);
+        $this->assertSame(substr($secret, 32), $parsed['public']);
+    }
+
+    public function testParsePemByteExactKeepsBareMarkerlessFilesLoadable(): void
+    {
+        // The hub never demanded marker lines; a bare base64 body is a
+        // loadable file there, and must stay loadable through shared.
+        $secret = self::secretKey();
+
+        $parsed = Ed25519Pem::parsePemByteExact(base64_encode($secret));
+
+        $this->assertNotNull($parsed, 'bare base64 files stay loadable, as pre-delegation');
+        $this->assertSame($secret, $parsed['secret']);
+    }
+
+    public function testParsePemByteExactRefusesOversizedWhereTheLenientArmTruncates(): void
+    {
+        // The divergence pair the sign split exists to make explicit:
+        // the native server dialect keeps `>= 64` and slices 64 (an
+        // oversized body is silently truncated), while the hub law is
+        // EQUAL-64 and loud. Same oversized input, opposite verdicts.
+        $oversized = "-----BEGIN ED25519 PRIVATE KEY-----\n"
+            . base64_encode(random_bytes(96)) . "\n-----END ED25519 PRIVATE KEY-----\n";
+
+        $this->assertNull(Ed25519Pem::parsePemByteExact($oversized), 'equal-64 law: oversized is refused');
+        $this->assertNotNull(
+            Ed25519Pem::parsePem($oversized),
+            'the lenient native arm still truncates - both postures live, by design'
+        );
+    }
+
+    public function testParsePemByteExactRefusesUrlAlphabetBodiesWithoutNormalization(): void
+    {
+        // No `-`/`_` translation happens in this arm: url-safe marks in
+        // an otherwise-standard body are corruption, exactly as the hub
+        // legacy route treated them (the grammar predicate sends real
+        // modern folds to the other arm consumer-side).
+        $secret = self::secretKey();
+        $body = base64_encode($secret);
+        $injected = substr($body, 0, 10) . '-' . substr($body, 11);
+
+        $this->assertNull(Ed25519Pem::parsePemByteExact(
+            "-----BEGIN ED25519 PRIVATE KEY-----\n" . $injected . "\n-----END ED25519 PRIVATE KEY-----\n"
+        ));
+    }
+
 
     /**
      * Fixture bytes for a hex literal, narrowed away from hex2bin's false

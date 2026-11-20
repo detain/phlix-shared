@@ -86,4 +86,38 @@ final class Base64Url
 
         return $decoded === false ? '' : $decoded;
     }
+
+    /**
+     * Decode base64url that may be UNPADDED, with the strict legacy
+     * WebAuthn consumer's posture (v0.59 sign-arm split's strict arm).
+     *
+     * The server's historical WebAuthn decoder (`base64UrlDecode`, the
+     * ee9f1c4c family) normalizes `-`/`_`, then pads back to a multiple
+     * of 4 with `=` BEFORE a STRICT decode: a ragged tail is refused
+     * outright and can never sneak through as a stripped-alphabet
+     * interpretation. This kernel method is that body verbatim, with
+     * PHP's `false` mapped to `''` — this class' never-false law; a
+     * caller that throws maps `''` exactly as the falsy verdict, because
+     * the consumer has always treated `false` and `''` identically
+     * (its guard is `=== false || === ''`), so the coercion is
+     * observationally zero-delta.
+     *
+     * Contrast with {@see self::decode()}: there the LAX default strips
+     * invalid alphabet and no padding is invented. This arm always
+     * pads first and is always strict; the arms differ exactly on
+     * inputs whose length is not a multiple of four (and on garbage).
+     *
+     * @param string $encoded The base64url-encoded input.
+     *
+     * @return string The decoded bytes; `''` on any failure, including
+     *                empty input. Never `false`.
+     */
+    public static function decodePadded(string $encoded): string
+    {
+        $normalized = strtr($encoded, '-_', '+/');
+        $padded = str_pad($normalized, (int) (ceil(strlen($normalized) / 4) * 4), '=');
+        $decoded = base64_decode($padded, true);
+
+        return $decoded === false ? '' : $decoded;
+    }
 }

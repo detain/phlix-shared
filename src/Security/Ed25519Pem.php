@@ -142,6 +142,52 @@ final class Ed25519Pem
     }
 
     /**
+     * Parse the hub legacy key-file dialect with byte-exact fidelity
+     * (v0.59 sign-arm split's strict PEM arm).
+     *
+     * The hub's `extractKeyPair` legacy arm preserved a pre-delegation
+     * rule the lenient native parser above deliberately does not carry:
+     * the body must survive a STRICT base64 decode of the STANDARD
+     * alphabet (no `-`/`_` normalization happens here — url-safe marks
+     * are corruption in this dialect), the whitespace tolerance is the
+     * hub's literal set (`\r`, `\n`, space) plus whatever the strict
+     * decoder itself skips (measured harness: tabs included, both
+     * sides agree), the length law
+     * is EQUAL-64 (not at-least-64: a 96-byte oversized body is
+     * REFUSED, never silently truncated), the marker lines may be absent
+     * entirely (bare base64 files stay loadable), and nothing beyond
+     * those checks is consulted when the parse succeeds. This method
+     * reproduces that posture and reports the verdict in the same
+     * `secret`/`public` shape {@see self::parsePem()} uses (at an exact
+     * 64-byte body the public slice is provably identical to the hub's
+     * open-ended one), so the hub can retire its duplicated body in the
+     * successor lane without one observable change to load behavior:
+     * null means "throw the legacy message there"; the grammar routing
+     * predicate stays hub-side where the custody posture lives.
+     *
+     * @param string $pem The key-file content in the legacy dialect.
+     *
+     * @return array{secret: string, public: string}|null Null on any parse failure.
+     */
+    public static function parsePemByteExact(string $pem): ?array
+    {
+        $body = trim($pem);
+        $body = (string) preg_replace('#-----(BEGIN|END) ' . self::NATIVE_LABEL . '-----#', '', $body);
+        $body = str_replace(["\r", "\n", ' '], '', $body);
+        $decoded = base64_decode($body, true);
+
+        if ($decoded === false) {
+            $decoded = '';
+        }
+
+        if (strlen($decoded) !== self::SECRET_KEY_BYTES) {
+            return null;
+        }
+
+        return ['secret' => $decoded, 'public' => substr($decoded, 32, 32)];
+    }
+
+    /**
      * Extracts the 32-byte Ed25519 seed from a PKCS#8 DER blob.
      *
      * The Ed25519 OID must be present before any extraction, so a non-Ed25519

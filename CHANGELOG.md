@@ -53,6 +53,24 @@ existing bool callers `->won()` byte-compatibly; shared carried no bool
 seam to keep (v0.59 bank row 5, the S2-ADOPT 2.4 charter — the enum's
 bool reading now ships beside it).
 
+Added: the sign-arm split the S2 delegation left hanging (v0.59 bank
+row 6). `Security\Base64Url::decodePadded()` is now the kernel home of
+the strict WebAuthn posture the server's `base64UrlDecode` carried:
+normalize `-`/`_`, invent the `=` padding back to the 4-character
+boundary, decode STRICTLY, collapse `false` to this class' `''` law —
+so a ragged tail can never be silently stripped into a shorter read the
+way the lax `decode()` arm tolerates.
+`Security\Ed25519Pem::parsePemByteExact()` is the hub legacy parser's
+equal-64 posture: standard alphabet only (no url normalization), the hub's literal
+whitespace set, marker lines optional, and an oversized body REFUSED
+rather than truncated — reported in the same `secret`/`public` shape as
+`parsePem()` so the hub can retire its duplicated body at the seam
+without one observable change. Both arms are differential-proven against
+the consumers' verbatim bodies extracted read-only from their repo tips:
+80 vectors across both grids, zero divergence (accept/reject and decoded
+bytes), harness and log banked with this release. Successor lanes
+re-point; no consumer behavior moved in this package.
+
 ## [0.58.0] - 2026-11-21
 
 Minor: transaction-mutex release cut (program `refactor-1119`, the
