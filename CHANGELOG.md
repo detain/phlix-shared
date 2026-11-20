@@ -4,6 +4,27 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Added: the transaction-mutex state machine `Database\MysqlTxLockState`
+with its end-claim verdict `Database\TxEnd` — the Option-B single
+source of truth extracted from the server/hub TXMUTEX-A union (holder
+identity, nesting, one-shot poison mark with cleared-on-reconnect,
+cancel-checked acquire, and the clear-holder-before-push hand-off that
+turns design §1.5 from prose into code) — and the statement-failure
+decision table `Database\MysqlRetryPolicy` with
+`Database\MysqlRetryVerdict` (gone-in-transaction never replays and
+poisons; gone-in-autocommit replays exactly once; 1213 rolls back the
+whole transaction per §1.6b; 1205 keeps the transaction usable per the
+§1.6/§Q-A dual-recovery distinction). The characterization suites pin
+the four failure modes the estate EXECUTED before the cures (incidents
+1.1–1.4). Additive only: zero existing shared public API changes; the
+server/hub delegation that retires the twins is a later adoption wave
+(owner ruling 2c/1a — v0.57 charter Option-B shared leg, program
+refactor-1119). `ext-pdo` joins composer `suggest` because the machine
+throws `PDOException` for catch-shape parity with the arms it replaces;
+no require change and no behavior change.
+
 ## [0.57.0] - 2026-11-20
 
 Minor: refactor-wave S1 release cut (program `refactor-1119`,
