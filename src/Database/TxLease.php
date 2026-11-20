@@ -211,11 +211,14 @@ final class TxLease
     /**
      * Release this ceremony's hold on the ledger at transaction end:
      * clear poison, free the holder, push the token LAST (design
-     * §1.5 ordering law, unchanged).
+     * §1.5 ordering law, unchanged). The release binds this lease's
+     * coroutine identity (v0.59 bank row 1): a call whose holder has
+     * moved on is FULLY INERT and returns FALSE — the ledger and the
+     * token stand; TRUE whenever the release runs.
      */
-    public function handOff(): void
+    public function handOff(): bool
     {
-        $this->state->handOff($this->push);
+        return $this->state->handOff($this->push, $this->cid);
     }
 
     /**

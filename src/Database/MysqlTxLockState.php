@@ -374,13 +374,30 @@ final class MysqlTxLockState
      * therefore the LAST write this method (and, by law, the landed
      * consumers) performs on the shared ledger.
      *
+     * The identity bind is the sibling idiom (acquire/claimCommit/
+     * claimRollback/abandonIfHeld all bind-and-check). With a $cid, a
+     * non-holder hand-off is FULLY INERT — no ledger write, no token —
+     * and the call returns FALSE exactly like abandonIfHeld: a stale
+     * finally arm or a reconnect-stranded lease must never clear another
+     * lease's hold or push a phantom token. Passing no $cid keeps the
+     * legacy unbound posture (release runs unconditionally), the
+     * byte-compatible path for landed callers that pass no identity until
+     * their lanes bind. TRUE whenever the release runs.
+     *
      * @param callable(): void $push hands the token to the next waiter
+     * @param int|null         $cid  coroutine identity to bind; null = legacy unbound
      */
-    public function handOff(callable $push): void
+    public function handOff(callable $push, ?int $cid = null): bool
     {
+        if ($cid !== null && $this->holder !== $cid) {
+            return false;
+        }
+
         $this->poisoned = false;
         $this->holder = self::FREE_HOLDER;
         $push();
+
+        return true;
     }
 
     /**

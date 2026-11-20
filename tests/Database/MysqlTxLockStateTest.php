@@ -184,6 +184,62 @@ final class MysqlTxLockStateTest extends TestCase
     }
 
     /**
+     * v0.59 bank row 1: with a bound cid, handOff speaks the sibling
+     * bind-and-check idiom — a stranger hand-off is FULLY INERT (no
+     * ledger write, no token), so a stale finally arm or a
+     * reconnect-stranded lease can never clear another lease's hold or
+     * push a phantom token. The holder's own bound hand-off then runs in
+     * the §1.5 order unchanged.
+     */
+    public function test_a_bound_hand_off_by_a_stranger_is_fully_inert(): void
+    {
+        $state = new MysqlTxLockState();
+        $channel = $this->fakeChannel($state);
+
+        $state->acquire(5, $channel->park(...));
+        $state->markOpen();
+
+        self::assertFalse($state->handOff($channel->push(...), 9), 'a stranger hand-off is refused');
+        self::assertSame(5, $state->holder(), 'the refusal must not free the holder');
+        self::assertSame(1, $state->nestingLevel(), 'the refusal must not floor the flag');
+        self::assertSame(0, $channel->pushCount, 'the refusal emits no token');
+
+        $state->markPoisoned();
+        self::assertFalse($state->handOff($channel->push(...), 9), 'still refused with the mark set');
+        self::assertTrue($state->isPoisoned(), 'the refusal must not consume the holder poison');
+
+        // The holder finishes its own ceremony the landed way: CLOSE
+        // floors the flag, then the bound release runs, in §1.5 order.
+        self::assertSame(TxEnd::POISON_REFUSED, $state->claimCommit(5));
+        self::assertSame(TxEnd::CLOSE, $state->claimRollback(5));
+        self::assertTrue($state->handOff($channel->push(...), 5));
+        self::assertSame(1, $channel->pushCount);
+        self::assertSame(MysqlTxLockState::FREE_HOLDER, $state->holder());
+        self::assertSame(0, $state->nestingLevel());
+        self::assertFalse($state->isPoisoned());
+    }
+
+    /**
+     * v0.59 bank row 1, legacy arm: with no cid bound, handOff keeps the
+     * posture it shipped with — the release runs unconditionally, even
+     * while some other coroutine is named holder — the byte-compatible
+     * path for landed finally arms until their lanes pass an identity.
+     */
+    public function test_an_unbound_hand_off_passthrough_keeps_the_legacy_posture(): void
+    {
+        $state = new MysqlTxLockState();
+        $channel = $this->fakeChannel($state);
+
+        $state->acquire(5, $channel->park(...));
+        $state->markOpen();
+
+        self::assertTrue($state->handOff($channel->push(...)), 'the unbound arm always runs');
+        self::assertSame(1, $channel->pushCount);
+        self::assertSame(MysqlTxLockState::FREE_HOLDER, $state->holder());
+        self::assertSame(1, $state->nestingLevel(), 'the release law is unchanged: handOff never floors the flag, bind or no bind');
+    }
+
+    /**
      * Incident 1.2 shape (hub): commit/rollback by anyone who is not the
      * holder must be inert - and the guard sits ABOVE the poison check,
      * so a stranger cannot even consume the holder's one-shot refusal

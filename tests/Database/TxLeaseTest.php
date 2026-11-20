@@ -419,6 +419,31 @@ final class TxLeaseTest extends TestCase
     }
 
     /**
+     * v0.59 bank row 1 through the lease: the bound hand-off refuses a
+     * stranger fully inertly — the holder's ceremony stands and no token
+     * leaves the stranger's channel — while the holder's own bound
+     * hand-off runs and reports truth.
+     */
+    public function test_a_stranger_lease_hand_off_is_refused_by_the_binding(): void
+    {
+        $state = new MysqlTxLockState();
+        $holderChannel = $this->openLedger($state, 3);
+        $holder = $this->lease($state, 3, $holderChannel);
+
+        $strangerChannel = new LeaseChannel($state);
+        $stranger = $this->lease($state, 8, $strangerChannel);
+
+        self::assertFalse($stranger->handOff(), 'a non-holder hand-off is inert...');
+        self::assertSame(3, $state->holder(), '...the holder stands...');
+        self::assertSame(1, $state->nestingLevel(), '...and the flag is untouched');
+        self::assertSame(0, $strangerChannel->pushCount, '...and no phantom token is pushed');
+
+        self::assertTrue($holder->handOff(), 'the holder own release runs through the same binding');
+        self::assertSame(1, $holderChannel->pushCount);
+        self::assertSame(MysqlTxLockState::FREE_HOLDER, $state->holder());
+    }
+
+    /**
      * The landed server ceremony through the lease, end to end: the
      * poison refusal keeps the lease (holder + flag stand, the caller's
      * rollback finishes the job), and the rollback claim CLOSEs so the

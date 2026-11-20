@@ -13,6 +13,17 @@ over-promised: the verdict class answers only the replay-yes/no question,
 and the once-only retry bound is pinned consumer-side by the ladder loops
 themselves. Behavior pin unchanged (name-truth correction, v0.59 bank row 2).
 
+Changed: `Database\MysqlTxLockState::handOff()` gained the optional
+coroutine identity bind — with a `$cid` it speaks the same bind-and-check
+idiom as its siblings: a non-holder hand-off is FULLY INERT (no ledger
+write, no token) and answers FALSE exactly like `abandonIfHeld()`, while
+the holder's release runs the §1.5 order and answers TRUE. Passing no
+`cid` keeps the legacy unbound posture unchanged, so landed server
+finally arms stay byte-compatible until their lanes pass an identity.
+`Database\TxLease::handOff()` now binds its own cid and reports the
+verdict as bool. (v0.59 bank row 1; consumer lanes flip to the bound
+form.)
+
 ## [0.58.0] - 2026-11-21
 
 Minor: transaction-mutex release cut (program `refactor-1119`, the
