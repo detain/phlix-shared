@@ -226,11 +226,14 @@ final class MysqlTxLockState
      * fork the ordering laws exist to prevent. Returns whether the
      * caller's release actually took effect.
      *
-     * Unification note: the landed server falsey-parent arm released
-     * without touching the poison flag while the hub fold clears it; the
-     * machine adopts the hub shape (clear on fold) because a release
-     * that leaves a mark with no transaction behind it strands the next
-     * holder's refusal budget on a dead lease.
+     * Provenance note: there is no server/hub divergence to reconcile
+     * on a falsey-parent fold — both landed arms clear poison there
+     * (the server's fold releases and then falls through to the holder
+     * path's unconditional "poison is history" clear, whose own comment
+     * names the hub as the mirror; the hub's Q-C fold clears before it
+     * releases). The machine keeps that agreement inside one call: a
+     * release that left a mark with no transaction behind it would
+     * strand the next holder's refusal budget on a dead lease.
      *
      * @param callable(): void $push hands the token to the next waiter
      */
