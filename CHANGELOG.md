@@ -71,6 +71,22 @@ the consumers' verbatim bodies extracted read-only from their repo tips:
 bytes), harness and log banked with this release. Successor lanes
 re-point; no consumer behavior moved in this package.
 
+* Added: the `RowMap` row-coercion family is lifted into the shared
+  package as `Phlix\Shared\Database\RowMap` (v0.59 bank row 9, the
+  E-09 substrate): key-narrowing (`fromMixed`/`listFromMixed`) and the
+  full named value-coercion convention table — STRICT, NUMERIC,
+  SCALAR-CAST, the two coexisting nullable-string vocabularies, TRUTHY
+  CAST, the S121 non-empty-strict law, and the S143 anti-fabrication
+  datetime parser — verbatim from the server tree's substrate with its
+  eight adjudicated keeps honored. The lift is ADDITIVE: the server
+  copy stays authoritative for that tree until its rewiring lane
+  lands, and the hub's hand-rolled narrowings retire consumer-side
+  against this canonical home. The ported contract suite (18 tests,
+  168 assertions) runs green here, and a scratch differential
+  reproduces zero divergence between the two classes over 1,023
+  vectors and a full signature/constructor equality walk — the lifted
+  semantics are the substrate's, not a re-reading of them.
+
 ## [0.58.0] - 2026-11-21
 
 Minor: transaction-mutex release cut (program `refactor-1119`, the
