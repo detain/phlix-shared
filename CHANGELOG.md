@@ -23,7 +23,14 @@ server/hub delegation that retires the twins is a later adoption wave
 (owner ruling 2c/1a — v0.57 charter Option-B shared leg, program
 refactor-1119). `ext-pdo` joins composer `suggest` because the machine
 throws `PDOException` for catch-shape parity with the arms it replaces;
-no require change and no behavior change.
+no require change and no behavior change. Adoption-wave extension
+(TXMUTEX-B-RETROFIT): `MysqlTxLockState::abandonIfHeld()` gains
+`bool $clearPoison = true` — the falsy-parent fold keeps the clearing
+law, while the begin-threw cleanup arm (catch-Throwable, landed shape
+in BOTH server and hub, which releases the lease without touching the
+mark) passes FALSE so a failed BEGIN cannot spend a refusal budget an
+earlier scope earned. Purely additive; default preserves every existing
+call site.
 
 ## [0.57.0] - 2026-11-20
 

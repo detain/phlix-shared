@@ -235,15 +235,32 @@ final class MysqlTxLockState
      * release that left a mark with no transaction behind it would
      * strand the next holder's refusal budget on a dead lease.
      *
-     * @param callable(): void $push hands the token to the next waiter
+     * The catch-Throwable cleanup arm is a different landed shape in
+     * BOTH repos: the server's releases with `releaseTransLock()` (free
+     * the holder, push the token) and the hub's with
+     * `inTransaction = false; releaseQueryLock()` — and neither touches
+     * the poison mark, because a throw from a BEGIN that never opened a
+     * transaction must not consume a refusal budget some earlier scope
+     * genuinely earned. {@see self::$clearPoison} carries that split:
+     * the falsy fold keeps the clearing default, the throw arms pass
+     * FALSE to stay byte-faithful to both landed sources.
+     *
+     * @param callable(): void $push        hands the token to the next waiter
+     * @param bool             $clearPoison whether the release also consumes
+     *                                      the poison mark (TRUE for the
+     *                                      falsey-parent fold; FALSE for the
+     *                                      begin-threw cleanup arm)
      */
-    public function abandonIfHeld(int $cid, callable $push): bool
+    public function abandonIfHeld(int $cid, callable $push, bool $clearPoison = true): bool
     {
         if ($this->holder !== $cid) {
             return false;
         }
 
-        $this->poisoned = false;
+        if ($clearPoison) {
+            $this->poisoned = false;
+        }
+
         $this->holder = self::FREE_HOLDER;
         $push();
 

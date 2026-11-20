@@ -326,6 +326,38 @@ final class MysqlTxLockStateTest extends TestCase
     }
 
     /**
+     * The begin-threw cleanup arm (catch-Throwable in BOTH landed repos)
+     * releases the lease WITHOUT consuming the poison mark: a failed
+     * BEGIN must not spend a refusal budget an earlier scope earned.
+     * The falsy-parent fold keeps the clearing default (r1 truth: both
+     * landed folds clear poison there).
+     */
+    public function test_abandon_can_release_without_consuming_the_poison_budget(): void
+    {
+        $state = new MysqlTxLockState();
+        $channel = $this->fakeChannel($state, 0);
+
+        // Poison earned by a previous scope, then a fresh lease whose vendor
+        // begin throws: the landed release writes nothing to the mark.
+        $state->markPoisoned();
+        $state->acquire(4, $channel->parkTrue(...));
+        self::assertTrue($state->abandonIfHeld(4, $channel->push(...), clearPoison: false));
+        self::assertSame(MysqlTxLockState::FREE_HOLDER, $state->holder());
+        self::assertSame(1, $channel->pushCount, 'the throw arm still hands the token onward');
+        self::assertTrue($state->isPoisoned(), 'a failed begin must not spend the refusal budget');
+
+        // The preserved budget is then consumed by exactly one commit refusal.
+        self::assertSame(TxEnd::POISON_REFUSED, $state->claimCommit(MysqlTxLockState::FREE_HOLDER));
+        self::assertFalse($state->isPoisoned());
+
+        // And the default fold still clears (falsy-parent law unchanged).
+        $state->markPoisoned();
+        $state->acquire(4, $channel->parkTrue(...));
+        self::assertTrue($state->abandonIfHeld(4, $channel->push(...)));
+        self::assertFalse($state->isPoisoned(), 'the falsy fold still consumes the stale mark');
+    }
+
+    /**
      * Brief artifact "poison-mark + cleared-on-reconnect": a fresh socket
      * cannot carry the previous socket's transaction, so the reconnect
      * path flattens the whole ledger. The machine touches no token here
