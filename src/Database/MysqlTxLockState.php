@@ -241,7 +241,7 @@ final class MysqlTxLockState
      * `inTransaction = false; releaseQueryLock()` — and neither touches
      * the poison mark, because a throw from a BEGIN that never opened a
      * transaction must not consume a refusal budget some earlier scope
-     * genuinely earned. {@see self::$clearPoison} carries that split:
+     * genuinely earned. {@see self::clearPoison()} carries that split:
      * the falsy fold keeps the clearing default, the throw arms pass
      * FALSE to stay byte-faithful to both landed sources.
      *
