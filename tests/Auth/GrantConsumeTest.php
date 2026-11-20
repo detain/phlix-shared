@@ -86,7 +86,11 @@ final class GrantConsumeTest extends TestCase
     {
         foreach (self::provide_driver_verdicts() as $name => $case) {
             [$result] = $case;
-            $legacy = !($result === false || $result === null) && (int) $result >= 1;
+            // The legacy consumer shape: error/NULL reads false; a real
+            // driver value counts its affected rows (numeric strings
+            // included, exactly as the (int)-cast sites did).
+            $affected = is_numeric($result) ? (int) $result : 0;
+            $legacy = !($result === false || $result === null) && $affected >= 1;
             self::assertSame($legacy, GrantConsume::fromWriteVerdict($result)->won(), $name);
         }
     }
