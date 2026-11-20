@@ -66,10 +66,13 @@ namespace Phlix\Shared\Database;
  *
  * Lifted verbatim from the server tree (src/Common/Util/RowMap.php,
  * the E-09 substrate with its eight adjudicated keeps honored in the
- * shape above) as the v0.59 bank row 9 canonical home; the server
- * copy stays authoritative for that tree until its rewiring lane
- * lands. Hub-side hand-rolls (the ~25 narrowings over 6 files) are
- * retired consumer-side against this home.
+ * shape above) as the v0.59 bank row 9 canonical home. The rewiring
+ * it was banked for has since LANDED on both consumer trees, so this
+ * shared copy is authoritative for both: the server rewiring landed
+ * as srv 36c0bef9 (its src/Common/Util/RowMap.php demoted to a thin
+ * delegate onto these accessors), and the hub-side hand-rolls were
+ * retired consumer-side against this home — 48 narrowings over 12
+ * files (hub 43d651ea + 84557514).
  *
  * @since Wave 5a (post-O.7)
  */
