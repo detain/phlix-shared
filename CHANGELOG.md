@@ -24,6 +24,15 @@ finally arms stay byte-compatible until their lanes pass an identity.
 verdict as bool. (v0.59 bank row 1; consumer lanes flip to the bound
 form.)
 
+Tests: completed `TxLeaseTest`'s dead instrument — the channel double's
+`pushObservations` had been written since v0.58 but never read, so the
+§1.5 ordering law was only machine-side observable. The end-side binding
+test now asserts through the lease seam exactly what a woken waiter sees
+at push time (holder already FREE, flag floored, poison cleared) and that
+the push is the last write, mirroring the machine-side §1.5 pattern test.
+Choice: COMPLETION over deletion — the instrument evidently intended this
+leg, and the lease-bound path deserves its own teeth. (v0.59 bank row 3.)
+
 ## [0.58.0] - 2026-11-21
 
 Minor: transaction-mutex release cut (program `refactor-1119`, the

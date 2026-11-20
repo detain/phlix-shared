@@ -236,7 +236,11 @@ final class MysqlTxLockStateTest extends TestCase
         self::assertTrue($state->handOff($channel->push(...)), 'the unbound arm always runs');
         self::assertSame(1, $channel->pushCount);
         self::assertSame(MysqlTxLockState::FREE_HOLDER, $state->holder());
-        self::assertSame(1, $state->nestingLevel(), 'the release law is unchanged: handOff never floors the flag, bind or no bind');
+        self::assertSame(
+            1,
+            $state->nestingLevel(),
+            'the release law is unchanged: handOff never floors the flag, bind or no bind'
+        );
     }
 
     /**

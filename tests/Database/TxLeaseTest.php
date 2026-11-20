@@ -387,11 +387,23 @@ final class TxLeaseTest extends TestCase
         self::assertSame(TxEnd::CLOSE, $lease->claimCommit());
         self::assertSame(0, $state->nestingLevel(), 'the CLOSE arm floored the flag through the binding');
 
-        $lease->handOff();
+        self::assertTrue($lease->handOff());
 
         self::assertSame(MysqlTxLockState::FREE_HOLDER, $state->holder());
         self::assertSame(1, $channel->pushCount);
         self::assertFalse($lease->isPoisoned());
+
+        // v0.59 bank row 3: complete the instrument that was already
+        // recording — the §1.5 ordering law must stay observable through
+        // the lease's bound seam, not only machine-side: what a woken
+        // waiter sees at push time is an ALREADY-FREE ledger, and the
+        // push is the last write (post-push state equals the snapshot).
+        $observed = $channel->pushObservations[0];
+        self::assertSame(MysqlTxLockState::FREE_HOLDER, $observed['holder'], 'the push saw a freed ledger');
+        self::assertSame(0, $observed['nesting'], 'CLOSE floored the flag before the release');
+        self::assertFalse($observed['poisoned'], 'the release cleared poison before the push');
+        self::assertSame($observed['holder'], $state->holder(), 'nothing may change after the push');
+        self::assertSame($observed['nesting'], $state->nestingLevel());
     }
 
     /**
