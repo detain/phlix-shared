@@ -323,6 +323,18 @@ final class MysqlTxLockStateTest extends TestCase
         $before = $channel->pushCount;
         self::assertFalse($state->abandonIfHeld(2, $channel->push(...)));
         self::assertSame($before, $channel->pushCount, 'no token may be minted for an unheld lease');
+
+        // Abandon from an OPEN lease lowers the nesting flag with the holder
+        // (the hub's refusal-path release — landed flag cleared on every end
+        // path, F-1). A stale nesting would LogicException the next markOpen.
+        $state->acquire(7, $channel->parkTrue(...));
+        $state->markOpen();
+        self::assertTrue($state->abandonIfHeld(7, $channel->push(...)));
+        self::assertSame(MysqlTxLockState::FREE_HOLDER, $state->holder());
+        self::assertSame(0, $state->nestingLevel(), 'release from an open lease must flatten the flag');
+        $state->acquire(8, $channel->parkTrue(...));
+        $state->markOpen();
+        self::assertSame(1, $state->nestingLevel(), 'the next lease opens cleanly on the flattened ledger');
     }
 
     /**

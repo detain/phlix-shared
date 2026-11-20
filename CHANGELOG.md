@@ -30,7 +30,14 @@ law, while the begin-threw cleanup arm (catch-Throwable, landed shape
 in BOTH server and hub, which releases the lease without touching the
 mark) passes FALSE so a failed BEGIN cannot spend a refusal budget an
 earlier scope earned. Purely additive; default preserves every existing
-call site.
+call site. Second retrofit fold: `abandonIfHeld()` now lowers the nesting
+flag together with the holder. The hub's poison-refusal release runs
+through this verb while the lease still reads open (its landed `finally`
+lowered the transaction flag on every end path, refusal included), and a
+stale nesting would LogicException the next `markOpen()`; every other
+landed call site abandons a never-raised lease, so the reset is a no-op
+there and faithful here. `MysqlTxLockStateTest` grows the open-lease
+abandon arms.
 
 ## [0.57.0] - 2026-11-20
 

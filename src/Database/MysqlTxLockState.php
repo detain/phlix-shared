@@ -245,6 +245,13 @@ final class MysqlTxLockState
      * the falsy fold keeps the clearing default, the throw arms pass
      * FALSE to stay byte-faithful to both landed sources.
      *
+     * The release lowers the nesting flag with the holder: the hub's
+     * refusal-path releases through this verb while the lease still reads
+     * open (its landed `finally` cleared the transaction flag on every end
+     * path, refusal included — register row F-1), and every other landed
+     * call site abandons a lease whose flag was never raised, so zeroing
+     * here is a no-op there and faithful here.
+     *
      * @param callable(): void $push        hands the token to the next waiter
      * @param bool             $clearPoison whether the release also consumes
      *                                      the poison mark (TRUE for the
@@ -261,6 +268,7 @@ final class MysqlTxLockState
             $this->poisoned = false;
         }
 
+        $this->nesting = 0;
         $this->holder = self::FREE_HOLDER;
         $push();
 
