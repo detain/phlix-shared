@@ -490,6 +490,17 @@ final class MysqlTxLockStateTest extends TestCase
      * transaction may not begin again - the refusal wording is the
      * vendor message, byte-for-byte, because callers throughout the
      * estate catch it by text.
+     *
+     * T5 venue-noise posture, stated per the design mandate so it never
+     * silently becomes error-surface (v0.59 bank row 4): the machine's
+     * nesting refusal fires BEFORE any vendor call, so the
+     * null-errorInfo warnings that ride a real nested start
+     * (vendor Connection.php:2000 under workerman) are unreachable from
+     * this substrate - every run asserting this pin is zero-warning by
+     * construction: the chosen ASSERT-NOISE posture, held by the
+     * refusal-before-vendor ordering itself. Consumers whose real-DB
+     * nesting tests reach the vendor carry their own posture rows;
+     * that noise there is disclosed venue, never a law of this class.
      */
     public function test_a_nested_begin_refuses_with_the_vendor_message(): void
     {

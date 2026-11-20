@@ -33,6 +33,15 @@ the push is the last write, mirroring the machine-side §1.5 pattern test.
 Choice: COMPLETION over deletion — the instrument evidently intended this
 leg, and the lease-bound path deserves its own teeth. (v0.59 bank row 3.)
 
+Docs: the shared substrate records its DESIGN-TX-MUTEX T5 venue-noise
+posture explicitly in the nested-begin equivalence test — the machine
+refuses nesting BEFORE any vendor call, so the null-errorInfo warnings
+that ride a real nested start (vendor Connection.php:2000) are
+unreachable from this package and every such run is zero-warning by
+construction (assert-noise posture, discharged v0.59 bank row 4;
+consumer suites carry their own posture rows at their vendor-reaching
+seams).
+
 ## [0.58.0] - 2026-11-21
 
 Minor: transaction-mutex release cut (program `refactor-1119`, the
