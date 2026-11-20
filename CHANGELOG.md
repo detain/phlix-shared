@@ -42,6 +42,17 @@ construction (assert-noise posture, discharged v0.59 bank row 4;
 consumer suites carry their own posture rows at their vendor-reaching
 seams).
 
+Added: `Auth\GrantConsume` gained its consumer accessors — `won(): bool`
+(true exactly for `Consumed`; a lost race and an unobservable verdict
+both fail closed) and `fromWriteVerdict(mixed): self`, the kernel
+translation that classifies a consume statement's driver verdict through
+the `Database\WriteResult` measured contract (unobservable verdict ->
+Indeterminate, one-or-more affected rows -> Consumed, zero rows ->
+NotConsumed). Consumer arbiter sites widen onto the enum and hand their
+existing bool callers `->won()` byte-compatibly; shared carried no bool
+seam to keep (v0.59 bank row 5, the S2-ADOPT 2.4 charter — the enum's
+bool reading now ships beside it).
+
 ## [0.58.0] - 2026-11-21
 
 Minor: transaction-mutex release cut (program `refactor-1119`, the
