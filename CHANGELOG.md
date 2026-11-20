@@ -4,6 +4,15 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Tests: renamed `Database\MysqlRetryPolicyTest`'s
+`test_the_lost_in_autocommit_verdict_replays_exactly_once` to
+`test_the_lost_in_autocommit_verdict_is_replay_verdict` — the former name
+over-promised: the verdict class answers only the replay-yes/no question,
+and the once-only retry bound is pinned consumer-side by the ladder loops
+themselves. Behavior pin unchanged (name-truth correction, v0.59 bank row 2).
+
 ## [0.58.0] - 2026-11-21
 
 Minor: transaction-mutex release cut (program `refactor-1119`, the

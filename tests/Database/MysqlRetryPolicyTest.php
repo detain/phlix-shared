@@ -87,11 +87,13 @@ final class MysqlRetryPolicyTest extends TestCase
     }
 
     /**
-     * The autocommit twin: outside any transaction a reconnect-replay of
-     * exactly ONE attempt is the landed arm (close socket, one retry).
-     * Two attempts would hide a dead backend behind an infinite loop.
+     * The autocommit twin: the landed arm IS the replay-verdict arm —
+     * outside any transaction the ladder closes the socket and retries.
+     * This pin does not count the retries: the once-only bound is pinned
+     * consumer-side by the ladder loops themselves; the verdict class
+     * answers only the replay-yes/no question.
      */
-    public function test_the_lost_in_autocommit_verdict_replays_exactly_once(): void
+    public function test_the_lost_in_autocommit_verdict_is_replay_verdict(): void
     {
         $verdict = MysqlRetryVerdict::LOST_AUTOCOMMIT;
 
