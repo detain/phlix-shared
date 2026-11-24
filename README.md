@@ -352,9 +352,25 @@ composer validate --strict
 php scripts/security-audit-check.php
 ```
 
-CI enforces every line above, including the `tests/` phpcs gate. The
-`composer` scripts `test`, `stan`, `cs`, `cs-tests` and `psalm` alias the
-vendor-binary lines.
+CI runs the gates above — the same list as the "Before committing" ritual in
+[`AGENTS.md`](AGENTS.md) — at the error level: a failing
+phpunit/phpstan/phpcs/psalm/audit run reddens the build. That enforcement is
+error-level, not literal, and the known leniencies are: the psalm leg runs
+with `--show-info=false` (info-level findings do not redden CI),
+`composer validate` runs with `--no-check-publish` (publish-metadata-only
+failures do not either), and the `tests/` phpcs gate counts its known
+LineLength warnings but exits on errors only (`ignore_warnings_on_exit` in
+[`phpcs-tests.xml`](phpcs-tests.xml)). Beyond those gates the convention
+prose in this README and in [`AGENTS.md`](AGENTS.md) is upheld by review,
+not machine-checked line by line. The `composer` scripts `test`, `stan`,
+`cs`, `cs-tests` and `psalm` alias the vendor-binary lines.
+
+The default `phpunit` run excludes the opt-in `network` group — the
+helpLinks liveness probes, which make real HTTP requests — so the suite
+stays offline and deterministic (the exclusion is declared in
+[`phpunit.xml`](phpunit.xml)); run those tests deliberately with
+`./vendor/bin/phpunit --group network`. CI runs neither the group nor
+anything referencing it.
 
 ⚠ The last step replaces `composer audit --no-dev`. **Never audit with a
 development-dependency exclusion:** `--no-dev` drops every `require-dev` package
