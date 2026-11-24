@@ -145,6 +145,25 @@ the `CHANGELOG.md` heading, and the README status/install stamps (the
 example — the caret below 1.0 does not admit the next minor, so a stale
 install line silently pins consumers to the old release).
 
+## CHANGELOG entry style (forward-only)
+
+New entries take the settled house form: a category label at the start of a
+line, a colon, then the substance as the paragraph itself —
+`Added: <what shipped, why it exists, and the consumer-visible consequence>`
+— one paragraph per change, kept flat under the version heading. The other
+labels in the same family are `Changed:`, `Fixed:`, `Tests:` and `Docs:`;
+pick the one that matches what the entry actually is. Drifted shapes are
+rejected going forward: asterisk-bulleted category entries, and the stray
+"Also this cut:" lead-in (phlix-shared-041).
+
+This is forward guidance only, never a retro rewrite. Under the
+verbatim-history rule the released sections stay exactly as shipped —
+older cuts use Keep-a-Changelog sub-headings with hyphen bullets, and the
+`CALIBER_LEARNINGS.md` schema-entry note describes that historical shape.
+Neither is touched; where the two disagree, this section is the ritual
+authority for future cuts. Should a human-facing `CONTRIBUTING.md` ever
+land in this repo, it cross-references here rather than restating the form.
+
 <!-- caliber:managed:pre-commit -->
 ## Before Committing
 
