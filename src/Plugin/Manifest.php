@@ -48,12 +48,9 @@ use RuntimeException;
  * removes its `Phlix\Plugins\Manifest` subclass wrapper, this class
  * can be made `final` with the constructor changed to `private`
  * (or `final private`). That flip is a BREAKING change that must be
- * coordinated with phlix-server.
- *
- * @todo Once phlix-server removes its `Phlix\Plugins\Manifest` subclass,
- *       make this class `final` and the constructor `private` (or `final private`).
- *       That change is BREAKING and must be coordinated — see the plan
- *       step B5/CQ4.
+ * coordinated with phlix-server. It is kept here as a plan-tracking
+ * note rather than a shipped tooling tag: the server-subclass
+ * retirement is an open row — see plan step B5/CQ4.
  *
  * @package Phlix\Shared\Plugin
  * @since 0.2.0
