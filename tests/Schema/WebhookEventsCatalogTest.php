@@ -75,7 +75,7 @@ final class WebhookEventsCatalogTest extends TestCase
     }
 
     /**
-     * The 7 expected user-subscribable webhook event types.
+     * The 10 expected user-subscribable webhook event types.
      *
      * @return array<string, array{0: string}>
      */
@@ -89,6 +89,9 @@ final class WebhookEventsCatalogTest extends TestCase
             'recording.started' => ['recording.started'],
             'recording.stopped' => ['recording.stopped'],
             'alert' => ['alert'],
+            'user.login' => ['user.login'],
+            'user.logout' => ['user.logout'],
+            'user.created' => ['user.created'],
         ];
     }
 
@@ -103,7 +106,7 @@ final class WebhookEventsCatalogTest extends TestCase
         $this->assertArrayNotHasKey('$schema', $catalog);
     }
 
-    public function test_catalog_lists_exactly_the_seven_expected_event_types(): void
+    public function test_catalog_lists_exactly_the_ten_expected_event_types(): void
     {
         $actual = array_keys(self::eventsByType());
         $expected = array_map(
@@ -114,8 +117,8 @@ final class WebhookEventsCatalogTest extends TestCase
         sort($actual);
         sort($expected);
 
-        $this->assertSame($expected, $actual, 'webhook catalog must list exactly the 7 supported event types.');
-        $this->assertCount(7, $actual);
+        $this->assertSame($expected, $actual, 'webhook catalog must list exactly the 10 supported event types.');
+        $this->assertCount(10, $actual);
     }
 
     #[DataProvider('eventTypeProvider')]

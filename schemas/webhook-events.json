@@ -44,6 +44,24 @@
             "group": "system",
             "label": "Alert",
             "description": "A server-level alert or warning was raised."
+        },
+        {
+            "type": "user.login",
+            "group": "users",
+            "label": "User signed in",
+            "description": "A user authenticated into the server."
+        },
+        {
+            "type": "user.logout",
+            "group": "users",
+            "label": "User signed out",
+            "description": "A user signed out of the server."
+        },
+        {
+            "type": "user.created",
+            "group": "users",
+            "label": "User created",
+            "description": "A new user account was created."
         }
     ],
     "reserved": [

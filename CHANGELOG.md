@@ -4,6 +4,24 @@ All notable changes to `detain/phlix-shared` are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `schemas/webhook-events.json`: three account-lifecycle events added to the
+  `events[]` vocabulary — `user.login`, `user.logout`, `user.created`
+  (S-contracts-08 / phlix-contracts-011). They are the names the server has
+  emitted since P9 and already lists in `WebhookEventCatalog::EVENTS` and the
+  admin SPA picker (@phlix/ui `WEBHOOK_EVENT_CATEGORIES`); the shipped schema
+  lagged 7-vs-10 and the server's live mirror pin tolerated that gap by
+  design. Widening here restores this file as the complete authority: the
+  `events[].type` list now equals the server catalogue exactly, in the same
+  order. Additive, non-breaking — nothing removed, the `reserved[]` set is
+  unchanged. `tests/Schema/WebhookEventsCatalogTest.php` rotates in the same
+  commit to pin the 10-type set. Byte-pinners of this file (the vendored md5
+  in phlix-ui `src/api/test/webhook-events.json`, the server's installed
+  vendor copy) rotate in their re-vendor legs at the next tag.
+
 ## [0.59.0] - 2026-11-21
 
 Minor: v0.59.0 release cut (program `refactor-1119`, owner order
