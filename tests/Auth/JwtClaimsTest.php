@@ -150,6 +150,88 @@ final class JwtClaimsTest extends TestCase
         $this->assertTrue($claims->isExpired(101));
     }
 
+    // --- phlix-shared-015: isNotYetValid() nbf boundary trio -------------
+    // Mirrors the isExpired boundary tests above. isExpired was pinned
+    // shared-side while isNotYetValid had zero coverage here (the only
+    // executable nbf boundary lived in the hub); these close the asymmetry.
+
+    public function test_isNotYetValid_compares_nbf_to_now(): void
+    {
+        // nbf in the past → the token is acceptable (not "not yet valid");
+        // nbf in the future relative to the injected clock → refused.
+        $claims = JwtClaims::fromPayload([
+            'iss' => 'phlix', 'sub' => 'u', 'iat' => 1, 'exp' => 1000, 'type' => 'access',
+            'nbf' => 100,
+        ]);
+
+        $this->assertFalse($claims->isNotYetValid(0, 200)); // now past nbf → valid
+        $this->assertTrue($claims->isNotYetValid(0, 50));   // now before nbf → not yet valid
+        // Uses current time when null: nbf=100 is far before any real clock.
+        $this->assertFalse($claims->isNotYetValid(0, null));
+    }
+
+    public function test_isNotYetValid_is_false_at_the_nbf_boundary(): void
+    {
+        // Mirror of test_isExpired_is_true_at_the_exp_boundary, with the
+        // opposite boundary polarity: the predicate is `nbf > $now`, so a token
+        // becomes acceptable exactly AT its nbf instant (RFC 7519 §4.1.5 — the
+        // boundary second is valid, unlike `exp` where it is already expired).
+        $claims = JwtClaims::fromPayload([
+            'iss' => 'phlix', 'sub' => 'u', 'iat' => 1, 'exp' => 1000, 'type' => 'access',
+            'nbf' => 100,
+        ]);
+
+        $this->assertTrue($claims->isNotYetValid(0, 99));
+        $this->assertFalse($claims->isNotYetValid(0, 100)); // nbf == now → valid
+        $this->assertFalse($claims->isNotYetValid(0, 101));
+    }
+
+    public function test_isNotYetValid_absent_nbf_is_always_valid(): void
+    {
+        // The early-exit arm: a token with no nbf claim is valid from the moment
+        // it is issued, regardless of the injected now (past or future) and
+        // regardless of leeway.
+        $claims = JwtClaims::fromPayload([
+            'iss' => 'phlix', 'sub' => 'u', 'iat' => 1, 'exp' => 1000, 'type' => 'access',
+        ]);
+
+        $this->assertNull($claims->nbf);
+        $this->assertFalse($claims->isNotYetValid());
+        $this->assertFalse($claims->isNotYetValid(0, 1));
+        $this->assertFalse($claims->isNotYetValid(0, time() - 100000));
+        $this->assertFalse($claims->isNotYetValid(3600, time() + 100000));
+    }
+
+    public function test_isNotYetValid_far_future_nbf_uses_current_time_when_null(): void
+    {
+        // The null-$now seam on the future side: a deliberately far-future nbf
+        // is refused against the real clock, deterministically (year 2096).
+        $claims = JwtClaims::fromPayload([
+            'iss' => 'phlix', 'sub' => 'u', 'iat' => 1, 'exp' => 4000003600,
+            'type' => 'access', 'nbf' => 4000000000,
+        ]);
+
+        $this->assertTrue($claims->isNotYetValid(0, null));
+    }
+
+    public function test_isNotYetValid_leeway_forgives_bounded_clock_skew(): void
+    {
+        // The $leeway seam: server's OIDC posture tolerates bounded provider
+        // skew (`$nbf > time() + 60`) while the hub calls with zero leeway. A
+        // token dated ahead of the clock within the budget is accepted; beyond
+        // the budget, refused; at the budget edge, accepted (now+leeway == nbf).
+        $claims = JwtClaims::fromPayload([
+            'iss' => 'phlix', 'sub' => 'u', 'iat' => 1, 'exp' => 1000, 'type' => 'access',
+            'nbf' => 1000,
+        ]);
+
+        // nbf sits 50s ahead of now=950.
+        $this->assertTrue($claims->isNotYetValid(0, 950));    // strict (hub): 50s ahead refused
+        $this->assertFalse($claims->isNotYetValid(60, 950));  // 60s skew (server): accepted
+        $this->assertTrue($claims->isNotYetValid(40, 950));   // 40s leeway < 50s gap: refused
+        $this->assertFalse($claims->isNotYetValid(50, 950));  // gap == leeway boundary: accepted
+    }
+
     public function test_hasScope_true_when_scope_present(): void
     {
         $claims = JwtClaims::fromPayload([
