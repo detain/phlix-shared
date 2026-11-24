@@ -8,8 +8,21 @@
 /coverage.xml
 /build/
 .caliber/
-# Ignore all Claude CLI personal files and state
-.claude/
+# Ignore all Claude CLI personal files and state.
+# NB `.claude/*` not `.claude/` — git never descends into an EXCLUDED DIRECTORY,
+# so with `.claude/` the four `!` negations below are silently INERT and none of
+# these files can be staged (tracking was 0 despite the negations). Excluding the
+# directory's CONTENTS instead lets the negations take effect. Verified:
+# `git check-ignore -v .claude/rules/schema-changes.md` used to report the `.claude/`
+# line as the match (rc=0); with `.claude/*` it now reports no match (rc=1). This
+# brings phlix-shared in line with phlix-server/phlix-hub, which already track this tree.
+.claude/*
+# S-shared-04 tracks settings.json per its acceptance ("expect settings.json"),
+# UNLIKE phlix-server/phlix-hub which deliberately leave `.claude/settings.json`
+# ignored. CAVEAT: this file hardcodes an absolute, machine- and node-version-
+# specific interpreter path (`/home/<user>/.nvm/versions/node/vX/bin/caliber`,
+# 4x), so on any clone lacking that path the caliber hooks will not resolve until
+# the commands are made portable (e.g. `$CLAUDE_PROJECT_DIR` / PATH lookup).
 !.claude/settings.json
 !.claude/rules/
 !.claude/skills/
