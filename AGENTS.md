@@ -81,8 +81,8 @@ src/
   Relay/     # Phlix\Shared\Relay\* — channel-mux + HTTP-over-relay frames
   Schema/    # Phlix\Shared\Schema\* — SchemaPaths for the bundled schemas/
   Security/  # Phlix\Shared\Security\* — Hmac compute()/verify() primitive
-             #   (timing-safe sha256 colon-hex seam; no production consumer
-             #   today — see README)
+             #   (timing-safe sha256 colon-hex seam; server webhooks adopt it
+             #   for the legacy sha256= arm — see README)
   Subtitle/  # Phlix\Shared\Subtitle\* — subtitle source contract + DTOs
   Support/   # Phlix\Shared\Support\* — PayloadAssert trait for wire DTOs
   Version.php

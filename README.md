@@ -50,10 +50,12 @@ optional `config/trash_guides.php` local read; see [`AGENTS.md`](AGENTS.md) (in 
 - `Phlix\Shared\Security\Hmac` — the shared `compute()`/`verify()` seam for timing-safe
   HMAC-SHA256 in the `sha256:<hex>` colon-hex format, plus an additive envelope-separator
   arm (`SEPARATOR_EQUALS` serves the webhook legacy `sha256=<hex>` shape; the colon default
-  keeps every existing byte identical). Honest status: no production consumer
-  imports it today — server webhooks sign with raw `hash_hmac()` and plugin-manifest checks are
-  a trusted-digest allowlist, not a keyed HMAC — it is kept as the single-source keyed-signature
-  primitive for a future consumer (there is no `sign()` method).
+  keeps every existing byte identical). Consumer status: adopted by phlix-server webhooks for
+  the legacy `sha256=<hex>` arms — `WebhookEvent::getSignature()` signs and
+  `WebhookEvent::verify()` accepts the legacy header through `Hmac::compute()`/`Hmac::verify()`
+  with `SEPARATOR_EQUALS`. Not yet migrated: the timestamped V2 (`t=<unix>,v1=<hex>`) arms,
+  which still call raw `hash_hmac()`, and plugin-manifest checks, which remain a
+  trusted-digest allowlist, not a keyed HMAC (there is no `sign()` method).
 - `Phlix\Shared\Security\{Base64Url, Pkce, Jwt, JwtTokenParts, JwtException, CredentialDigest, OriginPolicy, Ed25519Pem}` —
   the estate security kernels cut from the server/hub duplicates (0.56.0+): strict/lax base64url
   codec; the hub S256-only PKCE guard set plus a verifier generator; an HS256 JWT mint/verify

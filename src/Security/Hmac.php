@@ -15,13 +15,16 @@ namespace Phlix\Shared\Security;
  * HMAC-SHA256 signature computation and verification helper.
  *
  * Timing-safe `sha256:<hex>` (colon-hex) keyed-HMAC seam. Honest consumer
- * status: this class has NO production importer today — phlix-server signs
- * webhooks with a raw `hash_hmac()` call, and its plugin-manifest checking
- * is a trusted-digest allowlist, not a keyed HMAC verification. It exists
- * as the single-source, timing-safe implementation of the `sha256:<hex>`
- * convention so a future keyed consumer (relay token signing is the
- * canonical candidate) adopts one audited primitive instead of
- * hand-rolling a comparison. The exposed surface is `compute()` and
+ * status: phlix-server webhooks import this class today — the legacy
+ * `sha256=<hex>` header arms route through `compute()`/`verify()` with
+ * `SEPARATOR_EQUALS` (`WebhookEvent::getSignature()` signs,
+ * `WebhookEvent::verify()` accepts the legacy arm). Not yet migrated: the
+ * timestamped V2 (`t=<unix>,v1=<hex>`) sign/verify pair, which still calls
+ * raw `hash_hmac()`, and plugin-manifest checking, which is a
+ * trusted-digest allowlist, not a keyed HMAC verification. The class
+ * remains the single-source, timing-safe implementation of the
+ * `sha256:<hex>` convention for future keyed consumers (relay token signing
+ * is the canonical candidate). The exposed surface is `compute()` and
  * `verify()` — there is no `sign()` method.
  *
  * Single contract: {@see self::verify()} is the canonical entry point and
