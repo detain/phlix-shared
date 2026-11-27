@@ -74,6 +74,8 @@ use Closure;
  * workers are single-threaded per process and array mutations here contain
  * no coroutine yield points, so concurrent coroutines cannot interleave
  * mid-update.
+ *
+ * @since 0.57.0
  */
 final class RateLimiter implements RateLimiterInterface
 {

@@ -37,6 +37,7 @@ namespace Phlix\Shared\Security;
  * D-07: fixtures never embed runtime-random forms).
  *
  * @package Phlix\Shared\Security
+ * @since 0.56.0
  */
 final class CredentialDigest
 {

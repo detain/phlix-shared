@@ -70,6 +70,8 @@ namespace Phlix\Shared\Http;
  * law single-sourceable here; it has not yet made it single-SOURCED in the
  * estate. Migration to this class is the pending consumer wave — the SV-4.15
  * defense ships today via the per-repo twins, not via this file.
+ *
+ * @since 0.57.0
  */
 final class TrustedProxyResolver
 {

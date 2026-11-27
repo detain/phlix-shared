@@ -31,6 +31,8 @@ namespace Phlix\Shared\Database;
  *  - {@see self::CLOSE}          → run the vendor end, then handOff()
  *
  * @see MysqlTxLockState
+ *
+ * @since 0.58.0
  */
 enum TxEnd
 {

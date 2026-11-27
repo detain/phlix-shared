@@ -50,16 +50,28 @@ final class JwtException extends RuntimeException
         parent::__construct($message);
     }
 
+    /**
+     * Reject a token that is not three segments or whose header/payload is
+     * not a JSON object — the shape gate, run before any crypto work.
+     */
     public static function malformed(string $message): self
     {
         return new self(self::REASON_MALFORMED, $message);
     }
 
+    /**
+     * Reject a header that lies about `alg` (or `typ`) — both parents check
+     * them in one block before signature work; see the class law above.
+     */
     public static function algUnexpected(string $message): self
     {
         return new self(self::REASON_ALG_UNEXPECTED, $message);
     }
 
+    /**
+     * Reject a well-formed triple whose HMAC does not verify against the
+     * expected secret.
+     */
     public static function signatureMismatch(string $message = 'JWT signature mismatch.'): self
     {
         return new self(self::REASON_SIGNATURE_MISMATCH, $message);

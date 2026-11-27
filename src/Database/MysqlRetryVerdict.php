@@ -41,6 +41,8 @@ namespace Phlix\Shared\Database;
  *    including unknown codes (driverCode() ?? 0), keeps landed behavior.
  *
  * @see MysqlRetryPolicy
+ *
+ * @since 0.58.0
  */
 enum MysqlRetryVerdict
 {

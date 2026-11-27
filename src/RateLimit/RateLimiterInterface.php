@@ -24,6 +24,8 @@ namespace Phlix\Shared\RateLimit;
  * callers depend only on this interface and the {@see RateLimitState} value
  * object. Concrete DB-backed profiles (the repos' DbRateLimiter /
  * RateLimitProfiles) stay per-repo: they are storage wiring, not contract.
+ *
+ * @since 0.57.0
  */
 interface RateLimiterInterface
 {

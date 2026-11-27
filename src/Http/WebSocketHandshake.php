@@ -53,6 +53,8 @@ namespace Phlix\Shared\Http;
  * enforced by those per-repo copies; this kernel is the single-source
  * migration target of a pending consumer wave, not the shipped enforcement
  * point.
+ *
+ * @since 0.57.0
  */
 final class WebSocketHandshake
 {

@@ -41,6 +41,8 @@ namespace Phlix\Shared\Http;
  * a literal `'0'` reason is still swallowed on today's server). Consumer
  * migration to this kernel IS that disclosed fix, and it is PENDING: the fix
  * is not shipped anywhere until a host swaps its copy for these statics.
+ *
+ * @since 0.57.0
  */
 final class ReasonPhrases
 {

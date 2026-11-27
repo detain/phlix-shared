@@ -50,6 +50,8 @@ namespace Phlix\Shared\Database;
  * the component header line (proven by review). This extraction is that
  * single copy: consumer adoption (v0.57 S1/S2 waves) retires both twins in
  * one step.
+ *
+ * @since 0.57.0
  */
 final class MysqlError
 {

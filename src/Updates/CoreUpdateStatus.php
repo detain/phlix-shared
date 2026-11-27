@@ -25,6 +25,8 @@ namespace Phlix\Shared\Updates;
  *
  * `updateCommand` is a copy-to-clipboard string ONLY: neither host ever
  * executes it (both twin docblocks state the law; it is preserved here).
+ *
+ * @since 0.57.0
  */
 final class CoreUpdateStatus
 {

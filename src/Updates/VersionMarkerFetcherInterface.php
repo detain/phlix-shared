@@ -28,6 +28,8 @@ namespace Phlix\Shared\Updates;
  * structurally unreachable under PHPUnit — exactly the arm production takes
  * (the S170 defect class). This contract has no such fork: there is one code
  * path, and the suite drives it.
+ *
+ * @since 0.57.0
  */
 interface VersionMarkerFetcherInterface
 {

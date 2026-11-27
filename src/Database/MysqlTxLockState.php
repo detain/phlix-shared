@@ -86,6 +86,8 @@ use PDOException;
  *
  * @see TxEnd            the verdicts the end-claims return
  * @see MysqlRetryPolicy the sibling decision table for the error path
+ *
+ * @since 0.58.0
  */
 final class MysqlTxLockState
 {

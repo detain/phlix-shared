@@ -364,6 +364,55 @@ WHAT-MOVES-WHERE table in `plans/expansion/b.1-shared-design.md` of
 [`detain/phlix`](https://github.com/detain/phlix) is history-only and not
 part of the estate checkouts.)
 
+## Adoption disposition
+
+Some published classes show zero `use` sites in the consumer trees. That is
+a decision, not an accident — this is the single home for why each such
+surface exists. Every statement below was measured 2026-11-27 with
+`git grep` against the committed `master` trees of phlix-server, phlix-hub
+and phlix-console-client (import census: `Phlix\Shared\…` references; twin
+census: a same-named `class|interface|enum|trait` declaration in the host's
+own `src/`); re-derive before restating. Disposition vocabulary:
+
+- **adopt-by-wave** — consumer swap-in is the recorded remedy; the class
+  header carries the matching `ADOPTION STATUS — INERT` paragraph.
+- **per-repo-by-design** — both hosts run live private twins today; the
+  shared copy is the canonical lift awaiting any future de-duplication wave
+  (none scheduled).
+- **frozen-for-hosts** — no host twin exists; published for plugins,
+  clients, shared-internal law, or as a companion type consumed through
+  another surface.
+
+| Surface | Since | Disposition | Basis |
+| --- | --- | --- | --- |
+| `Http\ErrorEnvelope` | 0.57.0 | adopt-by-wave | hosts hand-roll the envelope today; swap-in lands its named fixes (see header) |
+| `Http\ReasonPhrases` | 0.57.0 | adopt-by-wave | reason-phrase table currently duplicated as host literals |
+| `Http\StaticPathPolicy` | 0.57.0 | adopt-by-wave | static-path law enforced per host until swap |
+| `Http\TrustedProxyResolver` | 0.57.0 | adopt-by-wave | twin census: both hosts keep a private resolver |
+| `Http\WebSocketHandshake` | 0.57.0 | adopt-by-wave | :8097/:8804 handshake gates stay host-side until swap |
+| `RateLimit\RateLimiter` | 0.57.0 | per-repo-by-design | twin census: host `src/Common/RateLimit/` copies live (server+hub) |
+| `RateLimit\RateLimiterInterface` | 0.57.0 | per-repo-by-design | host twins implement host-local interfaces |
+| `RateLimit\RateLimitException` | 0.57.0 | per-repo-by-design | host twins throw host-local copies |
+| `RateLimit\RateLimitState` | 0.57.0 | per-repo-by-design | twin census: state records live privately in both hosts |
+| `Metrics\MetricsRepositoryInterface` | 0.57.0 | per-repo-by-design | twin census: hosts keep local repository contracts |
+| `Runtime\HookDeliveryException` | 0.57.0 | per-repo-by-design | twin census: both hosts declare their own copy |
+| `Updates\CoreUpdateStatus` | 0.57.0 | per-repo-by-design | twin census: update-check result types live in both hosts |
+| `Updates\VersionMarkerFetcherInterface` | 0.57.0 | per-repo-by-design | twin census: fetcher seams live in both hosts |
+| `Console\JsonEnvelope` | 0.57.0 | frozen-for-hosts | no twin; canonical CLI envelope shape, exercised by this package's suite |
+| `Database\MigrationChecksum` | 0.57.0 | frozen-for-hosts | no twin; ledger checksum kernel, exercised by this package's suite |
+| `Database\MysqlRetryVerdict` | 0.58.0 | frozen-for-hosts | companion enum — reached through the adopted `MysqlRetryPolicy` surface |
+| `Auth\FamilyGrace` | 0.56.0 | frozen-for-hosts | no twin; session-family grace math published for host auth audits |
+| `Security\JwtTokenParts` | 0.56.0 | frozen-for-hosts | no twin; segment-split value type consumed by `Jwt` and plugin code |
+| `Support\PayloadAssert` | 0.11.1 | frozen-for-hosts | shared-internal test-support trait (wire-DTO assertion law) |
+| `Arr\ArrClientInterface` | 0.4.0 | frozen-for-hosts | no twin import; type contract of the sanctioned Arr family |
+| `Arr\ProwlarrClient` | 0.4.0 | frozen-for-hosts | no twin; published client awaiting a factory arm + consumer |
+| `Arr\BazarrClient` | 0.4.0 | frozen-for-hosts | no twin; published client awaiting a factory arm + consumer |
+
+Adopted surfaces (SettingsCodec, LivenessWindows, the Database
+transaction/retry/upsert family, MysqlError, Uuid, WriteResult, UpsertSyntax
+and friends) show non-zero import counts in the same census and need no
+disposition row.
+
 ## Consumer examples
 
 The three highest-friction surfaces — *arr client construction, the

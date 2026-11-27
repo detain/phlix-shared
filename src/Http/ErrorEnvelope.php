@@ -60,6 +60,8 @@ namespace Phlix\Shared\Http;
  * lifted here.
  *
  * @see \Phlix\Shared\RateLimit\RateLimitException for the trip this envelope answers.
+ *
+ * @since 0.57.0
  */
 final class ErrorEnvelope
 {

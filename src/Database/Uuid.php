@@ -42,6 +42,8 @@ namespace Phlix\Shared\Database;
  * Determinism elsewhere is untouched: nothing in the estate may rely on seeded
  * UUID reproducibility, and jitter/retry randomness keeps drawing from
  * `mt_rand()` at its own call sites.
+ *
+ * @since 0.57.0
  */
 final readonly class Uuid
 {

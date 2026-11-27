@@ -26,6 +26,8 @@ namespace Phlix\Shared\Runtime;
  * and an inconclusive probe. A check that cannot decide must never be
  * scored as a pass — the same "gate that proves nothing" defect class S146
  * removed from the CI jobs.
+ *
+ * @since 0.57.0
  */
 final class HookDeliveryException extends \RuntimeException
 {

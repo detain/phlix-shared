@@ -45,6 +45,8 @@ use InvalidArgumentException;
  * The ping frame byte itself is codec territory (FrameCodec) and
  * deliberately absent here; the shared test pins that negative law.
  * Values < 1 second are refused fail-fast at construction.
+ *
+ * @since 0.57.0
  */
 final class LivenessWindows
 {
@@ -89,11 +91,13 @@ final class LivenessWindows
         return new self($pingIntervalSeconds, $reapAfterSilenceSeconds);
     }
 
+    /** Keepalive cadence, in seconds, as validated at construction. */
     public function pingIntervalSeconds(): int
     {
         return $this->pingIntervalSeconds;
     }
 
+    /** Inbound-silence reap window, in seconds, as validated at construction. */
     public function reapAfterSilenceSeconds(): int
     {
         return $this->reapAfterSilenceSeconds;

@@ -48,6 +48,8 @@ use const JSON_UNESCAPED_UNICODE;
  *
  * @throws JsonException never thrown by this class itself — documented per
  *                       method for callers that build on the kernels.
+ *
+ * @since 0.57.0
  */
 final class JsonEnvelope
 {

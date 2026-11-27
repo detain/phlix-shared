@@ -36,6 +36,8 @@ namespace Phlix\Shared\Database;
  * single copy — the server never grew a twin, so adoption makes hub
  * `Phlix\Hub\Common\Database\UpsertSyntax` a delegator and the server's
  * connect() path GAINS the one `detect()` invocation it currently lacks.
+ *
+ * @since 0.57.0
  */
 final class UpsertSyntax
 {

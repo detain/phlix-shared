@@ -21,6 +21,8 @@ namespace Phlix\Shared\RateLimit;
  *
  * Exact twin (v0.57 leg 0.9, M-11): the server and hub copies were
  * byte-identical on disk modulo namespace, `@package`, and header prose.
+ *
+ * @since 0.57.0
  */
 final class RateLimitState
 {

@@ -50,6 +50,8 @@ use Throwable;
  *
  * @see MysqlTxLockState
  * @see TxEnd
+ *
+ * @since 0.58.0
  */
 final class TxLease
 {

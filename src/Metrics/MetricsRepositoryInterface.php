@@ -22,6 +22,8 @@ namespace Phlix\Shared\Metrics;
  * "application-wide" here. The method set, parameter names, defaults and
  * row shapes are the wire contract the admin metrics panels of both hosts
  * render.
+ *
+ * @since 0.57.0
  */
 interface MetricsRepositoryInterface
 {

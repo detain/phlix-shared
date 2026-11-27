@@ -67,6 +67,7 @@ namespace Phlix\Shared\Security;
  * zero ambient reads (the request adapters supply every value).
  *
  * @package Phlix\Shared\Security
+ * @since 0.56.0
  */
 final class OriginPolicy
 {

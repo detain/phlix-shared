@@ -68,6 +68,8 @@ namespace Phlix\Shared\Database;
  * therefore move a site from one row of the table above to another without
  * changing a single semantic. This is why the `null` arm matters at sites
  * where the driver's own contract says `null` is impossible.
+ *
+ * @since 0.57.0
  */
 final class WriteResult
 {

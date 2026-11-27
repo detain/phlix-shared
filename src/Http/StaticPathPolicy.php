@@ -45,6 +45,8 @@ namespace Phlix\Shared\Http;
  * their own copies named above (server inlined predicate, hub public-static
  * method); one deny VOCABULARY is held today by coordination, not by this
  * class. Migration to this kernel is the pending consumer wave.
+ *
+ * @since 0.57.0
  */
 final class StaticPathPolicy
 {

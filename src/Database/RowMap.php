@@ -74,7 +74,7 @@ namespace Phlix\Shared\Database;
  * retired consumer-side against this home — 48 narrowings over 12
  * files (hub 43d651ea + 84557514).
  *
- * @since Wave 5a (post-O.7)
+ * @since 0.59.0 (wave 5a lineage)
  */
 final class RowMap
 {

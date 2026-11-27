@@ -59,6 +59,8 @@ use JsonException;
  * surfaces as an exception at the read on re-vendor; any consumer-side
  * catch (or accepted loud-fail) is the consumer repo's own step, never a
  * codec concession.
+ *
+ * @since 0.57.0
  */
 final class SettingsCodec
 {

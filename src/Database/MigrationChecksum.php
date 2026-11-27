@@ -44,6 +44,8 @@ use function rtrim;
  * (charter §4-6 static-corpus harness — `normalize()` is public exactly so
  * it can diff host corpora); the ledger rehearsal against real MySQL stays
  * a consumer-side pre-delegation gate, not this kernel's proof burden.
+ *
+ * @since 0.57.0
  */
 final class MigrationChecksum
 {

@@ -33,6 +33,8 @@ namespace Phlix\Shared\Database;
  *
  * @see MysqlRetryVerdict the actions the verdict licenses
  * @see MysqlTxLockState  the ledger the refusal budget lives in
+ *
+ * @since 0.58.0
  */
 final class MysqlRetryPolicy
 {

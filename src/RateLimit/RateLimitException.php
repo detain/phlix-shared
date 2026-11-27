@@ -26,6 +26,8 @@ use function time;
  * prefix (review hub__copywriter / HUB-19). The server gains no behavior
  * it did not have, and no existing consumer wire shape changes: the 429
  * envelope copy is identical on both hosts today.
+ *
+ * @since 0.57.0
  */
 final class RateLimitException extends RuntimeException
 {
@@ -44,6 +46,16 @@ final class RateLimitException extends RuntimeException
     /** @var int Number of attempts remaining after this rejection */
     public int $remaining;
 
+    /**
+     * Rejection with the wall-clock reset moment and the remaining-attempt
+     * count the limiter observed at denial time. The message is the frozen
+     * hub-superset sentence; the wire formatter lives in
+     * {@see retryAfterMessage()}.
+     *
+     * @param int $resetAt   Unix timestamp when the window reopens.
+     * @param int $remaining Attempts left after this rejection (0 when the
+     *                       limiter cannot say).
+     */
     public function __construct(int $resetAt, int $remaining = 0)
     {
         $this->resetAt = $resetAt;
