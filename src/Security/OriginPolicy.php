@@ -46,8 +46,9 @@
  * Never collapse `originIsSameSite()` (ISSUANCE — deliberately LENIENT:
  * lowercased hosts, default-port normalization, http(s)-scheme
  * whitelisting) with `stateChangingRequestOriginAllowed()` (REQUEST LAW —
- * deliberately STRICT: raw byte-exact host comparison, both-or-neither
- * ports, no default normalization). Both parents keep the pair split for
+ * deliberately STRICT: raw byte-exact host comparison, http(s)-only
+ * scheme law with optional caller binding (phlix-shared-034),
+ * both-or-neither ports, no default normalization). Both parents keep the pair split for
  * the reason M-SERVER-76 caught once already: merging the axes silently
  * loosens the guard. The empty-string Origin keep-quirk (present-but-''
  * skips the origin arm; only the literal `null` Origin is refused outright)
@@ -232,18 +233,37 @@ final class OriginPolicy
      * requests (CP-009/CP-012, §2.5) — both roots verbatim-identical:
      * belt first; neither Origin nor Referer → refuse (fail-closed);
      * literal `null` Origin → refuse (M-SERVER-76 opaque-origin marker);
-     * every PRESENT header leg must name the Host RAW (case-sensitive —
-     * the fail-closed direction) with both-or-neither ports and NO
-     * default-port normalization ("host:80" never impersonates bare
-     * "host", "evil-hub" never matches "hub"). An unparseable value is
-     * refused outright; an unparseable Host falls back to the raw string
-     * (matches nothing a browser sends: fail-CLOSED by construction).
+     * every PRESENT header leg must be an http(s) origin (phlix-shared-
+     * 034: a crafted `ftp://hub.internal` must not ride host+port
+     * equality; with `$expectedScheme` bound the leg must also serve
+     * exactly that scheme, so `http://` cannot impersonate an https
+     * surface) that names the Host RAW (case-sensitive — the fail-closed
+     * direction) with both-or-neither ports and NO default-port
+     * normalization ("host:80" never impersonates bare "host", "evil-hub"
+     * never matches "hub"). An unparseable value is refused outright; an
+     * unparseable Host falls back to the raw string (matches nothing a
+     * browser sends: fail-CLOSED by construction).
+     *
+     * @param string|null $expectedScheme Client-facing scheme binding for
+     *        the http-vs-https leg ('http'/'https', case-insensitive; any
+     *        other non-null value matches nothing — every present leg is
+     *        refused, fail-closed, class law). `null` binds nothing and
+     *        is the shape BOTH roots delegate with today (server
+     *        `Auth/CookiePolicy::stateChangingRequestOriginAllowed` and
+     *        hub `Hub/CookiePolicy::stateChangingRequestOriginAllowed`
+     *        pass the four positional args), so consumers keep their
+     *        verdicts; a host that opts into binding MUST pass the
+     *        CLIENT-facing scheme — the `X-Forwarded-Proto` first hop via
+     *        {@see httpsForwardedValue()}, never the transport-local one,
+     *        because behind a TLS-terminating proxy the local hop reads
+     *        'http' while browsers legitimately send `https://` origins.
      */
     public static function stateChangingRequestOriginAllowed(
         ?string $origin,
         ?string $referer,
         ?string $host,
-        ?string $secFetchSite
+        ?string $secFetchSite,
+        ?string $expectedScheme = null
     ): bool {
         // (1) CP-009 belt (hub arm order mirrored exactly: belt first).
         if (self::secFetchBelt($secFetchSite) === false) {
@@ -268,11 +288,15 @@ final class OriginPolicy
         // value as the host — fail-CLOSED, see the method law).
         $serverHostParts = self::stateChangingHostParts($host ?? '');
 
-        // (5) Referer arm: an unparseable Referer is refused outright, then
-        // the exact-host + both-or-neither-port law applies.
+        // (5) Referer arm: an unparseable Referer is refused outright, the
+        // scheme law applies (phlix-shared-034), then the exact-host +
+        // both-or-neither-port law applies.
         if ($referer !== null) {
             $refererParts = parse_url($referer);
             if (!is_array($refererParts)) {
+                return false;
+            }
+            if (!self::strictSchemeAllowed($refererParts['scheme'] ?? null, $expectedScheme)) {
                 return false;
             }
             $refererHost = $refererParts['host'] ?? '';
@@ -284,10 +308,14 @@ final class OriginPolicy
         }
 
         // (6) Origin arm ('null' refused above; the empty string keeps its
-        // skip — M-SERVER-76 names only the literal 'null').
+        // skip — M-SERVER-76 names only the literal 'null'). Scheme law
+        // first (phlix-shared-034), then host+port equality.
         if ($origin !== null && $origin !== '') {
             $originParts = parse_url($origin);
             if (!is_array($originParts)) {
+                return false;
+            }
+            if (!self::strictSchemeAllowed($originParts['scheme'] ?? null, $expectedScheme)) {
                 return false;
             }
             $originHost = $originParts['host'] ?? '';
@@ -380,6 +408,32 @@ final class OriginPolicy
             'host' => $parts['host'] ?? $hostHeader,
             'port' => $parts['port'] ?? null,
         ];
+    }
+
+    /**
+     * Scheme limb of the strict arm (phlix-shared-034): a present Origin or
+     * Referer leg must carry an http or https scheme — the only schemes the
+     * §2.5 cookie law is written over — and when `$expectedScheme` is bound
+     * the leg must equal it (both sides case-folded). A schemeless leg is
+     * refused: a bare "hub.example/…" value is not a browser origin, and
+     * parse_url produced no scheme to bind. A binding outside http/https is
+     * satisfiable by nothing, so it refuses every present leg — fail-CLOSED,
+     * the class law. The lenient issuance axis keeps its own separate
+     * http(s) whitelist inside {@see originIsSameSite()}; the two axes
+     * remain deliberately non-collapsible.
+     */
+    private static function strictSchemeAllowed(?string $scheme, ?string $expectedScheme): bool
+    {
+        if (!is_string($scheme)) {
+            return false;
+        }
+
+        $scheme = strtolower($scheme);
+        if ($scheme !== 'http' && $scheme !== 'https') {
+            return false;
+        }
+
+        return $expectedScheme === null || $scheme === strtolower($expectedScheme);
     }
 
     /**

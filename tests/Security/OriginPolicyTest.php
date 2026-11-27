@@ -26,7 +26,11 @@ use PHPUnit\Framework\TestCase;
  * answer and the shared answer. DESIGN O-1 therefore records NO law
  * conflicts for this kernel — the two disclosed structural divergences
  * (custody parameterization, the `(string)`-cast Host arms) are
- * semantically empty, both pinned here.
+ * semantically empty, both pinned here. One exception to that provenance:
+ * the phlix-shared-034 scheme-law dataset below (S-shared-28) is NEW law
+ * — it pins the strict arm's scheme limb as strengthened, which by design
+ * no longer equals the pre-strengthening parents' captured answers; the
+ * parents adopt it at their next re-vendor because they delegate.
  */
 #[CoversClass(OriginPolicy::class)]
 final class OriginPolicyTest extends TestCase
@@ -245,6 +249,83 @@ final class OriginPolicyTest extends TestCase
         bool $expected
     ): void {
         self::assertSame($expected, OriginPolicy::stateChangingRequestOriginAllowed($origin, $referer, $host, $belt));
+    }
+
+    /**
+     * phlix-shared-034 dataset: the scheme limb of the strict arm. Rows
+     * with a null `$expectedScheme` pin the allowlist-only default — the
+     * verdict shape BOTH roots delegate with today (4 positional args in
+     * server `Auth/CookiePolicy` and hub `Hub/CookiePolicy`) keeps every
+     * http/https pair exactly as the corpus above pins it, and only the
+     * non-http(s) schemes flip from accepted-by-accident to refused.
+     * Rows with a binding pin the http-vs-https strictening; the two
+     * fail-closed binding rows pin that a malformed binding refuses every
+     * present leg (class law, never silently ignored).
+     *
+     * @return array<string, array{0: string|null, 1: string|null, 2: string|null, 3: string|null, 4: string|null, 5: bool}>
+     */
+    public static function strictSchemeLawProvider(): array
+    {
+        return [
+            // The finding vector: a crafted scheme naming the server host
+            // (and even its port) used to ride host+port equality.
+            'ftp:// naming the host — the phlix-shared-034 vector — refused (no binding)' => ['ftp://hub.example', null, 'hub.example', null, null, false],
+            'ftp:// with perfectly matching explicit port still refused' => ['ftp://hub.example:21', null, 'hub.example:21', null, null, false],
+            'ftp referer refused' => [null, 'ftp://hub.example/x', 'hub.example', null, null, false],
+            'file:// refused' => ['file://hub.example', null, 'hub.example', null, null, false],
+            'ws:// refused' => ['ws://hub.example', null, 'hub.example', null, null, false],
+            'device scheme app:// refused (host names itself — accepted pre-034)' => ['app://hub.example', null, 'hub.example', null, null, false],
+            'schemeless origin refused by the scheme law' => ['hub.example', null, 'hub.example', null, null, false],
+            // Allowlist-only default: the both-roots delegation shape.
+            'http origin accepted under allowlist-only default' => ['http://hub.example', null, 'hub.example', null, null, true],
+            'https origin accepted under allowlist-only default' => ['https://hub.example', null, 'hub.example', null, null, true],
+            'case-folded HTTPS accepted under allowlist-only default' => ['HTTPS://hub.example', null, 'hub.example', null, null, true],
+            'https origin on :80 host pair accepted under default (host law unmoved)' => ['https://hub.example:80', null, 'hub.example:80', null, null, true],
+            // Scheme binding (opt-in): the http-vs-https leg.
+            'http origin refused under https binding' => ['http://hub.example', null, 'hub.example', null, 'https', false],
+            'https origin accepted under https binding' => ['https://hub.example', null, 'hub.example', null, 'https', true],
+            'https origin refused under http binding (no cross-binding)' => ['https://hub.example', null, 'hub.example', null, 'http', false],
+            'http origin accepted under http binding' => ['http://hub.example', null, 'hub.example', null, 'http', true],
+            'binding is case-insensitive' => ['https://hub.example', null, 'hub.example', null, 'HTTPS', true],
+            'referer http against https binding refused' => [null, 'http://hub.example/x', 'hub.example', null, 'https', false],
+            'both legs bind: a wrong-scheme referer slips nothing past a right-scheme origin' => ['https://hub.example', 'http://hub.example/x', 'hub.example', null, 'https', false],
+            // Order and quirk interactions, pinned: the belt stays arm (1)
+            // and the present-but-empty Origin skip stays a skip.
+            'belt convicts first even with valid scheme and binding (arm 1 unchanged)' => ['https://hub.example', null, 'hub.example', 'cross-site', 'https', false],
+            'present-but-empty Origin skip survives the scheme law (ratified quirk)' => ['', 'https://hub.example/x', 'hub.example', null, 'https', true],
+            // Fail-closed binding shape: only http/https can bind.
+            'malformed binding (ftp) refuses every present leg — fail-closed' => ['https://hub.example', null, 'hub.example', null, 'ftp', false],
+            'empty-string binding refuses every present leg — fail-closed' => ['https://hub.example', null, 'hub.example', null, '', false],
+        ];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('strictSchemeLawProvider')]
+    public function test_stateChangingRequestOriginAllowed_schemeLaw(
+        ?string $origin,
+        ?string $referer,
+        ?string $host,
+        ?string $belt,
+        ?string $expectedScheme,
+        bool $expected
+    ): void {
+        self::assertSame(
+            $expected,
+            OriginPolicy::stateChangingRequestOriginAllowed($origin, $referer, $host, $belt, $expectedScheme)
+        );
+    }
+
+    public function test_expectedSchemeDefault_keepsTheFourArgDelegationShape(): void
+    {
+        // The addition is optional: every 4-arg call equals the same call
+        // with the documented default passed explicitly — the both-roots
+        // delegation shape cannot silently change verdicts, and the scheme
+        // refusal for non-http(s) values is reachable in BOTH shapes.
+        self::assertSame(
+            OriginPolicy::stateChangingRequestOriginAllowed('https://hub.example', null, 'hub.example', null),
+            OriginPolicy::stateChangingRequestOriginAllowed('https://hub.example', null, 'hub.example', null, null),
+        );
+        self::assertFalse(OriginPolicy::stateChangingRequestOriginAllowed('ftp://hub.example', null, 'hub.example', null));
+        self::assertFalse(OriginPolicy::stateChangingRequestOriginAllowed('ftp://hub.example', null, 'hub.example', null, null));
     }
 
     public function test_theTwoAxesAreDeliberatelyNotCollapsible(): void
