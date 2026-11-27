@@ -48,11 +48,19 @@ use function strlen;
  * Self-contained: zero Workerman types, zero I/O.
  *
  * Wire format (all integers big-endian):
- *   [4-byte sequence (uint32)][1-byte frame type][2-byte payload length (uint16)][N payload bytes]
+ *   [4-byte channel id (uint32)][1-byte frame type][2-byte payload length (uint16)][N payload bytes]
  *
- * Maximum frame payload: 65535 bytes. HELLO/HELLO_ACK handshake messages are
- * JSON text exchanged immediately after the WS upgrade, before binary mode —
- * they are NOT binary-framed.
+ * Terminology (settled): the 4-byte field is the per-client CHANNEL ID — the
+ * relay tunnel is a single reliable connection, so it never acts as an
+ * ack/ordering counter; see {@see RelayFrame} for the multiplexing contract.
+ * `seq` stays the code-level property/parameter name (and the bare
+ * "sequence" label in older prose is a retired alias); "channel id" is the
+ * one term this package uses for the field in documentation.
+ *
+ * Maximum frame payload: 65535 bytes; encode() fails fast on a channel id
+ * outside uint32 rather than letting pack('N') wrap it silently.
+ * HELLO/HELLO_ACK handshake messages are JSON text exchanged immediately
+ * after the WS upgrade, before binary mode — they are NOT binary-framed.
  *
  * @package Phlix\Shared\Relay
  *
@@ -66,6 +74,13 @@ final class FrameCodec
     public const MAX_PAYLOAD_LENGTH = 65535;
 
     /**
+     * Largest value the 4-byte channel-id wire field can carry (uint32).
+     * Mirrors the bound {@see RelayFrame} enforces on its `$seq` property —
+     * one field, one law, on both entry points into the wire.
+     */
+    private const MAX_SEQ = 0xFFFFFFFF;
+
+    /**
      * Pure static codec — no instances, no state.
      */
     private function __construct()
@@ -76,15 +91,25 @@ final class FrameCodec
      * Encode a binary frame for transmission.
      *
      * @param RelayFrameType $type    Frame type.
-     * @param int            $seq     32-bit unsigned sequence number.
+     * @param int            $seq     Channel id (uint32, 0..0xFFFFFFFF);
+     *                                tunnel-scoped frames use 0. `seq` is the
+     *                                historical field name — see class doc and
+     *                                {@see RelayFrame}.
      * @param string         $payload Raw byte payload.
      *
      * @return string Binary-encoded frame.
      *
-     * @throws InvalidArgumentException If payload exceeds 65535 bytes.
+     * @throws InvalidArgumentException If $seq is outside 0..0xFFFFFFFF, or
+     *                                  if the payload exceeds 65535 bytes.
      */
     public static function encode(RelayFrameType $type, int $seq, string $payload): string
     {
+        if ($seq < 0 || $seq > self::MAX_SEQ) {
+            throw new InvalidArgumentException(
+                sprintf('FrameCodec: "seq" must be a uint32 channel id (0..0xFFFFFFFF), got %d', $seq),
+            );
+        }
+
         $len = strlen($payload);
 
         if ($len > self::MAX_PAYLOAD_LENGTH) {

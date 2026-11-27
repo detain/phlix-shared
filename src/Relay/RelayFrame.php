@@ -42,8 +42,11 @@ use InvalidArgumentException;
  * `session_id` payload on CLIENT_CONNECT / CLIENT_DISCONNECT is retained for
  * logging/observability only — routing is keyed on the channel id.
  *
- * Use {@see RelayFrame::channelId()} when reading the field as a channel id;
- * it is exactly the value of {@see RelayFrame::$seq}.
+ * The settled term across this package's Relay docs is **channel id**; `seq`
+ * remains the code-level field and parameter name — the historical alias from
+ * the pre-multiplexing sketch (the bare "sequence" label in older prose is
+ * retired). Use {@see RelayFrame::channelId()} when reading the field as a
+ * channel id; it is exactly the value of {@see RelayFrame::$seq}.
  *
  * @package Phlix\Shared\Relay
  * @since 0.5.0

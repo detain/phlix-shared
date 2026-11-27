@@ -146,13 +146,57 @@ final class FrameCodecTest extends TestCase
     /**
      * Oversized-payload rejection keeps its exception TYPE pinned. The message
      * WORDING is deliberately NOT pinned: DESIGN M-21 assigns the server
-     * phrasing to this shared home at adoption, and the server/hub in-repo
-     * copies keep their own wording until then.
+     * phrasing to this shared home — which the v0.56.0 adoption shipped, so
+     * this class is that live home today. The hub in-repo copy keeps its own
+     * wording until its delegating leg lands.
      */
     public function test_encode_rejects_oversized_payload_with_invalid_argument(): void
     {
         $this->expectException(InvalidArgumentException::class);
         FrameCodec::encode(RelayFrameType::DATA, 1, str_repeat('A', 65536));
+    }
+
+    /**
+     * Out-of-range channel ids fail fast (S-shared-12). Before the guard,
+     * pack('N') silently modulo-wrapped them into a DIFFERENT valid frame
+     * value: -1 => FFFFFFFF, 0x100000000 => 00000000 — wire corruption with
+     * no signal. Exception TYPE is pinned, wording deliberately not (same
+     * M-21 law as the payload arm above).
+     *
+     * @return array<string, array{int}>
+     */
+    public static function provide_out_of_range_seq(): array
+    {
+        return [
+            'minus one' => [-1],
+            'int min' => [PHP_INT_MIN],
+            'uint32 max + 1' => [0x100000000],
+            'int max' => [PHP_INT_MAX],
+        ];
+    }
+
+    #[DataProvider('provide_out_of_range_seq')]
+    public function test_encode_rejects_out_of_range_seq_with_invalid_argument(int $seq): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        FrameCodec::encode(RelayFrameType::DATA, $seq, '');
+    }
+
+    /**
+     * The guard rejects ONLY values the uint32 field cannot carry: the exact
+     * boundaries 0 and 0xFFFFFFFF still encode byte-identically (the corpus
+     * pins at {0, 1, 0x7FFFFFFF, 0xFFFFFFFF} cover the rest of the set).
+     */
+    public function test_encode_still_accepts_the_uint32_boundaries(): void
+    {
+        $this->assertSame(
+            "\xFF\xFF\xFF\xFF\x05\x00\x00",
+            FrameCodec::encode(RelayFrameType::DATA, 0xFFFFFFFF, ''),
+        );
+        $this->assertSame(
+            "\x00\x00\x00\x00\x05\x00\x00",
+            FrameCodec::encode(RelayFrameType::DATA, 0, ''),
+        );
     }
 
     public function test_encode_accepts_exactly_max_size_payload(): void
