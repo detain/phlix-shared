@@ -30,6 +30,29 @@ use Closure;
  * `AuthManager`. There is no `static` state here; the map is an instance
  * field with a hard size ceiling.
  *
+ * BOUNDARY SEMANTICS (S-shared-18 / phlix-shared-019 — chosen reading,
+ * machine-pinned by `tests/RateLimit/RateLimiterTest.php`): `$maxAttempts`
+ * INCLUDES the refusing hit. A bucket reports
+ * {@see RateLimitState::$limited} at `count >= $maxAttempts`, so within a
+ * fresh window the `$maxAttempts`-th attempt is already refused and only
+ * `maxAttempts - 1` attempts succeed. This is the verbatim semantics of
+ * the server/hub private twins this engine was lifted from — both live
+ * copies enforce `count >= maxAttempts` on disk today — and the reading
+ * is kept deliberately: flipping the comparison would diverge the
+ * canonical kernel from the behavior the hosts actually run. Callers that
+ * want N successes before the first refusal pass `maxAttempts = N + 1`.
+ *
+ * EVICTION SECURITY CONSEQUENCE (phlix-shared-029): the cap bounds
+ * memory at a price. An attacker spraying more than `$cap` distinct keys
+ * fills the map with junk buckets, and the soonest-resetting LIVE
+ * entries — legitimate in-force lockouts — are the ones evicted,
+ * effectively resetting those victims' rate-limit state. A host facing
+ * an unbounded spray keyspace must either size `$cap` above its
+ * worst-case live-key population or bind a backend that cannot be
+ * per-key evicted through {@see RateLimiterInterface}. No floor-lockout
+ * or LRU-of-live protection ships here while the class has no live
+ * consumer; this disclosure is the committed arm.
+ *
  * Consolidation law (v0.57 leg 0.9, M-11): the server and hub engine
  * bodies were byte-ident on disk modulo namespace and header prose (diff
  * proven at the recorded tips). The only real delta is the hub-only
@@ -89,13 +112,13 @@ final class RateLimiter implements RateLimiterInterface
      */
     private array $buckets = [];
 
-    /** Validated window length in seconds (>= 1). */
+    /** Coerced window length in seconds: the constructor clamps non-positive input to 1 (never rejects). */
     private readonly int $windowSeconds;
 
-    /** Validated maximum attempts per window (>= 1). */
+    /** Coerced maximum attempts per window (cap includes the refusing hit): non-positive input clamps to 1. */
     private readonly int $maxAttempts;
 
-    /** Validated key-count ceiling (>= 1). */
+    /** Coerced key-count ceiling: non-positive input clamps to 1. */
     private readonly int $cap;
 
     /**
@@ -108,7 +131,9 @@ final class RateLimiter implements RateLimiterInterface
 
     /**
      * @param int                    $windowSeconds length of the counting window in seconds
-     * @param int                    $maxAttempts   attempts allowed within a window before `limited`
+     * @param int                    $maxAttempts   attempts counted per window INCLUDING the
+     *                                              refusing hit: the hit that brings `count`
+     *                                              to `$maxAttempts` is already `limited`
      * @param int                    $cap           maximum number of distinct keys retained in memory
      * @param (callable(): int)|null $clock         unix-timestamp source (defaults to time())
      */

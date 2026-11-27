@@ -24,7 +24,9 @@ use PHPUnit\Framework\TestCase;
  * tips); this suite is that body verbatim plus the hub-only
  * {@see RateLimiter::multiWorkerNotice()} pins and the interface conformance
  * case. Time is driven by an injected clock so windows advance
- * deterministically with no real sleeps.
+ * deterministically with no real sleeps. S-shared-18 adds the machine pins
+ * for the chosen boundary reading (the cap INCLUDES the refusing hit) and
+ * for the constructor's coerce-don't-reject input laws.
  */
 #[CoversClass(RateLimiter::class)]
 final class RateLimiterTest extends TestCase
@@ -59,6 +61,49 @@ final class RateLimiterTest extends TestCase
         self::assertSame(4, $fourth->count);
         self::assertSame(0, $fourth->remaining);
         self::assertTrue($fourth->limited);
+    }
+
+    /**
+     * Chosen reading (S-shared-18 / phlix-shared-019): `$maxAttempts` includes
+     * the refusing hit. On the ratified default profile (5 attempts per
+     * 900 s window) hits 1..4 succeed and hit 5 — `count == maxAttempts` —
+     * is already refusing. This is the live server/hub twin semantics (both
+     * enforce `count >= maxAttempts` on disk today), so the pin documents a
+     * doc-fix, not a behavior change.
+     */
+    public function testBoundaryCapIncludesTheRefusingHit(): void
+    {
+        $now = 2_000;
+        $limiter = new RateLimiter(windowSeconds: 900, maxAttempts: 5, cap: 10, clock: static fn (): int => $now);
+
+        for ($i = 1; $i <= 4; $i++) {
+            $state = $limiter->hit('ip-boundary');
+            self::assertSame($i, $state->count);
+            self::assertSame(5 - $i, $state->remaining);
+            self::assertFalse($state->limited, "Attempt {$i} of 5 must succeed under the chosen reading.");
+        }
+
+        $refusal = $limiter->hit('ip-boundary');
+        self::assertSame(5, $refusal->count, 'count == maxAttempts is the boundary the chosen reading pins.');
+        self::assertSame(0, $refusal->remaining);
+        self::assertTrue($refusal->limited, 'The cap includes the refusing hit: hit #5 is refused.');
+    }
+
+    /**
+     * The degenerate boundary of the same reading: `maxAttempts = 1` allows
+     * zero succeeding attempts in a fresh window — the first hit is the
+     * refusing one.
+     */
+    public function testBoundaryMaxAttemptsOneRefusesTheFirstHit(): void
+    {
+        $now = 7;
+        $limiter = new RateLimiter(windowSeconds: 60, maxAttempts: 1, cap: 10, clock: static fn (): int => $now);
+
+        $first = $limiter->hit('ip-1');
+        self::assertSame(1, $first->count);
+        self::assertSame(0, $first->remaining);
+        self::assertSame(1, $first->limit);
+        self::assertTrue($first->limited, 'Cap of 1 includes the refusing hit: zero succeeding attempts.');
     }
 
     public function testDistinctKeysHaveIndependentBuckets(): void
@@ -194,15 +239,31 @@ final class RateLimiterTest extends TestCase
         self::assertSame(0, $state->retryAfter(2_000), 'retryAfter must never be negative.');
     }
 
+    /**
+     * Constructor input law (phlix-shared-028, doc-truth arm): non-positive
+     * knobs are COERCED to >= 1, never rejected — the docblocks say "coerced"
+     * and this test is the machine counterpart. Contrast SettingsCodec's
+     * documented silent-degrade law; here the clamp is the shipped design.
+     */
     public function testNonPositiveConstructorArgsAreClampedToSaneMinimums(): void
     {
         $now = 0;
-        $limiter = new RateLimiter(windowSeconds: 0, maxAttempts: 0, cap: 0, clock: static fn (): int => $now);
+        $zeroed = new RateLimiter(windowSeconds: 0, maxAttempts: 0, cap: 0, clock: static fn (): int => $now);
 
-        $state = $limiter->hit('ip-1');
+        $state = $zeroed->hit('ip-1');
         // max clamps to >=1, so the very first hit is already limited.
         self::assertTrue($state->limited);
-        self::assertSame(1, $limiter->size());
+        self::assertSame(1, $zeroed->size());
+
+        $negatives = new RateLimiter(windowSeconds: -5, maxAttempts: -3, cap: -7, clock: static fn (): int => $now);
+        $negState = $negatives->hit('ip-1');
+        self::assertTrue($negState->limited, 'Negative maxAttempts clamps to 1: first hit is the refusing one.');
+        self::assertSame(1, $negState->resetAt, 'Negative windowSeconds clamps to 1: reset one second out.');
+        self::assertSame(1, $negState->limit, 'Negative maxAttempts clamps to 1.');
+
+        // Negative cap clamps to 1: the map never retains more than one key.
+        $negatives->hit('ip-2');
+        self::assertSame(1, $negatives->size());
     }
 
     public function testDefaultsMatchTheRatifiedProfileWindow(): void
