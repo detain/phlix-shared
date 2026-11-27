@@ -41,6 +41,13 @@ Keep everything else that way.
   > (also published at
   > [`docs/dev/arr-clients.md`](https://github.com/detain/phlix-docs/blob/main/docs/dev/arr-clients.md))
   > in `detain/phlix-docs`.
+- **Forensics visibility.** `composer.json` excludes this file,
+  `CHANGELOG.md`, and `CALIBER_LEARNINGS.md` from the Composer archive, so a
+  dist consumer never receives them. Consumer-facing operational forensics
+  and posture notes (runtime-hook truth, transport laws, provider default
+  behavior) therefore belong in **shipped surfaces** — the `src/` class
+  docblocks and the published `docs/dev/arr-clients.md` guide in
+  `detain/phlix-docs` — and must never live only in an excluded file.
 - **Zero Workerman dependency.** This package must remain consumable
   outside the Workerman runtime.
 - **Framework-neutral PSRs only.** The runtime dependency surface is
