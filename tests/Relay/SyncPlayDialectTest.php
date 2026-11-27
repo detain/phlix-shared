@@ -28,9 +28,12 @@ use RuntimeException;
  *      directions, so a const added without a list entry (or vice versa)
  *      reddens this suite where no runtime guard would notice.
  *   2. Live sibling comparators — token-based parses of the server's
- *      `Messages.php` and the hub's `SyncPlayRelayWorker.php`, skipped
- *      when no sibling checkout is reachable and failing loudly when an
- *      explicit `PHLIX_*_REPO` pointer is set but broken.
+ *      `Messages.php` and the hub's `SyncPlayRelayWorker.php`, plus a
+ *      closed-shape line scan of the TypeScript mirror
+ *      `@phlix/syncplay/src/messages.ts` (TS cannot feed `token_get_all()`),
+ *      skipped when no sibling checkout is reachable and failing loudly
+ *      when an explicit `PHLIX_*_REPO` pointer is set but broken
+ *      (`PHLIX_SERVER_REPO` / `PHLIX_HUB_REPO` / `PHLIX_SYNCPLAY_REPO`).
  *   3. Fixture falsifiability pins — these run even when CI checks out
  *      only this package: the parsers must read exactly the supplied
  *      source (comment decoys excluded, colon-prefixed rate-limiter keys
@@ -39,6 +42,23 @@ use RuntimeException;
  *      empty). Layer 2 is only trustworthy because layer 3 proves the
  *      machinery teeth it claims.
  *
+ * Estate coverage (phlix-shared-049): LW-082 has three transcriptions —
+ * server PHP, hub PHP, and the TypeScript copy in `@phlix/syncplay`. All
+ * three are now read by this file: the TS leg runs live when a sibling
+ * checkout is reachable, and ALWAYS through a blessed byte-snapshot
+ * (`__fixtures__/syncplay-messages.ts.txt`, {@see self::BLESSED_TS_SHA256}),
+ * so 3/3 coverage survives a package-only CI checkout — a client-only
+ * event rename can no longer pass silently.
+ *
+ * Blessed-snapshot ritual: the fixture is a byte-for-byte copy of
+ * `src/messages.ts` of @phlix/syncplay at the bless stamp recorded on
+ * {@see self::BLESSED_TS_SHA256} below. A `@phlix/syncplay` release that
+ * moves the message-type literals reddens the live leg; the ritual is to
+ * re-bless on the syncplay release side:
+ *   `cp <phlix-syncplay>/src/messages.ts tests/Relay/__fixtures__/syncplay-messages.ts.txt`
+ * then refresh the stamped sha256 (byte pin) in the same commit. The new
+ * bytes must satisfy the canonical set — a bless is never a way to
+ * launder a dialect change into LW-082; the catalog law governs first.
  */
 #[CoversClass(\Phlix\Shared\Relay\SyncPlayDialect::class)]
 final class SyncPlayDialectTest extends TestCase
@@ -75,6 +95,22 @@ final class SyncPlayDialectTest extends TestCase
      * @var list<string>
      */
     private const BARE_RELAY_LOCAL_TYPES = ['room_state', 'client_joined', 'client_left', 'time_sync_reply'];
+
+    /**
+     * Blessed byte-snapshot of `@phlix/syncplay/src/messages.ts` — the third
+     * LW-082 transcription, vendored so its catalog leg runs on package-only
+     * CI (see the class header for the re-bless ritual).
+     */
+    private const SYNCPLAY_TS_FIXTURE = __DIR__ . '/__fixtures__/syncplay-messages.ts.txt';
+
+    /**
+     * sha256 of the blessed fixture bytes: `src/messages.ts` of phlix-syncplay
+     * at commit df84236ab79218f5dd4403fe85b960dcac9a436e (2026-11-27 bless,
+     * 29,001 bytes, `cmp`-verified byte-identical to the source at copy time).
+     * Rotating this stamp is part of the re-bless ritual — never rotate it
+     * without replacing the fixture bytes in the same commit.
+     */
+    private const BLESSED_TS_SHA256 = '6e5a9ae0d9104a5f67ea6f4d968dbf20f97b30754f7a2660298beeea4261ded4';
 
     public function test_the_catalog_holds_exactly_the_canonical_types(): void
     {
@@ -202,6 +238,50 @@ final class SyncPlayDialectTest extends TestCase
         self::assertIsString($source, sprintf('Could not read hub relay worker source at "%s".', $path));
 
         self::assertCanonicalSet('hub', self::parseHubDialectLiterals($source));
+    }
+
+    public function test_the_blessed_typescript_snapshot_agrees_with_the_catalog(): void
+    {
+        $source = file_get_contents(self::SYNCPLAY_TS_FIXTURE);
+        self::assertIsString(
+            $source,
+            sprintf('Could not read the blessed TypeScript snapshot at "%s".', self::SYNCPLAY_TS_FIXTURE)
+        );
+
+        self::assertCanonicalSet('blessed typescript', self::parseTsMessageTypeLiterals($source));
+    }
+
+    public function test_the_blessed_snapshot_carries_exactly_the_declared_bytes(): void
+    {
+        $hash = hash_file('sha256', self::SYNCPLAY_TS_FIXTURE);
+        self::assertIsString(
+            $hash,
+            sprintf('Could not hash the blessed TypeScript snapshot at "%s".', self::SYNCPLAY_TS_FIXTURE)
+        );
+
+        self::assertSame(
+            self::BLESSED_TS_SHA256,
+            $hash,
+            'The blessed @phlix/syncplay snapshot drifted from its stamp — it is vendored bytes, not a '
+            . 'hand-editable transcription. Re-bless per the class-header ritual (fresh byte copy, stamp '
+            . 'rotated in the same commit) or restore the committed bytes.'
+        );
+    }
+
+    public function test_the_live_typescript_leg_agrees_with_the_catalog(): void
+    {
+        $path = $this->syncplayMessagesPath();
+        if ($path === null) {
+            self::markTestSkipped(
+                'No phlix-syncplay checkout reachable — set PHLIX_SYNCPLAY_REPO '
+                . 'or place the sibling repo beside phlix-shared.'
+            );
+        }
+
+        $source = file_get_contents($path);
+        self::assertIsString($source, sprintf('Could not read @phlix/syncplay messages source at "%s".', $path));
+
+        self::assertCanonicalSet('typescript', self::parseTsMessageTypeLiterals($source));
     }
 
     public function test_the_server_parser_reads_only_the_supplied_source(): void
@@ -335,6 +415,92 @@ PHP;
         self::parseHubDialectLiterals($fixture);
     }
 
+    public function test_the_typescript_parser_reads_only_the_declared_block(): void
+    {
+        $fixture = <<<'TS'
+/**
+ * Prose decoys must never masquerade as catalog members: the Tizen invention
+ * 'syncplay_member_joined', a ghost "syncplay_docblock_ghost", and the bare
+ * `syncplay_` prefix law all live outside the declared block.
+ */
+export const SYNCPLAY_MESSAGE_TYPES = {
+  // --- Section decoy: 'syncplay_comment_ghost' ---
+  GROUP_CREATE: 'syncplay_group_create',
+  GROUP_JOIN: 'syncplay_group_join',
+  ERROR: 'syncplay_error',
+} as const;
+
+/** Union decoy: 'syncplay_after_block' */
+export type SyncPlayMessageType =
+  (typeof SYNCPLAY_MESSAGE_TYPES)[keyof typeof SYNCPLAY_MESSAGE_TYPES];
+TS;
+
+        self::assertSame(
+            ['syncplay_group_create', 'syncplay_group_join', 'syncplay_error'],
+            self::parseTsMessageTypeLiterals($fixture),
+            'Only KEY: literal pairs inside the SYNCPLAY_MESSAGE_TYPES block are collected, in declaration '
+            . 'order; prose and comment decoys outside or within it can never join the catalog.'
+        );
+    }
+
+    /**
+     * @return array<non-empty-string, array{string, non-empty-string}>
+     */
+    public static function provideBrokenTsShapes(): array
+    {
+        return [
+            'no declared block' => [
+                "export const OTHER_THING = {\n  ALPHA: 'syncplay_alpha',\n} as const;\n",
+                'SYNCPLAY_MESSAGE_TYPES',
+            ],
+            'block not closed as const' => [
+                "export const SYNCPLAY_MESSAGE_TYPES = {\n  ALPHA: 'syncplay_alpha',\n};\n",
+                'SYNCPLAY_MESSAGE_TYPES',
+            ],
+            'empty block' => [
+                "export const SYNCPLAY_MESSAGE_TYPES = {\n} as const;\n",
+                'declares no',
+            ],
+            'bare (unquoted) value' => [
+                "export const SYNCPLAY_MESSAGE_TYPES = {\n  ALPHA: syncplay_alpha,\n} as const;\n",
+                'Unrecognized line',
+            ],
+            'integer value' => [
+                "export const SYNCPLAY_MESSAGE_TYPES = {\n  ALPHA: 7,\n} as const;\n",
+                'Unrecognized line',
+            ],
+            'value outside the wire family' => [
+                "export const SYNCPLAY_MESSAGE_TYPES = {\n  ALPHA: 'other_a',\n} as const;\n",
+                'outside the syncplay_ wire family',
+            ],
+            'duplicate key' => [
+                "export const SYNCPLAY_MESSAGE_TYPES = {\n"
+                . "  ALPHA: 'syncplay_alpha',\n  ALPHA: 'syncplay_beta',\n} as const;\n",
+                'Duplicate',
+            ],
+            'trailing junk after value' => [
+                "export const SYNCPLAY_MESSAGE_TYPES = {\n  ALPHA: 'syncplay_alpha' extra,\n} as const;\n",
+                'Unrecognized line',
+            ],
+        ];
+    }
+
+    #[DataProvider('provideBrokenTsShapes')]
+    public function test_the_typescript_parser_fails_loud_on_broken_shapes(
+        string $fixture,
+        string $expectedInMessage
+    ): void {
+        try {
+            self::parseTsMessageTypeLiterals($fixture);
+        } catch (RuntimeException $exception) {
+            self::assertStringContainsString($expectedInMessage, $exception->getMessage());
+
+            return;
+        }
+
+        self::fail(sprintf('Expected the TypeScript-leg parser to reject the "%s" shape.', $fixture));
+    }
+
     public function test_the_comparator_trips_on_injected_drift(): void
     {
         $catalog = SyncPlayDialect::all();
@@ -426,6 +592,35 @@ PHP;
         }
 
         $sibling = dirname(__DIR__, 3) . '/phlix-hub/src/SyncPlay/SyncPlayRelayWorker.php';
+
+        return is_readable($sibling) ? $sibling : null;
+    }
+
+    /**
+     * Absolute path to the `@phlix/syncplay` package's `src/messages.ts`, or
+     * null when no syncplay checkout is on disk. Same pointer discipline as
+     * {@see self::serverMessagesPath()}: `PHLIX_SYNCPLAY_REPO` is explicit —
+     * set-but-unreadable fails loudly, while an absent sibling skips so this
+     * package stays testable standalone (the blessed-snapshot leg carries the
+     * 3/3 coverage on package-only CI).
+     */
+    private function syncplayMessagesPath(): ?string
+    {
+        $env = getenv('PHLIX_SYNCPLAY_REPO');
+        if (is_string($env) && $env !== '') {
+            $path = rtrim($env, '/') . '/src/messages.ts';
+            if (!is_readable($path)) {
+                $this->fail(sprintf(
+                    'PHLIX_SYNCPLAY_REPO points at "%s" but "%s" is not readable — fix the pointer or unset it.',
+                    $env,
+                    $path
+                ));
+            }
+
+            return $path;
+        }
+
+        $sibling = dirname(__DIR__, 3) . '/phlix-syncplay/src/messages.ts';
 
         return is_readable($sibling) ? $sibling : null;
     }
@@ -632,6 +827,89 @@ PHP;
         }
 
         return $types;
+    }
+
+    /**
+     * Collect the declared message-type literals from the TypeScript mirror's
+     * `SYNCPLAY_MESSAGE_TYPES` block, in declaration order.
+     *
+     * The mirror is TypeScript — `token_get_all()` does not apply — so the
+     * parse is a closed-shape line scan of the declared block only: prose and
+     * comment decoys outside the slice cannot join, section comments inside
+     * the slice are skipped, and every other shape deviation (no block, a
+     * missing `as const` terminator, an unquoted or non-string value, a
+     * foreign family value, a duplicate key, trailing junk, an empty result)
+     * throws — the parser reads a closed list or says loudly that it could
+     * not, never widening silently. The mirror's real-file ghosts (the
+     * documented Tizen invention `syncplay_member_joined`, the SPEC
+     * dot-prefix notes) are exactly what a naive whole-file regex would
+     * launder into the catalog; the block slice keeps this leg as strict as
+     * its PHP siblings.
+     *
+     * @return list<string> declared wire values in source order
+     */
+    private static function parseTsMessageTypeLiterals(string $source): array
+    {
+        if (
+            preg_match(
+                '~\bexport\s+const\s+SYNCPLAY_MESSAGE_TYPES\b[^{]*\{(.*?)\}\s*as\s+const\s*;~s',
+                $source,
+                $block
+            ) !== 1
+        ) {
+            throw new RuntimeException(
+                'The source declares no `export const SYNCPLAY_MESSAGE_TYPES = { ... } as const;` block — the '
+                . 'TypeScript mirror lives in src/messages.ts of @phlix/syncplay; if its shape moved, re-derive '
+                . 'this parser deliberately and re-bless the snapshot, never silently.'
+            );
+        }
+
+        $types = [];
+        foreach (explode("\n", $block[1]) as $line) {
+            $line = trim($line);
+            if (
+                $line === ''
+                || str_starts_with($line, '//')
+                || str_starts_with($line, '/*')
+                || str_starts_with($line, '*')
+            ) {
+                continue;
+            }
+
+            if (preg_match('~^([A-Z][A-Z0-9_]*)\s*:\s*(\'[^\']*\'|"[^"]*")\s*,?$~', $line, $pair) !== 1) {
+                throw new RuntimeException(sprintf(
+                    'Unrecognized line inside SYNCPLAY_MESSAGE_TYPES: "%s" — the parser reads a closed list of '
+                    . 'KEY: literal pairs or says loudly that it could not.',
+                    $line
+                ));
+            }
+
+            $key = $pair[1];
+            if (array_key_exists($key, $types)) {
+                throw new RuntimeException(sprintf('Duplicate key "%s" inside SYNCPLAY_MESSAGE_TYPES.', $key));
+            }
+
+            $value = trim($pair[2], "'\"");
+            if (!str_starts_with($value, 'syncplay_')) {
+                throw new RuntimeException(sprintf(
+                    'Key %s declares "%s" — outside the syncplay_ wire family.',
+                    $key,
+                    $value
+                ));
+            }
+
+            $types[$key] = $value;
+        }
+
+        $declared = array_values($types);
+        if ($declared === []) {
+            throw new RuntimeException(
+                'The SYNCPLAY_MESSAGE_TYPES block declares no members — check the pointer against '
+                . 'src/messages.ts of @phlix/syncplay.'
+            );
+        }
+
+        return $declared;
     }
 
     /**
