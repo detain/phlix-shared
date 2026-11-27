@@ -331,17 +331,23 @@ final class ReadmeExamplesTest extends TestCase
 
     public function testTheDocumentedSecurityGateMethodsExist(): void
     {
-        self::assertTrue(
-            method_exists(RelayHttpRequestHead::class, 'fromJsonGated'),
-            'RelayHttpRequestHead::fromJsonGated() is named by the README security guidance and'
-            . ' pinned as a call-shape needle — a rename or removal must update the examples.'
-        );
+        // The class and method names travel through loop variables exactly as
+        // they do in the codec-sequence pin above: the check stays a runtime
+        // falsifiable assertion (a rename or removal reddens this test) while
+        // refusing phpstan level 9 the constant-fold that would reclassify a
+        // passing pin as an always-true alreadyNarrowedType call.
+        $documented = [
+            [RelayHttpRequestHead::class, 'fromJsonGated'],
+            [RelayHttpRequest::class, 'assertSafe'],
+        ];
 
-        self::assertTrue(
-            method_exists(RelayHttpRequest::class, 'assertSafe'),
-            'RelayHttpRequest::assertSafe() is named by the README security guidance and'
-            . ' pinned as a call-shape needle — a rename or removal must update the examples.'
-        );
+        foreach ($documented as [$class, $method]) {
+            self::assertTrue(
+                method_exists($class, $method),
+                $class . '::' . $method . '() is named by the README security guidance and'
+                . ' pinned as a call-shape needle — a rename or removal must update the examples.'
+            );
+        }
     }
 
     public function testTheChunkClassesCarryTheDocumentedKindVocabulary(): void
