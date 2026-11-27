@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Relay Http Response Head.
+ * Relay HTTP Response Head.
  *
  * @copyright 2026 Joe Huss <detain@interserver.net>
  * @license   MIT

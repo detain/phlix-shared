@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Relay Http Response Codec.
+ * Relay HTTP Response Codec.
  *
  * @copyright 2026 Joe Huss <detain@interserver.net>
  * @license   MIT
@@ -136,7 +136,7 @@ final class RelayHttpResponseCodec
     }
 
     /**
-     * Split a full body into BODY chunk payloads yields them lazily.
+     * Split a full body into BODY chunk payloads and yield them lazily.
      *
      * Memory-efficient alternative to {@see self::chunkBody()} for streaming
      * very large bodies. Yields encoded BODY chunk payloads one at a time.

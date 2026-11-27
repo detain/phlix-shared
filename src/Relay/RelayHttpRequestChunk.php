@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Relay Http Request Chunk.
+ * Relay HTTP Request Chunk.
  *
  * @copyright 2026 Joe Huss <detain@interserver.net>
  * @license   MIT
