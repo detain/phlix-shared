@@ -37,8 +37,10 @@ optional `config/trash_guides.php` local read; see [`AGENTS.md`](AGENTS.md) (in 
   `searchByPath()`/`searchByHash()`/`searchByImdbId()` fan-out returning `SubtitleCandidate` values, and the
   quota-consuming `download()` that may throw `QuotaExceeded` (0.42.0+).
 - `Phlix\Shared\Hub\{ClaimRequest, ClaimResponse, ServerInfoDto, HeartbeatDto, LibraryRef}`
-- `Phlix\Shared\Relay\{RelayFrameType, RelayWireCodecInterface, RelayFrame, FrameCodec, SyncPlayDialect}` — channel-mux protocol (0.5.1+);
+- `Phlix\Shared\Relay\{RelayFrameType, RelayWireCodecInterface, RelayFrame, FrameCodec, FrameCodecWireAdapter, SyncPlayDialect}` — channel-mux protocol (0.5.1+);
   `FrameCodec` is the canonical binary frame encoder (encode legs + hello/hello-ack JSON shapes; 0.56.0+);
+  `FrameCodecWireAdapter` object-wraps those statics behind `RelayWireCodecInterface`, with `decode()`
+  failing loudly by design — inbound decoding stays repo-local (server skip-oracle vs hub throw-on-unknown);
   `SyncPlayDialect` is the canonical `syncplay_*` wire message-type catalog (shipped in v0.55.0);
   plus `Relay\{RelayHttpRequest, RelayHttpRequestHead, RelayHttpRequestChunk, RelayHttpRequestCodec}` and
   `Relay\{RelayHttpResponseHead, RelayHttpResponseChunk, RelayHttpResponseCodec}` —

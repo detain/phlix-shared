@@ -24,6 +24,7 @@ use function md5;
 use function str_repeat;
 use function strlen;
 use function substr;
+use function unpack;
 
 /**
  * Byte-identity pins for the canonical relay frame ENCODE home.
@@ -219,6 +220,74 @@ final class FrameCodecTest extends TestCase
         $encoded = FrameCodec::encode(RelayFrameType::DATA, 0, $ramp);
 
         $this->assertSame($ramp, substr($encoded, 7));
+    }
+
+    /**
+     * Header-shape currency pin for the documented wire layout in
+     * phlix-docs docs/dev/relay-protocol.md:
+     *   [4B channel id (uint32)][1B frame type][2B payload length (uint16)][payload]
+     * Pins each field at its literal byte offset so any header reordering
+     * reddens here AND in the docs table on the same contract.
+     */
+    public function test_documented_header_shape_is_four_byte_channel_one_byte_type_two_byte_length(): void
+    {
+        $payload = 'hi';
+        $encoded = FrameCodec::encode(RelayFrameType::DATA, 0x01020304, $payload);
+
+        $this->assertSame(7 + strlen($payload), strlen($encoded), 'seven-byte header, then the payload verbatim');
+
+        /** @var array{seq: int, type: int, len: int} $header */
+        $header = unpack('Nseq/Ctype/nlen', substr($encoded, 0, 7));
+        $this->assertSame(0x01020304, $header['seq'], 'bytes 0..3: channel id (big-endian uint32)');
+        $this->assertSame(RelayFrameType::DATA->value, $header['type'], 'byte 4: frame type');
+        $this->assertSame(strlen($payload), $header['len'], 'bytes 5..6: payload length (big-endian uint16)');
+        $this->assertSame($payload, substr($encoded, 7), 'payload starts at offset 7');
+
+        $this->assertSame("\x01\x02\x03\x04", substr($encoded, 0, 4));
+        $this->assertSame("\x05", substr($encoded, 4, 1));
+        $this->assertSame("\x00\x02", substr($encoded, 5, 2));
+    }
+
+    /**
+     * Doc-currency guard: the Frame Types tables in phlix-docs
+     * docs/dev/relay-protocol.md and docs/dev/relay/frame-decoder.md mirror
+     * this literal table. Adding, removing, or renumbering an enum case
+     * without rotating the docs (or editing the docs away from the enum)
+     * reddens this pin. Keep the three lists in lockstep.
+     */
+    public function test_documented_frame_table_matches_the_enum_cases_exactly(): void
+    {
+        $documented = [
+            'HELLO' => 0x01,
+            'HELLO_ACK' => 0x02,
+            'CLIENT_CONNECT' => 0x03,
+            'CLIENT_DISCONNECT' => 0x04,
+            'DATA' => 0x05,
+            'HEARTBEAT' => 0x06,
+            'DISCONNECTED' => 0x07,
+            'ERROR' => 0x08,
+            'HUB_HELLO' => 0x09,
+            'HUB_HELLO_ACK' => 0x0A,
+            'HUB_HEARTBEAT' => 0x0B,
+            'LIBRARY_SHARE_UPDATE' => 0x0C,
+            'LIBRARY_SHARE_REVOKED' => 0x0D,
+            'ADMIN_DELEGATION' => 0x0E,
+            'HUB_DISCONNECTED' => 0x0F,
+            'HTTP_REQUEST' => 0x10,
+            'HTTP_RESPONSE' => 0x11,
+            'HTTP_CANCEL' => 0x12,
+        ];
+
+        $actual = [];
+        foreach (RelayFrameType::cases() as $case) {
+            $actual[$case->name] = $case->value;
+        }
+
+        $this->assertSame(
+            $documented,
+            $actual,
+            'documented frame table must equal RelayFrameType name-for-name, value-for-value, in declaration order'
+        );
     }
 
     /**
