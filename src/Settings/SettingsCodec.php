@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace Phlix\Shared\Settings;
 
+use InvalidArgumentException;
 use JsonException;
 
 /**
@@ -38,12 +39,43 @@ use JsonException;
  * resolvers' `clampInt` to the int|float domain, covering the estate's
  * scattered `max($lo, min($hi, $x))` bound sites (charter D-05).
  *
- * Vocabulary: `$valueType` is the settings schema family — one of
- * `string|int|bool|float|json` (unknown types fall through the default arms,
- * matching both twins).
+ * Vocabulary (S-shared-19 strict-arm law): `$valueType` is the settings
+ * schema family — exactly `string|int|bool|float|json`. An unknown type
+ * RAISES `InvalidArgumentException` in BOTH directions: the twins' silent
+ * default-arm fall-through is ended by design, because a type this codec
+ * does not implement is either programmer error or a corrupt/tampered
+ * stored `value_type`, and settings must never silently pass through a
+ * codec that does not understand them. The reject arm is unreachable from
+ * legitimate traffic — every server admin write lands inside the arms via
+ * `AdminSettingsController::mapSchemaType()` and the hub types each write
+ * from its `HubSettingsRepository::ALLOWED_KEYS` map. The `json` DECODE
+ * arm is likewise strict: `JSON_THROW_ON_ERROR` under a depth ceiling, so
+ * a corrupt stored row raises `JsonException` instead of silently
+ * decoding to `null` (the `bool` arm's documented silent-false storage
+ * law is deliberately NOT swept up — see the HUB-ENVBOOL note on
+ * `decode()`). Consumer relay row, disclosed: the server
+ * `SettingsRepository::decode()` delegation and the hub override reads
+ * have no catch at those call sites today, so a corrupt `json` row
+ * surfaces as an exception at the read on re-vendor; any consumer-side
+ * catch (or accepted loud-fail) is the consumer repo's own step, never a
+ * codec concession.
  */
 final class SettingsCodec
 {
+    /**
+     * The exact `$valueType` vocabulary implemented by the arms — the sole
+     * gate's accept-set; drift-pinned against the arms by the test suite.
+     */
+    private const array VALUE_TYPES = ['string', 'int', 'bool', 'float', 'json'];
+
+    /**
+     * Recursion ceiling for the strict `json` decode arm: PHP's own default
+     * budget, the same number `Support\Json::MAX_INBOUND_DEPTH` pins for
+     * inbound wire payloads — a stored settings value has no business
+     * nesting deeper than an inbound request body.
+     */
+    private const int JSON_MAX_DEPTH = 512;
+
     /**
      * Not instantiable — this is a codec, not an object.
      */
@@ -59,16 +91,22 @@ final class SettingsCodec
      *
      * @return string Text form suitable for the `setting_value` column.
      *
-     * @throws JsonException When the value cannot be JSON-encoded (never
-     *                        persists an empty string for an unencodable value).
+     * @throws JsonException          When the value cannot be JSON-encoded (never
+     *                                 persists an empty string for an unencodable value).
+     * @throws InvalidArgumentException When $valueType is outside the arms
+     *                                 (S-shared-19: fail loud, never fall through).
      */
     public static function encode(mixed $value, string $valueType): string
     {
+        self::assertValueType($valueType);
+
         return match ($valueType) {
             'bool'  => ($value ? '1' : '0'),
             'int'   => (string) (int) (is_numeric($value) ? $value : 0),
             'float' => (string) (float) (is_numeric($value) ? $value : 0),
             'json'  => json_encode($value, JSON_THROW_ON_ERROR),
+            // The 'string' arm is the twins' old default body verbatim:
+            // scalars cast, null (not scalar) JSON-encodes to 'null'.
             default => is_scalar($value) ? (string) $value : json_encode($value, JSON_THROW_ON_ERROR),
         };
     }
@@ -85,18 +123,32 @@ final class SettingsCodec
      * false silently, which is correct here (a corrupt stored row must not
      * flip a setting) and would be wrong for an operator-facing knob.
      *
+     * The 'json' arm is STRICT (S-shared-19): malformed stored text RAISES
+     * `JsonException` — with `JSON_THROW_ON_ERROR` in play a corrupt document
+     * can no longer arrive as a silent `null` wearing the shape of a legal
+     * one — under the `self::JSON_MAX_DEPTH` ceiling, so depth exhaustion
+     * raises too instead of truncating. Whether the corrupt-row signal is
+     * swallowed per read is each consumer's documented decision at its own
+     * call site, never this codec's.
+     *
      * @param string $raw       Stored text value.
      * @param string $valueType One of string|int|bool|float|json.
      *
      * @return mixed The decoded PHP value.
+     *
+     * @throws JsonException          When $valueType is 'json' and $raw is not a
+     *                                 well-formed, ceiling-depth JSON document.
+     * @throws InvalidArgumentException When $valueType is outside the arms.
      */
     public static function decode(string $raw, string $valueType): mixed
     {
+        self::assertValueType($valueType);
+
         return match ($valueType) {
             'bool'  => $raw === '1' || strtolower($raw) === 'true',
             'int'   => (int) $raw,
             'float' => (float) $raw,
-            'json'  => json_decode($raw, true),
+            'json'  => json_decode($raw, true, self::JSON_MAX_DEPTH, JSON_THROW_ON_ERROR),
             default => $raw,
         };
     }
@@ -133,5 +185,23 @@ final class SettingsCodec
     public static function clampValue(int|float $value, int $min, int $max): int|float
     {
         return max($min, min($max, $value));
+    }
+
+    /**
+     * Fail-loud gate shared by both codec directions.
+     *
+     * @throws InvalidArgumentException When $valueType is outside the arms.
+     */
+    private static function assertValueType(string $valueType): void
+    {
+        if (in_array($valueType, self::VALUE_TYPES, true)) {
+            return;
+        }
+
+        throw new InvalidArgumentException(sprintf(
+            'Unknown settings valueType "%s"; the codec vocabulary is exactly %s.',
+            $valueType,
+            implode('|', self::VALUE_TYPES),
+        ));
     }
 }
