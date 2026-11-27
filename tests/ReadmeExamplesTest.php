@@ -26,6 +26,7 @@ use Phlix\Shared\Arr\ArrClientFactory;
 use Phlix\Shared\Arr\RadarrClient;
 use Phlix\Shared\Arr\SonarrClient;
 use Phlix\Shared\Arr\Transport\ArrTransportInterface;
+use Phlix\Shared\Relay\RelayHttpRequest;
 use Phlix\Shared\Relay\RelayHttpRequestChunk;
 use Phlix\Shared\Relay\RelayHttpRequestCodec;
 use Phlix\Shared\Relay\RelayHttpRequestHead;
@@ -94,6 +95,7 @@ final class ReadmeExamplesTest extends TestCase
         ];
         yield 'response head encode' => ['RelayHttpResponseCodec::encodeHead('];
         yield 'response body chunking' => ['RelayHttpResponseCodec::chunkBody($responseBody)'];
+        yield 'response end encode' => ['RelayHttpResponseCodec::encodeEnd()'];
         yield 'response payload decode' => ['RelayHttpResponseCodec::decode($responsePayload)'];
         yield 'response head kind' => ['RelayHttpResponseChunk::KIND_HEAD'];
         yield 'response body kind' => ['RelayHttpResponseChunk::KIND_BODY'];
@@ -325,6 +327,21 @@ final class ReadmeExamplesTest extends TestCase
                 );
             }
         }
+    }
+
+    public function testTheDocumentedSecurityGateMethodsExist(): void
+    {
+        self::assertTrue(
+            method_exists(RelayHttpRequestHead::class, 'fromJsonGated'),
+            'RelayHttpRequestHead::fromJsonGated() is named by the README security guidance and'
+            . ' pinned as a call-shape needle — a rename or removal must update the examples.'
+        );
+
+        self::assertTrue(
+            method_exists(RelayHttpRequest::class, 'assertSafe'),
+            'RelayHttpRequest::assertSafe() is named by the README security guidance and'
+            . ' pinned as a call-shape needle — a rename or removal must update the examples.'
+        );
     }
 
     public function testTheChunkClassesCarryTheDocumentedKindVocabulary(): void
