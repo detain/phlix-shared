@@ -74,17 +74,44 @@ src/
   Arr/       # Phlix\Shared\Arr\* — *arr HTTP clients + Transport/ seam
              #   (the sole zero-I/O exception; see the rule above)
   Auth/      # Phlix\Shared\Auth\* — token, identity, claim types
-  Events/    # Phlix\Shared\Events\* — event name constants & DTOs
+  Console/   # Phlix\Shared\Console\* — machine-readable --json CLI
+             #   envelope string kernels (v0.57 wave)
+  Database/  # Phlix\Shared\Database\* — shared MySQL kernels (v0.57
+             #   wave): transaction-mutex lease/state machine, error
+             #   classification + retry verdicts, portable upsert syntax,
+             #   row maps, write results, migration checksums, UUID v4
+  Events/    # Phlix\Shared\Events\* — PSR-14 event DTOs (Auth/Library/
+             #   Playback); the manifest event aliases live in
+             #   Plugin/EventNameMap, not in this namespace
+  Http/      # Phlix\Shared\Http\* — HTTP wire-law kernels (v0.57 wave):
+             #   {error,code} envelope, status reason phrases, static-file
+             #   deny policy, trusted-proxy client-IP resolution,
+             #   Sec-WebSocket-Protocol handshake
   Hub/       # Phlix\Shared\Hub\* — phlix ↔ phlix-hub protocol types
   Metadata/  # Phlix\Shared\Metadata\* — metadata-source plugin contract
-  Plugin/    # Phlix\Shared\Plugin\* — lifecycle, manifest, types
+  Metrics/   # Phlix\Shared\Metrics\* — read-side metrics repository
+             #   contract (v0.57 wave)
+  Plugin/    # Phlix\Shared\Plugin\* — lifecycle, manifest, types, and
+             #   the EventNameMap alias↔FQCN table
+  RateLimit/ # Phlix\Shared\RateLimit\* — TTL-windowed attempt counter:
+             #   contract + worker-local bounded implementation (v0.57
+             #   wave)
   Relay/     # Phlix\Shared\Relay\* — channel-mux + HTTP-over-relay frames
+  Runtime/   # Phlix\Shared\Runtime\* — runtime-hook allowlist delivery
+             #   failure vocabulary (v0.57 wave)
   Schema/    # Phlix\Shared\Schema\* — SchemaPaths for the bundled schemas/
   Security/  # Phlix\Shared\Security\* — Hmac compute()/verify() primitive
              #   (timing-safe sha256 colon-hex seam; server webhooks adopt it
-             #   for the legacy sha256= arm — see README)
+             #   for the legacy sha256= arm — see README), plus JWT,
+             #   Ed25519 PEM, PKCE, Base64Url and origin-policy helpers
+  Settings/  # Phlix\Shared\Settings\* — settings-column value codec,
+             #   typed value ↔ persisted text (v0.57 wave)
   Subtitle/  # Phlix\Shared\Subtitle\* — subtitle source contract + DTOs
-  Support/   # Phlix\Shared\Support\* — PayloadAssert trait for wire DTOs
+  Support/   # Phlix\Shared\Support\* — shared runtime utilities: env
+             #   readers with bool laws, Clock, Backoff, Json, plus the
+             #   PayloadAssert trait for wire DTOs
+  Updates/   # Phlix\Shared\Updates\* — core-update check result +
+             #   remote version-marker fetcher contract (v0.57 wave)
   Version.php
 tests/
   (mirror of src/ — PHPUnit 12; attributes, static data providers)
@@ -97,14 +124,21 @@ contract one consumer surface needs, and nothing more. `Auth/`, `Hub/`
 and `Relay/` mirror the server↔hub wire (token/claim types, protocol
 DTOs, tunnel and HTTP-over-relay envelopes); `Plugin/` and `Events/`
 are the plugin-facing surface (lifecycle, manifest, PSR-14 event DTOs
-and the alias map); `Metadata/` and `Subtitle/` hold the two plugin
-source contracts the server's registries consume; `Arr/` is the sole
-sanctioned I/O exception (*arr clients behind the pluggable transport
-seam — see the rule above); `Schema/`, `Security/` and `Support/` are
-shared helpers (schema-path resolution, the HMAC seam, wire-DTO
-assertions); `Version.php` is the single version marker consumers pin.
-A new helper belongs in the namespace of the contract it serves — if it
-serves none of them, it likely belongs in the consumer's own repo.
+and the `Plugin/EventNameMap` alias table); `Metadata/` and `Subtitle/`
+hold the two plugin source contracts the server's registries consume;
+`Arr/` is the sole sanctioned I/O exception (*arr clients behind the
+pluggable transport seam — see the rule above); `Console/`, `Database/`,
+`Http/`, `Metrics/`, `RateLimit/`, `Runtime/`, `Settings/` and `Updates/`
+carry the v0.57 consolidation wave's shared server/hub kernels (CLI JSON
+envelope, MySQL transaction/retry/upsert state, HTTP wire laws, the
+metrics read contract, rate limiting, hook-delivery failures, the
+settings value codec, update-check results); `Schema/`, `Security/` and
+`Support/` are shared helpers (schema-path resolution, the
+HMAC/JWT/Ed25519/PKCE seams, and the env/clock/backoff/JSON utilities
+plus the wire-DTO assertion trait); `Version.php` is the single version
+marker consumers pin. A new helper belongs in the namespace of the
+contract it serves — if it serves none of them, it likely belongs in the
+consumer's own repo.
 
 The historical WHAT MOVES WHERE table and full design rationale live in
 `plans/expansion/b.1-shared-design.md` in
