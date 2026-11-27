@@ -326,4 +326,81 @@ class AbstractArrClientTest extends TestCase
         $this->assertSame(7, $readInt($tunedTransport, 'timeout'));
         $this->assertSame(2, $readInt($tunedTransport, 'connectTimeout'));
     }
+
+    /**
+     * S-shared-10 r1 FINDING-1 (M5 arm-1 witness): the 404 echo must route the
+     * caller-supplied $path through SecretRedactor::redactUri(). The path here
+     * carries only an `?apikey=`-shaped value that is NOT the configured key,
+     * so the `***` below can come from no other leg — a revert to raw $path
+     * (the review's M5) leaks 'SECRET123', and even a redact()-only swap
+     * (exact-value kernel, pattern-blind) leaks it. Both convictions land on
+     * THIS arm alone; the 3xx pin stays green.
+     */
+    public function testNotFoundEchoRedactsSecretShapedPath(): void
+    {
+        $client = $this->respondingClient(404, '');
+
+        try {
+            $client->fetch('/api/v3/movie?apikey=SECRET123');
+            $this->fail('Expected RuntimeException for HTTP 404.');
+        } catch (RuntimeException $e) {
+            $this->assertStringContainsString('Test API resource not found (404)', $e->getMessage());
+            $this->assertStringContainsString('***', $e->getMessage());
+            $this->assertStringNotContainsString('SECRET123', $e->getMessage());
+        }
+    }
+
+    /**
+     * S-shared-10 r1 FINDING-1 (M5 arm-2 witness): same wiring at the 3xx
+     * echo. This path carries ONLY userinfo-shaped material — no credential-
+     * named query value and nothing the configured key covers — so the `***`
+     * is proof this call site still runs the redactUri() URI arm; reverting it
+     * to raw $path leaks 'hunter2-prod' and reddens exactly THIS arm.
+     */
+    public function testRedirectEchoRedactsUserinfoBearingPath(): void
+    {
+        $client = $this->respondingClient(302, '');
+
+        try {
+            $client->fetch('/moved?to=http://sonarr:hunter2-prod@metrics.internal:9090/ping');
+            $this->fail('Expected RuntimeException for HTTP 302.');
+        } catch (RuntimeException $e) {
+            $this->assertStringContainsString('Test API redirect not followed (HTTP 302)', $e->getMessage());
+            $this->assertStringContainsString('***', $e->getMessage());
+            $this->assertStringNotContainsString('hunter2-prod', $e->getMessage());
+        }
+    }
+
+    /**
+     * Builds a 'Test' client on the unroutable base whose injected fake answers
+     * with the given status, exposing the protected GET so a test can drive
+     * request() with an arbitrary caller-supplied $path (the redaction pins
+     * above need paths no public endpoint method ever sends).
+     *
+     * @param int    $status Canned HTTP status the fake transport returns.
+     * @param string $body   Canned response body ('' — the error arms throw first).
+     */
+    private function respondingClient(int $status, string $body)
+    {
+        return new class (
+            'http://0.0.0.0:1',
+            'configured-key-9e1c',
+            null,
+            30,
+            new FakeArrTransport($status, $body)
+        ) extends RadarrClient {
+            protected function vendorName(): string
+            {
+                return 'Test';
+            }
+
+            /**
+             * @return array<array-key, mixed>
+             */
+            public function fetch(string $path): array
+            {
+                return $this->get($path);
+            }
+        };
+    }
 }
