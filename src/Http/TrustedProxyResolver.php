@@ -58,6 +58,18 @@ namespace Phlix\Shared\Http;
  * The resolver ALWAYS returns a value validated as a well-formed IP (≤45 chars for
  * IPv6), or a hard-truncated fallback, so a forged/oversized header can never
  * produce a key longer than the `rate_limit_buckets.rate_key` VARCHAR(191) PK.
+ *
+ * ADOPTION STATUS — INERT (PENDING consumer adoption): `Phlix\Shared\Http`
+ * has zero imports in the committed phlix-server and phlix-hub `src/` trees
+ * (greps verified at this pass, 2026-11-28). Both hosts still resolve through
+ * their OWN copies — server `src/Common/Http/TrustedProxyResolver.php`
+ * (`use` at `src/Server/Http/Request.php:15`, instantiated :583, and
+ * `src/Server/WebSocket/WebSocketServer.php:20`) and hub
+ * `src/Common/Http/TrustedProxyResolver.php:60` (`use` at
+ * `src/Http/Request.php:15`, default-instantiated :410). The lift made the
+ * law single-sourceable here; it has not yet made it single-SOURCED in the
+ * estate. Migration to this class is the pending consumer wave — the SV-4.15
+ * defense ships today via the per-repo twins, not via this file.
  */
 final class TrustedProxyResolver
 {

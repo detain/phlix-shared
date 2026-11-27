@@ -13,11 +13,16 @@ use PHPUnit\Framework\TestCase;
  *
  * Characterization pins for v0.57 leg 0.10 M-16, lifted from the estate
  * twins' emit law: phlix-server `src/Server/Http/Response.php` `error()`
- * (:212) / `rateLimitedBody()` and phlix-hub `src/Http/Response.php`
+ * (:212) / `rateLimitedBody()` (:261) and phlix-hub `src/Http/Response.php`
  * `error()` (:230) / `rateLimitedBody()` (:269) — byte-identical bodies
  * (A-04). The hub 503 maintenance frame (`Application.php:294-303`) rides
  * the same `build()` law with host copy in `error` and the HUB-49
  * disambiguation `detail` merged additive.
+ *
+ * Adoption truth (S-shared-03): these pins characterize the LAW the twins
+ * emit, not host consumption of the kernel — neither host imports
+ * `Phlix\Shared\Http\ErrorEnvelope` yet (see the class' INERT adoption
+ * header); the twins stay the shipped enforcement until the consumer wave.
  *
  * @copyright 2026 Joe Huss <detain@interserver.net>
  * @license   MIT

@@ -41,6 +41,18 @@ namespace Phlix\Shared\Http;
  * `is_string()` coercion into the per-repo adapters, which already do it in
  * `upgradeHeader()`; the server's `?string` null-arm equals the shared `''`
  * arm at the kernel level (both mean "no offers").
+ *
+ * ADOPTION STATUS — INERT (PENDING consumer adoption): `Phlix\Shared\Http`
+ * has zero imports in the committed phlix-server and phlix-hub `src/` trees
+ * (greps verified at this pass, 2026-11-28). Both hosts still negotiate
+ * through their OWN kits named above — server
+ * `src/Server/WebSocket/SyncPlayAuthMiddleware.php` (`offersBearerSubprotocol()`
+ * :494, `bearerSubprotocolToken()` :519, consts :68/:77) and hub
+ * `src/SyncPlay/SyncPlayRelayWorker.php` (`negotiatedSubprotocolEcho()`
+ * :1013, consts :223/:231). The bearer-auth law on the live wires today is
+ * enforced by those per-repo copies; this kernel is the single-source
+ * migration target of a pending consumer wave, not the shipped enforcement
+ * point.
  */
 final class WebSocketHandshake
 {

@@ -16,10 +16,10 @@ namespace Phlix\Shared\Http;
  *
  * Lifted from phlix-server `src/Server/Workerman/HttpHandler.php` —
  * `DENIED_STATIC_EXTENSIONS` (:107, R20-03) + the inlined strict predicate
- * (:717) — and phlix-hub `src/Application.php` — the typed const declared
+ * (:718) — and phlix-hub `src/Application.php` — the typed const declared
  * "byte-coordinated with phlix-server ... so the estate has one deny
  * vocabulary on both HTTP daemons" (:154, 85c06de1) + the public-static
- * `isDeniedStaticPath()` (:176-183), whose pinnable shape is the API donor.
+ * `isDeniedStaticPath()` (:178-185), whose pinnable shape is the API donor.
  *
  * Rationale per the twins' own docblocks: `php` = never hand out raw script
  * sources; `map` = Vite source maps carrying the SPA's full
@@ -38,6 +38,13 @@ namespace Phlix\Shared\Http;
  * under PHP 8.3+), the hub omitted it — the shared `extensionOf()` keeps
  * the cast. Body-cap policy (B-15-adjacent) is NOT shared: per-repo caps
  * legitimately differ.
+ *
+ * ADOPTION STATUS — INERT (PENDING consumer adoption): `Phlix\Shared\Http`
+ * has zero imports in the committed phlix-server and phlix-hub `src/` trees
+ * (greps verified at this pass, 2026-11-28). Both daemons still deny through
+ * their own copies named above (server inlined predicate, hub public-static
+ * method); one deny VOCABULARY is held today by coordination, not by this
+ * class. Migration to this kernel is the pending consumer wave.
  */
 final class StaticPathPolicy
 {

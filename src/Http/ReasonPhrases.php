@@ -31,6 +31,16 @@ namespace Phlix\Shared\Http;
  * port"). Keep it in sync with the vendor on workerman upgrades; the class
  * pair itself cannot move (both extend the Workerman response — G-14), only
  * the table + resolver can, and here they are.
+ *
+ * ADOPTION STATUS — INERT (PENDING consumer adoption): `Phlix\Shared\Http`
+ * has zero imports in the committed phlix-server and phlix-hub `src/` trees
+ * (greps verified at this pass, 2026-11-28). The hub's canonical source
+ * (`src/Http/BodylessResponse.php:114-119`) still resolves through its OWN
+ * strict-empty copy, and the server twin still carries the named bug live
+ * (`src/Server/Workerman/BodylessResponse.php:109` — `$this->reason ?: ...`,
+ * a literal `'0'` reason is still swallowed on today's server). Consumer
+ * migration to this kernel IS that disclosed fix, and it is PENDING: the fix
+ * is not shipped anywhere until a host swaps its copy for these statics.
  */
 final class ReasonPhrases
 {

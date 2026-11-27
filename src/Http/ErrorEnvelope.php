@@ -20,10 +20,22 @@ namespace Phlix\Shared\Http;
  * `['error' => $message, 'code' => $code] + $extra` — the left-biased union
  * is the wire contract: `error`/`code` always lead and callers merge
  * additive top-level keys (`message`, `detail`, `denial_type`) after them.
- * The tripped-limiter pair is the W4 PREP seam both hosts already adopted:
- * `rateLimitedBody()` is byte-identical (hub `Http/Response.php:269`;
- * server `Server/Http/Response.php` twin), and `retryAfterHeader()` is the
- * single `Retry-After` formatter on both sides (hub :280-285).
+ * The tripped-limiter pair is the W4 PREP seam: both hosts already CARRY it
+ * as byte-identical per-repo twins — `rateLimitedBody()` at server
+ * `Server/Http/Response.php:261` / hub `Http/Response.php:269`, and
+ * `retryAfterHeader()` at server :270 / hub :280 — but carrying the twin and
+ * importing this kernel are different claims: the SHAPE is adopted estate-wide,
+ * the class itself is not yet consumed (adoption header below).
+ *
+ * ADOPTION STATUS — INERT (PENDING consumer adoption): `Phlix\Shared\Http`
+ * has zero imports in the committed phlix-server `src/` tree and zero in the
+ * committed phlix-hub `src/` tree (greps verified at this pass, 2026-11-28).
+ * Both hosts still emit through their own private `rateLimitedBody()` /
+ * `retryAfterHeader()` twins listed above; the server seam's own docblock
+ * states the same law ("the seam now owns the vocabulary so S1 adoption of
+ * the shared Envelope is mechanical"). This class is the single migration
+ * target for that disclosed-and-pending consumer wave — until it lands,
+ * treating any behavior here as host-live behavior is wrong.
  *
  * STATUS/header/JSON-encode glue stays per-repo — both `Response` classes
  * extend the Workerman response; this kernel owns the BODY shape and

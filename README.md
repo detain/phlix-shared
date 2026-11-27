@@ -122,11 +122,15 @@ optional `config/trash_guides.php` local read; see [`AGENTS.md`](AGENTS.md) (in 
 - `Phlix\Shared\Http\{ErrorEnvelope, ReasonPhrases, StaticPathPolicy, TrustedProxyResolver, WebSocketHandshake}` —
   the HTTP kernel family (0.57.0+): the `{error, code}`-plus-additive body law with
   the 429/503 shape builders; the hub strict-empty reason law with a byte-faithful
-  copy of the vendored Workerman `PHRASES` table (server migration to it is the
-  named-`'0'`-bug fix); the `php`/`map`/`tpl` static-deny vocabulary in the hub's
-  public predicate shape; the SV-4.15 trusted-proxy/XFF resolver; and the
-  `Sec-WebSocket-Protocol` string kit (bearer offer/token/echo-line kernels —
-  carrier policy intentionally stays per-repo).
+  copy of the vendored Workerman `PHRASES` table; the `php`/`map`/`tpl` static-deny
+  vocabulary in the hub's public predicate shape; the SV-4.15 trusted-proxy/XFF
+  resolver; and the `Sec-WebSocket-Protocol` string kit (bearer offer/token/echo-line
+  kernels — carrier policy intentionally stays per-repo). Adoption status: the
+  family is INERT — zero imports in either host's committed `src/` tree, and both
+  hosts still run their own per-repo copies of every shape here. Migrating the
+  server onto the strict-empty resolver is the named-`'0'`-bug fix, and that bug
+  is consequently STILL LIVE (`src/Server/Workerman/BodylessResponse.php` `?:`):
+  the cure ships with the pending consumer wave, not with this package.
 - `Phlix\Shared\Relay\LivenessWindows` — the 3x liveness-margin law made
   executable (C-09/HB-0.1): a value object over ping-cadence/reap-window pairs whose
   `assertMargin()` refuses mis-coupled tunings at boot instead of reaping ghosts.
