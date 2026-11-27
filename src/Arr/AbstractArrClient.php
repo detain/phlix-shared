@@ -231,7 +231,9 @@ abstract class AbstractArrClient
      *     floor of the seam: concrete clients declare the
      *     narrowed per-endpoint shape on their public methods, and consumers must
      *     treat this level as untyped until they do.
-     * @throws RuntimeException On network or HTTP errors.
+     * @throws RuntimeException On network or HTTP errors, a transport
+     *     response that violates the {status:int, body:string} shape, or a
+     *     success body that is not decodable JSON.
      */
     private function request(string $method, string $path, ?array $body): array
     {
@@ -243,10 +245,27 @@ abstract class AbstractArrClient
         }
 
         $response = $this->transport->request($method, $url, $this->buildHeaders(), $encodedBody);
-        $httpCode = $response['status'];
-        $responseBody = $response['body'];
 
+        /** @var array<array-key, mixed> $response */
         $vendor = $this->vendorName();
+
+        // phlix-shared-033: the {status, body} shape is a phpdoc promise the
+        // interface cannot enforce at runtime. A third-party transport that
+        // returned anything else used to die as undefined-key warnings over
+        // a null status that matched no mapping below (or, for a non-string
+        // body, as a raw TypeError from json_decode) — never naming the
+        // contract it broke. Parse the two keys at the seam; fail loud.
+        // The @var widening above is deliberate: without it the analysers
+        // trust the phpdoc shape and call this guard dead code — the same
+        // boundary-widening idiom Jwt.php uses at its decode seams.
+        $httpCode = $response['status'] ?? null;
+        $responseBody = $response['body'] ?? null;
+        if (!is_int($httpCode) || !is_string($responseBody)) {
+            throw new RuntimeException(
+                $vendor . ' transport returned an invalid response shape: '
+                . 'expected array with int "status" and string "body"'
+            );
+        }
 
         if ($httpCode === 401) {
             throw new RuntimeException($vendor . ' API authentication failed (401)');
@@ -301,14 +320,23 @@ abstract class AbstractArrClient
 
         $decoded = json_decode($responseBody, true);
         if (!is_array($decoded)) {
-            throw new RuntimeException('Invalid JSON response from ' . $vendor);
+            // phlix-shared-033: the body IS the diagnostic for a vendor HTML
+            // page served behind a 200 — the old message dropped it. Same
+            // capped single-line excerpt as the >=400 arm above, redaction
+            // before the cap, so an echoed X-Api-Key cannot leak as a
+            // partial head.
+            throw new RuntimeException(
+                'Invalid JSON response from ' . $vendor
+                . $this->detailFromBody(SecretRedactor::redact($responseBody, $this->apiKey))
+            );
         }
 
         return $decoded;
     }
 
     /**
-     * Compact single-line excerpt of an error response body for messages.
+     * Compact single-line excerpt of a response body for error messages —
+     * both the >=400 arm and the invalid-JSON arm of request().
      *
      * Capped at 300 bytes with whitespace collapsed so a full HTML error
      * page can never bloat a log line; an empty body contributes nothing.

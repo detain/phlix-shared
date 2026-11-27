@@ -208,6 +208,97 @@ class InjectedTransportTest extends TestCase
     }
 
     /**
+     * phlix-shared-033, part 2: for a 200/2xx whose body is not JSON, the
+     * body IS the diagnostic (a vendor HTML error page behind a success
+     * status). The old message dropped it entirely — the throw now carries
+     * the same capped single-line excerpt as the >=400 arm. Red-first at
+     * the parent: the bare message contained none of the page.
+     */
+    public function testInvalidJsonMessageCarriesBodyExcerpt(): void
+    {
+        $fake = new FakeArrTransport(200, "<html>\n  <body>nginx is down (radarr-proxy)</body>\n</html>");
+
+        $client = new RadarrClient(self::UNROUTABLE_BASE_URL, 'excerpt-check-key', null, 30, $fake);
+
+        try {
+            $client->getMovies();
+            $this->fail('Expected RuntimeException for an undecodable body.');
+        } catch (RuntimeException $e) {
+            $this->assertStringContainsString('Invalid JSON response from Radarr', $e->getMessage());
+            $this->assertStringContainsString('nginx is down (radarr-proxy)', $e->getMessage());
+            $this->assertStringNotContainsString("\n", $e->getMessage());
+        }
+    }
+
+    /**
+     * phlix-shared-033: the excerpt on the invalid-JSON arm runs the same
+     * redact-before-cap law as the >=400 arm (LW-054). The key starts at
+     * byte 292 of the body, so capping first would ship its head; only the
+     * correct order collapses it to '***' inside the visible window.
+     * Red-first at the parent, where no excerpt existed at all.
+     */
+    public function testInvalidJsonExcerptRedactsApiKeyAndPrecedesCap(): void
+    {
+        $key  = 'leakhead-4d8b-cafe1234';
+        $fake = new FakeArrTransport(200, str_repeat('x', 290) . ' ' . $key);
+
+        $client = new RadarrClient(self::UNROUTABLE_BASE_URL, $key, null, 30, $fake);
+
+        try {
+            $client->getMovies();
+            $this->fail('Expected RuntimeException for an undecodable body.');
+        } catch (RuntimeException $e) {
+            $this->assertStringNotContainsString($key, $e->getMessage());
+            $this->assertStringNotContainsString('leakhead-4d8b', $e->getMessage());
+            $this->assertStringContainsString('***', $e->getMessage());
+        }
+    }
+
+    /**
+     * phlix-shared-033: the appended excerpt keeps the 300-byte cap and the
+     * ellipsis, so an oversized body can never bloat the log line — the
+     * message is prefix + at most ' — ' + 300 bytes + '...'.
+     */
+    public function testInvalidJsonExcerptIsCapped(): void
+    {
+        $fake = new FakeArrTransport(200, str_repeat('z', 1000));
+
+        $client = new RadarrClient(self::UNROUTABLE_BASE_URL, 'cap-check-key', null, 30, $fake);
+
+        $prefix = 'Invalid JSON response from Radarr';
+        try {
+            $client->getMovies();
+            $this->fail('Expected RuntimeException for an undecodable body.');
+        } catch (RuntimeException $e) {
+            $this->assertStringStartsWith($prefix, $e->getMessage());
+            $this->assertStringEndsWith('...', $e->getMessage());
+            $this->assertLessThanOrEqual(strlen($prefix) + strlen(' — ') + 300 + 3, strlen($e->getMessage()));
+        }
+    }
+
+    /**
+     * phlix-shared-033 control: a whitespace-only undecodable body
+     * contributes nothing (detailFromBody trims to empty), so the message
+     * stays exactly the bare sentence — no dangling ' — ' separator. Green
+     * at the parent (the bare message WAS the whole story) and green after
+     * shipping: the pin is the no-separator arm, and it reddens if the
+     * excerpt is ever appended unconditionally.
+     */
+    public function testInvalidJsonWhitespaceBodyKeepsBareMessage(): void
+    {
+        $fake = new FakeArrTransport(200, "   \n\t  ");
+
+        $client = new RadarrClient(self::UNROUTABLE_BASE_URL, 'bare-check-key', null, 30, $fake);
+
+        try {
+            $client->getMovies();
+            $this->fail('Expected RuntimeException for an undecodable body.');
+        } catch (RuntimeException $e) {
+            $this->assertSame('Invalid JSON response from Radarr', $e->getMessage());
+        }
+    }
+
+    /**
      * M-SHARED-33: a 3xx is never success. A 301 with an empty body used to
      * fall through the status mapping and decode as "no data" ([]).
      */

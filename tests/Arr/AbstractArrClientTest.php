@@ -13,6 +13,7 @@ namespace Phlix\Shared\Tests\Arr;
 
 use Phlix\Shared\Arr\AbstractArrClient;
 use Phlix\Shared\Arr\RadarrClient;
+use Phlix\Shared\Arr\Transport\ArrTransportInterface;
 use Phlix\Shared\Arr\Transport\CurlArrTransport;
 use Phlix\Shared\Tests\Arr\Transport\FakeArrTransport;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -369,6 +370,125 @@ class AbstractArrClientTest extends TestCase
             $this->assertStringContainsString('***', $e->getMessage());
             $this->assertStringNotContainsString('hunter2-prod', $e->getMessage());
         }
+    }
+
+    /**
+     * phlix-shared-27 (finding phlix-shared-033): ArrTransportInterface's
+     * {status:int, body:string} return shape is a phpdoc promise the
+     * interface cannot enforce at runtime. Each canned response below
+     * breaks that contract in exactly one way; before the seam guard every
+     * one of them degraded into silent success, an undefined-key warning
+     * storm, or a raw TypeError from json_decode — never a domain error
+     * naming the broken shape. At the parent these arms are red; with the
+     * guard shipped each mutation-reverts to its pre-fix behaviour.
+     *
+     * @return array<string, array{array<array-key, mixed>}>
+     */
+    public static function malformedTransportResponseProvider(): array
+    {
+        return [
+            'empty array' => [[]],
+            'missing status' => [['body' => '{}']],
+            'missing body' => [['status' => 200]],
+            'unrelated keys' => [['code' => 200, 'payload' => '{}']],
+            'string status' => [['status' => '200', 'body' => '{}']],
+            'float status' => [['status' => 200.0, 'body' => '{}']],
+            'null status' => [['status' => null, 'body' => '{}']],
+            'null body' => [['status' => 200, 'body' => null]],
+            'array body' => [['status' => 200, 'body' => []]],
+            'int body' => [['status' => 200, 'body' => 5]],
+        ];
+    }
+
+    /**
+     * phlix-shared-033, part 1: a transport response that violates the
+     * {status:int, body:string} shape must fail loud at the request seam
+     * with a domain RuntimeException naming the contract — for every
+     * violation leg in the provider.
+     *
+     * @param array<array-key, mixed> $response The canned violation.
+     */
+    #[DataProvider('malformedTransportResponseProvider')]
+    public function testMalformedTransportResponseFailsLoudAtTheSeam(array $response): void
+    {
+        $transport = new class ($response) implements ArrTransportInterface {
+            /**
+             * @param array<array-key, mixed> $response The canned violation.
+             */
+            public function __construct(private array $response)
+            {
+            }
+
+            /**
+             * @param array<string, string> $headers
+             *
+             * @return array<array-key, mixed>
+             */
+            public function request(string $method, string $url, array $headers = [], ?string $body = null): array
+            {
+                return $this->response;
+            }
+
+            public function close(): void
+            {
+            }
+        };
+        $client = new class (
+            'http://0.0.0.0:1',
+            'configured-key-9e1c',
+            null,
+            30,
+            $transport
+        ) extends RadarrClient {
+            protected function vendorName(): string
+            {
+                return 'Test';
+            }
+        };
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Test transport returned an invalid response shape');
+
+        $client->getMovies();
+    }
+
+    /**
+     * The seam guard parses the two contract keys; it must not reject a
+     * compliant response for carrying extras. This leg is green at the
+     * parent and stays green with the guard shipped — the anti-over-
+     * tightening pin proving the fix validates, not narrows, the shape.
+     */
+    public function testTransportResponseWithExtraKeysIsStillValid(): void
+    {
+        $transport = new class implements ArrTransportInterface {
+            /**
+             * @param array<string, string> $headers
+             *
+             * @return array<array-key, mixed>
+             */
+            public function request(string $method, string $url, array $headers = [], ?string $body = null): array
+            {
+                return ['status' => 200, 'body' => '[]', 'headers' => ['X-Extra' => '1']];
+            }
+
+            public function close(): void
+            {
+            }
+        };
+        $client = new class (
+            'http://0.0.0.0:1',
+            'configured-key-9e1c',
+            null,
+            30,
+            $transport
+        ) extends RadarrClient {
+            protected function vendorName(): string
+            {
+                return 'Test';
+            }
+        };
+
+        $this->assertSame([], $client->getMovies());
     }
 
     /**
