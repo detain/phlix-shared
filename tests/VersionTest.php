@@ -298,8 +298,12 @@ final class VersionTest extends TestCase
      *
      *  1. release-ritual arm — the exact shape the finding prescribes:
      *     `git tag --points-at HEAD`. On the day a cut is tagged, its
-     *     heading must already be in the file at that very commit; a
-     *     mid-cycle untagged HEAD leaves this arm quiet by design.
+     *     heading must already be in the file at that very commit — the
+     *     arm matches against the CHANGELOG.md blob committed at HEAD
+     *     (gitBlobAt), never the working-tree file, so a heading added
+     *     only to an uncommitted working copy cannot smuggle a
+     *     heading-less cut past the ritual. A mid-cycle untagged HEAD
+     *     leaves this arm quiet by design.
      *  2. census arm — every version-shaped tag the checkout can see must
      *     own a `## [x.y.z]` heading unless it is one of the five dated
      *     historical gaps in HEADING_EXEMPT_TAGS. No guard may fabricate a
@@ -371,6 +375,7 @@ final class VersionTest extends TestCase
             'HEADING_EXEMPT_TAGS names tags this checkout cannot see — retire each exemption deliberately in the same commit that removes the tag, or the list stops being a census of real gaps.'
         );
 
+        $headContents = self::gitBlobAt('HEAD', 'CHANGELOG.md');
         $ritualMisses = [];
         foreach ($headTags as $tag) {
             if (preg_match('/^v\d+\.\d+\.\d+$/', $tag) !== 1) {
@@ -379,7 +384,12 @@ final class VersionTest extends TestCase
             if (in_array($tag, self::HEADING_EXEMPT_TAGS, true)) {
                 continue;
             }
-            if (!self::changelogHasHeading($contents, $tag)) {
+            if ($headContents === null) {
+                $this->markTestSkipped(
+                    'A version tag points at HEAD, but this checkout cannot read the CHANGELOG.md blob committed at HEAD; the cut-time arm refuses to fall back to the working-tree file.'
+                );
+            }
+            if (!self::changelogHasHeading($headContents, $tag)) {
                 $ritualMisses[] = $tag;
             }
         }
