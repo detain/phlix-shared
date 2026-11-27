@@ -1141,4 +1141,468 @@ class TrashGuidesProviderTest extends TestCase
             @rmdir($dir);
         }
     }
+
+    /**
+     * Reflection call of the private fetchUrl() used by the seam tests: the
+     * seam hands (url, remainingDeadlineSeconds) per hop and returns the raw
+     * result; fetchUrl() owns the walk (phlix-shared-009).
+     */
+    private function invokeSeamFetch(TrashGuidesProvider $provider, string $url, ?int $maxBytes = null): string
+    {
+        $method = new \ReflectionMethod(TrashGuidesProvider::class, 'fetchUrl');
+        $method->setAccessible(true);
+        /** @var string $body */
+        $body = $maxBytes === null
+            ? $method->invoke($provider, $url)
+            : $method->invoke($provider, $url, $maxBytes);
+
+        return $body;
+    }
+
+    /**
+     * S-shared-09: the injected transport IS the mechanism. The https stream
+     * wrapper is deliberately UNREGISTERED for the call, so a green run
+     * proves every dial rode the seam (any wrapper fallback would die on the
+     * missing handler); the seam saw the resolved redirect target for hop 2
+     * (the walk stays owned by this class) and each hop received only the
+     * remaining deadline budget as its timeout.
+     */
+    public function testTransportSeamDrivesTheWholeRedirectWalkWithoutTheStreamWrapper(): void
+    {
+        /** @var list<array{url: string, timeout: float}> $calls */
+        $calls = [];
+        $transport = function (string $url, float $timeoutSeconds) use (&$calls): array {
+            $calls[] = ['url' => $url, 'timeout' => $timeoutSeconds];
+            if (count($calls) === 1) {
+                return [
+                    'body' => '',
+                    'headers' => [
+                        'HTTP/1.1 301 Moved Permanently',
+                        'Location: https://cdn.example.invalid/guides.json',
+                    ],
+                ];
+            }
+
+            return ['body' => '{"payload":"seam"}', 'headers' => ['HTTP/1.1 200 OK']];
+        };
+        $provider = new TrashGuidesProvider(null, $transport);
+
+        self::assertTrue(stream_wrapper_unregister('https'));
+        try {
+            $body = $this->invokeSeamFetch($provider, 'https://raw.example.invalid/guides.json');
+        } finally {
+            self::assertTrue(stream_wrapper_restore('https'));
+        }
+
+        $this->assertSame('{"payload":"seam"}', $body);
+        $this->assertCount(2, $calls);
+        $this->assertSame('https://raw.example.invalid/guides.json', $calls[0]['url']);
+        $this->assertSame('https://cdn.example.invalid/guides.json', $calls[1]['url']);
+        $this->assertGreaterThan(0.0, $calls[0]['timeout']);
+        $this->assertLessThanOrEqual(30.0, $calls[0]['timeout']);
+        $this->assertLessThanOrEqual($calls[0]['timeout'], $calls[1]['timeout']);
+    }
+
+    /**
+     * S-shared-09: a downgraded redirect target is refused BEFORE the seam is
+     * ever asked to dial it — the seam must not become a way to route the
+     * https policy around itself. The refusal keeps the pre-existing wrapped
+     * hop message and chains the gate's own exception.
+     */
+    public function testTransportSeamNeverDialsADowngradedRedirectTarget(): void
+    {
+        /** @var list<string> $dialed */
+        $dialed = [];
+        $transport = static function (string $url, float $timeoutSeconds) use (&$dialed): array {
+            $dialed[] = $url;
+
+            return [
+                'body' => '',
+                'headers' => [
+                    'HTTP/1.1 301 Moved Permanently',
+                    'Location: http://127.0.0.1:1/evil.json',
+                ],
+            ];
+        };
+        $provider = new TrashGuidesProvider(null, $transport);
+
+        try {
+            $this->invokeSeamFetch($provider, 'https://raw.example.invalid/guides.json');
+            $this->fail('a downgraded hop must end the walk with a refusal');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame(
+                'Failed to fetch TRaSH-Guides data from: https://raw.example.invalid/guides.json'
+                    . ' (redirect hop 1: TRaSH-Guides fetch refused:'
+                    . ' only https:// URLs are allowed (got scheme "http"))',
+                $exception->getMessage()
+            );
+            $previous = $exception->getPrevious();
+            $this->assertInstanceOf(\RuntimeException::class, $previous);
+            $this->assertSame(
+                'TRaSH-Guides fetch refused: only https:// URLs are allowed (got scheme "http")',
+                $previous->getMessage()
+            );
+        }
+
+        $this->assertSame(['https://raw.example.invalid/guides.json'], $dialed);
+    }
+
+    /**
+     * S-shared-09: a final (non-redirect) response must be 2xx. A 404 body,
+     * an unanswered 304, or a 3xx without Location used to flow onward as if
+     * it were the document, feeding upstream garbage into the *arr sync
+     * chain; each is now refused, naming its status.
+     */
+    public function testFinalNon2xxResponsesAreRefusedWithTheirStatus(): void
+    {
+        $cases = [
+            [404, '{"error":"gone"}', ['HTTP/1.1 404 Not Found']],
+            [304, '', ['HTTP/1.1 304 Not Modified']],
+            [301, '', ['HTTP/1.1 301 Moved Permanently']],
+        ];
+        foreach ($cases as [$status, $body, $headers]) {
+            $transport = static function (string $url, float $timeoutSeconds) use ($body, $headers): array {
+                return ['body' => $body, 'headers' => $headers];
+            };
+            $provider = new TrashGuidesProvider(null, $transport);
+
+            try {
+                $this->invokeSeamFetch($provider, 'https://raw.example.invalid/guides.json');
+                $this->fail('final status ' . $status . ' must be refused');
+            } catch (\RuntimeException $exception) {
+                $this->assertSame(
+                    'Failed to fetch TRaSH-Guides data from:'
+                        . ' https://raw.example.invalid/guides.json (final response status ' . $status . ')',
+                    $exception->getMessage()
+                );
+            }
+        }
+    }
+
+    /**
+     * S-shared-09: ONE deadline bounds the WHOLE walk. Every hop burns part
+     * of the 0.08 s budget; without a shared deadline the six-dial redirect
+     * budget alone gave 6 x 30 s and each hop previously renewed a fresh
+     * timeout. The walk must stop with the deadline refusal, strictly inside
+     * the hop budget, and the very first hop must have been handed at most
+     * the total budget as its timeout.
+     */
+    public function testOverallFetchDeadlineStopsTheRedirectWalk(): void
+    {
+        /** @var list<array{url: string, timeout: float}> $calls */
+        $calls = [];
+        $transport = function (string $url, float $timeoutSeconds) use (&$calls): array {
+            $calls[] = ['url' => $url, 'timeout' => $timeoutSeconds];
+            usleep(30000);
+
+            return [
+                'body' => '',
+                'headers' => [
+                    'HTTP/1.1 301 Moved Permanently',
+                    'Location: https://h' . count($calls) . '.example.invalid/guides.json',
+                ],
+            ];
+        };
+        $provider = new TrashGuidesProvider(null, $transport, 0.08);
+
+        try {
+            $this->invokeSeamFetch($provider, 'https://raw.example.invalid/guides.json');
+            $this->fail('an exhausted fetch deadline must stop the walk');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString(
+                '(overall 0.08-second fetch deadline elapsed before hop ',
+                $exception->getMessage()
+            );
+        }
+
+        $this->assertGreaterThanOrEqual(1, count($calls));
+        $this->assertLessThan(6, count($calls), 'the deadline must trip before the redirect-hop budget does');
+        $this->assertLessThanOrEqual(0.08, $calls[0]['timeout']);
+    }
+
+    /**
+     * S-shared-09: the byte cap is enforced on seam bodies too — the seam is
+     * not a way around the read ceiling.
+     */
+    public function testTransportSeamBodiesObeyTheByteCap(): void
+    {
+        $transport = static function (string $url, float $timeoutSeconds): array {
+            return ['body' => str_repeat('a', 17), 'headers' => ['HTTP/1.1 200 OK']];
+        };
+        $provider = new TrashGuidesProvider(null, $transport);
+
+        try {
+            $this->invokeSeamFetch($provider, 'https://raw.example.invalid/guides.json', 16);
+            $this->fail('an over-cap seam body must be refused');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame(
+                'Failed to fetch TRaSH-Guides data from: https://raw.example.invalid/guides.json'
+                    . ' (response exceeds the 16-byte cap)',
+                $exception->getMessage()
+            );
+        }
+    }
+
+    /**
+     * S-shared-09: the seam is third-party code, so its promise is a CHECK,
+     * not a comment — a non-array result, a missing/non-string body, or a
+     * header stack that is not a list of raw strings fails loud with the
+     * stable prefix naming the violation, before it could reach redirect
+     * parsing or JSON-decode.
+     */
+    public function testTransportSeamShapeViolationsFailLoud(): void
+    {
+        /** @var list<array{0: mixed, 1: string}> $violations */
+        $violations = [
+            ['nope', 'transport seam returned string, expected an array'],
+            [['headers' => ['HTTP/1.1 200 OK']], 'transport seam "body" must be a string, got null'],
+            [['body' => 7, 'headers' => ['HTTP/1.1 200 OK']], 'transport seam "body" must be a string, got int'],
+            [
+                ['body' => 'ok', 'headers' => ['status' => 'HTTP/1.1 200 OK']],
+                'transport seam "headers" must be a list of raw header strings',
+            ],
+            [
+                ['body' => 'ok', 'headers' => ['HTTP/1.1 200 OK', 5]],
+                'transport seam "headers" must be a list of raw header strings',
+            ],
+        ];
+        foreach ($violations as [$result, $why]) {
+            $transport = static function (string $url, float $timeoutSeconds) use ($result): mixed {
+                return $result;
+            };
+            $provider = new TrashGuidesProvider(null, $transport);
+
+            try {
+                $this->invokeSeamFetch($provider, 'https://raw.example.invalid/guides.json');
+                $this->fail('a malformed seam result must be refused: ' . $why);
+            } catch (\RuntimeException $exception) {
+                $this->assertSame(
+                    'Failed to fetch TRaSH-Guides data from:'
+                        . ' https://raw.example.invalid/guides.json (' . $why . ')',
+                    $exception->getMessage()
+                );
+            }
+        }
+    }
+
+    /**
+     * S-shared-09: the enabled knob is honoured end to end. The posture is
+     * opt-OUT — absent or truthy keeps fetching (the observable behavior of
+     * every config that ever ran this class); explicit false/0/'' mute the
+     * cold-path ladders with the documented refusal, mirroring the sibling
+     * Arr factory truthiness law.
+     */
+    public function testRequireEnabledHonoursTheOptOutTruthTable(): void
+    {
+        $provider = new TrashGuidesProvider();
+        $method = new \ReflectionMethod(TrashGuidesProvider::class, 'requireEnabled');
+        $method->setAccessible(true);
+
+        $allowed = [[], ['enabled' => true], ['enabled' => 1], ['enabled' => 'keep-on']];
+        foreach ($allowed as $config) {
+            $method->invoke($provider, $config);
+        }
+
+        $blocked = [['enabled' => false], ['enabled' => 0], ['enabled' => '']];
+        foreach ($blocked as $config) {
+            try {
+                $method->invoke($provider, $config);
+                $this->fail('an explicit falsey "enabled" must refuse the cold-path fetch');
+            } catch (\RuntimeException $exception) {
+                $this->assertSame(
+                    'TRaSH-Guides fetching is disabled (config "enabled" is false)',
+                    $exception->getMessage()
+                );
+            }
+        }
+    }
+
+    /**
+     * S-shared-09: the shipped fallback config keeps enabled true, so a
+     * consumer that never wrote the key (every existing deployment) still
+     * fetches — the flip from the old phantom-knob fallback is a deliberate
+     * opt-OUT posture, not an accidental opt-IN.
+     */
+    public function testFallbackConfigShipsFetchingEnabled(): void
+    {
+        $provider = new TrashGuidesProvider();
+        $method = new \ReflectionMethod(TrashGuidesProvider::class, 'loadConfig');
+        $method->setAccessible(true);
+        /** @var array<string, mixed> $config */
+        $config = $method->invoke($provider);
+
+        $this->assertSame(true, $config['enabled']);
+    }
+
+    /**
+     * S-shared-09 wiring law, pinned at the source level: every cold-path
+     * ladder runs requireEnabled AFTER the config load and BEFORE the fetch
+     * leg, so disabled fetching neither dials nor populates the memos.
+     */
+    public function testGettersGateEnabledFetchingBeforeDialling(): void
+    {
+        foreach (['getQualityProfiles', 'getCustomFormats', 'getVersion'] as $name) {
+            $method = new \ReflectionMethod(TrashGuidesProvider::class, $name);
+            $file = $method->getFileName();
+            $this->assertIsString($file);
+            $lines = file($file);
+            $this->assertIsArray($lines);
+            $body = implode('', array_slice(
+                $lines,
+                (int) $method->getStartLine() - 1,
+                (int) $method->getEndLine() - (int) $method->getStartLine() + 1
+            ));
+
+            $gate = strpos($body, '$this->requireEnabled($config)');
+            $dial = strpos($body, '$this->fetchUrl(');
+
+            $this->assertIsInt($gate, $name . ' must consult requireEnabled()');
+            $this->assertIsInt($dial, $name . ' must run the fetch ladder');
+            $this->assertLessThan($dial, $gate, $name . ' must gate enabled BEFORE dialling anything');
+        }
+    }
+
+    /**
+     * S-shared-09: constructor shape + deadline validation. The seam and the
+     * deadline override join the optional logger positionally without
+     * breaking the zero-arg construction every consumer uses today; a
+     * non-positive budget fails loud at construction, before any state is
+     * assigned.
+     */
+    public function testConstructorShapeAndDeadlineValidation(): void
+    {
+        $constructor = new \ReflectionMethod(TrashGuidesProvider::class, '__construct');
+        $parameters = $constructor->getParameters();
+
+        $this->assertCount(3, $parameters);
+        $this->assertSame(
+            ['logger', 'transport', 'fetchDeadlineSeconds'],
+            array_map(static fn (\ReflectionParameter $parameter): string => $parameter->getName(), $parameters)
+        );
+        foreach ($parameters as $parameter) {
+            $this->assertTrue($parameter->isOptional());
+            $this->assertNull($parameter->getDefaultValue());
+        }
+
+        foreach ([0.0, -1.0] as $invalid) {
+            try {
+                new TrashGuidesProvider(null, null, $invalid);
+                $this->fail('a non-positive deadline override must be rejected at construction');
+            } catch (\InvalidArgumentException $exception) {
+                $this->assertSame(
+                    'TRaSH-Guides fetch deadline must be a positive number of seconds, got ' . $invalid . '.',
+                    $exception->getMessage()
+                );
+            }
+        }
+    }
+
+    /**
+     * S-shared-09 error-isolation law, lexed: the provider must never
+     * install or remove a GLOBAL error handler. Swapping the process-wide
+     * handler for the fetch window stole the warning stream from the host
+     * application's own hook; the wrapper warning now rides the chained
+     * ErrorException instead, recovered from error_get_last().
+     */
+    public function testProviderNeverTouchesTheGlobalErrorHandler(): void
+    {
+        $method = new \ReflectionMethod(TrashGuidesProvider::class, 'readUrlBody');
+        $file = $method->getFileName();
+        $this->assertIsString($file);
+        $source = file_get_contents($file);
+        $this->assertIsString($source);
+
+        $found = [];
+        foreach (token_get_all($source) as $token) {
+            if (
+                is_array($token)
+                && $token[0] === T_STRING
+                && ($token[1] === 'set_error_handler' || $token[1] === 'restore_error_handler')
+            ) {
+                $found[] = $token[1];
+            }
+        }
+
+        $this->assertSame([], $found, 'the provider must not swap the process error handler');
+    }
+
+    /**
+     * S-shared-09 visibility law: the wrapper warning that backs the chained
+     * ErrorException must ALSO still reach an application-installed error
+     * hook. Under the old swapped-handler code the provider replaced the
+     * host's handler for the fetch window and a recording hook saw nothing;
+     * now @-suppression only hides display (@ never skips custom handlers),
+     * so the app hook observes the warning while error_get_last() keeps
+     * feeding the chain.
+     */
+    public function testSuppressedWrapperWarningStillReachesTheApplicationErrorHook(): void
+    {
+        /** @var list<string> $seen */
+        $seen = [];
+        $provider = new TrashGuidesProvider();
+
+        self::assertTrue(stream_wrapper_unregister('https'));
+        try {
+            set_error_handler(static function (int $errno, string $message) use (&$seen): bool {
+                $seen[] = $message;
+
+                return true;
+            });
+
+            $this->invokeSeamFetch($provider, 'https://raw.example.invalid/guides.json');
+            $this->fail('the fetch must fail with the wrapper unregistered');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringStartsWith(
+                'Failed to fetch TRaSH-Guides data from: https://raw.example.invalid/guides.json',
+                $exception->getMessage()
+            );
+        } finally {
+            restore_error_handler();
+            self::assertTrue(stream_wrapper_restore('https'));
+        }
+
+        $observedByAppHook = array_filter(
+            $seen,
+            static fn (string $message): bool => str_contains($message, 'file_get_contents')
+        );
+        $this->assertNotEmpty(
+            $observedByAppHook,
+            'the application error hook must observe the suppressed wrapper warning'
+        );
+    }
+
+    /**
+     * S-shared-09 end to end: a public getter runs the whole ladder over the
+     * seam — enabled gate, https gate, byte cap, 2xx law, JSON parse, and
+     * memoization — with no network and no stream wrapper at all (the
+     * wrapper stays unregistered so any fallback to it fails this test loudly
+     * instead of dialing the internet).
+     */
+    public function testCustomFormatsLadderRunsEndToEndThroughTheSeam(): void
+    {
+        $calls = 0;
+        $transport = static function (string $url, float $timeoutSeconds) use (&$calls): array {
+            $calls++;
+
+            return [
+                'body' => '{"formats":[{"id":1,"name":"seam-formats"}]}',
+                'headers' => ['HTTP/1.1 200 OK'],
+            ];
+        };
+        $provider = new TrashGuidesProvider(null, $transport);
+
+        self::assertTrue(stream_wrapper_unregister('https'));
+        try {
+            $formats = $provider->getCustomFormats();
+            $this->assertSame([['id' => 1, 'name' => 'seam-formats']], $formats['formats']);
+
+            // Same-instance memo: the second call must not re-dial.
+            $again = $provider->getCustomFormats();
+            $this->assertSame($formats, $again);
+            $this->assertSame(1, $calls);
+        } finally {
+            self::assertTrue(stream_wrapper_restore('https'));
+            $provider->clearCache();
+        }
+    }
 }
