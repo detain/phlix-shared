@@ -40,6 +40,10 @@ use function strlen;
  * per-repo >65535 wording to the server phrasing this class takes by
  * design ruling — is the next adoption wave's disclosed job.
  *
+ * Instance shape: {@see FrameCodecWireAdapter} exposes these statics as the
+ * canonical {@see RelayWireCodecInterface} implementation (encode legs are
+ * pure delegation; its decode() fails loud — see that class for the law).
+ *
  * Decode is deliberately NOT unified here: the server skip-oracle (null on
  * unknown type, buffer head skippable) and the hub throw-on-unknown semantics
  * are intentional role-specific asymmetries. Per-repo
