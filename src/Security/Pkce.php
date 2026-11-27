@@ -24,12 +24,12 @@ use function strtr;
 /**
  * PKCE (RFC 7636) — **S256 only**.
  *
- * Canonical source: phlix-hub `src/OAuth/Pkce.php` (S92), ported verbatim by
- * the v0.56.0 design (SHARED-056-DESIGN.md M-02). The server-side OAuth2
- * client helpers (`computeCodeChallenge` / `base64UrlEncode` / verifier
- * generation in `Phlix\Plugins\OAuth2\Pkce`) converge onto this class in the
- * S1 adoption wave; {@see self::generateCodeVerifier()} is the additive
- * client-side seam that replaces them.
+ * Canonical source: phlix-hub `src/OAuth/Pkce.php`, ported verbatim at the
+ * v0.56.0 wave. The server-side OAuth2 client helpers
+ * (`computeCodeChallenge` / `base64UrlEncode` / verifier generation in
+ * phlix-server `src/Plugins/OAuth2/Pkce.php`) converged onto this class in
+ * the same adoption wave; {@see self::generateCodeVerifier()} is the
+ * additive client-side seam that replaced them.
  *
  * ## The one thing to understand about this class
  *

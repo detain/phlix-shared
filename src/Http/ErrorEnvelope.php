@@ -12,7 +12,7 @@ declare(strict_types=1);
 namespace Phlix\Shared\Http;
 
 /**
- * Canonical `{error, code}` JSON envelope body law (v0.57 leg 0.10 M-16, A-04).
+ * Canonical `{error, code}` JSON envelope body law (v0.57 wave).
  *
  * Lifted from the estate twins' identical emit lines: phlix-server
  * `src/Server/Http/Response.php` `error()` (:212) and phlix-hub
@@ -26,12 +26,12 @@ namespace Phlix\Shared\Http;
  * single `Retry-After` formatter on both sides (hub :280-285).
  *
  * STATUS/header/JSON-encode glue stays per-repo — both `Response` classes
- * extend the Workerman response (G-14); this kernel owns the BODY shape and
+ * extend the Workerman response; this kernel owns the BODY shape and
  * the header VALUE formatting. Header ORDER law (Retry-After before
  * Content-Type) lives in the consumers' `Response::rateLimited()` and is
  * pinned by each repo's envelope corpus tests.
  *
- * Divergence vs the design note (SHARED-056-DESIGN.md §M-16): the sketched
+ * Divergence vs the original design sketch: the sketched
  * `rateLimited(int $retryAfterSeconds)` / `maintenance(int ...)` signatures
  * are not expressible at body level — on neither host does the seconds value
  * ride the JSON body (it is a `Retry-After` HEADER only, RFC 9110 §10.2.3
@@ -40,10 +40,12 @@ namespace Phlix\Shared\Http;
  * `retryAfterHeader(int)` owns the header value. The hub's 503 maintenance
  * frame (`Application::maintenanceResponse()` :294-303) is a call-site
  * composition riding the same law — `build()` with host copy in `error` and
- * the HUB-49 disambiguation `detail` additive; the words stay hub-branded,
- * the SHAPE is shared (A-04: "same law as rateLimitResponse"). The server's
- * legacy `errorPlain()` half-envelope (no `code`) is a deliberate per-repo
- * wire shape (InlineErrorEnvelopeAdoptionTest pins) and is NOT lifted here.
+ * the hub's disambiguation `detail` additive; the words stay hub-branded,
+ * the SHAPE is shared (the "same law as rateLimitResponse" ruling). The
+ * server's legacy `errorPlain()` half-envelope (no `code`) is a deliberate
+ * per-repo wire shape (pinned by phlix-server
+ * `tests/Unit/Server/Http/InlineErrorEnvelopeAdoptionTest.php`) and is NOT
+ * lifted here.
  *
  * @see \Phlix\Shared\RateLimit\RateLimitException for the trip this envelope answers.
  */

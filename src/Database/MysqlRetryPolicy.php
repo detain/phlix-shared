@@ -19,10 +19,11 @@ namespace Phlix\Shared\Database;
  * {@see MysqlError::driverCode()}) and whether a transaction was open
  * when the statement died. Everything else — the SQL prefix, the wrap
  * fidelity, the connection close — is execution on the consumer side.
- * One table, both repos, no drift: the estate design's Option-B ask.
+ * One table, both repos, no drift: the v0.57 SSOT-unification ask.
  *
- * Documented deviation from the design sketch: §3 lists "poisoned" as a
- * third input to the decision table. No branch consumes it. Marking on
+ * Documented deviation from the original design sketch: it listed
+ * "poisoned" as a third input to the decision table; no branch consumes
+ * it. Marking on
  * the gone-in-transaction arm is idempotent whether or not a previous
  * incident already poisoned the connection, and the one-shot consumption
  * of the mark is owned by the state machine

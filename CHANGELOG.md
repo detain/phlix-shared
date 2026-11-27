@@ -59,6 +59,22 @@ Fixed: a sodium-less build no longer dies with a fatal undefined-function
   positive arm, probe shape/host truth, and a wiring census confining the
   sodium tokens to the seam (phlix-shared-023, S-shared-22).
 
+Fixed: src docblocks no longer point at the private-program design notes
+  (`SHARED-056-DESIGN.md`, `SHARED-057-CHARTER.md`, `DESIGN-TX-MUTEX.md`)
+  or their bare section/ruling ids — those registers never shipped in this
+  package, so a consumer following any citation found nothing. Every cited
+  ruling is now stated inline where it governs: `Relay/FrameCodec` carries
+  the adoption state from disk truth (server delegates since v0.56.0; the
+  hub funnels through its own single encoder call site, wire-pinned
+  identical, and its delegation plus >65535 wording re-string are the next
+  adoption wave's job), `Http/ErrorEnvelope`, `Http/WebSocketHandshake`,
+  `Database/MysqlTxLockState`, `Database/MysqlRetryPolicy`,
+  `Security/Pkce`, `Security/Hmac` and `Plugin/Manifest` keep their
+  rationales self-contained, naming the sibling-repo path wherever a
+  ruling truly lives there. Docblock prose only — zero executable lines
+  moved. Historical CHANGELOG entries citing the notes stay verbatim by
+  the history law (phlix-shared-038, S-shared-32).
+
 ## [0.59.0] - 2026-11-21
 
 Minor: v0.59.0 release cut (program `refactor-1119`, owner order

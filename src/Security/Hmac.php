@@ -31,16 +31,16 @@ namespace Phlix\Shared\Security;
  * {@see self::verifySha256Hex()} is a deprecated alias delegating to it
  * verbatim — one comparison, no duplicated logic that could diverge.
  *
- * Envelope separator (M-07, v0.56.0). The class documented exactly one
+ * Envelope separator (v0.56.0). The class documented exactly one
  * envelope — `sha256:<hex>` — while the estate has a second, wire-frozen
  * sibling: the webhook legacy header is `sha256=<hex>` and receivers gate on
  * that literal. The separator is now a trailing parameter defaulting to the
  * colon, so the documented `sha256:` contract above stays byte-true for every
  * existing call shape, and the equals arm lets the webhook signer/verifier
- * adoption (S1.10, red-first byte-pinned against recorded `sha256=` fixtures
- * there) reuse this one audited primitive instead of hand-rolling the
- * envelope — the "false-SSOT with zero importers is itself the defect" debt
- * (B-10) paid forward.
+ * adoption in phlix-server (`src/Webhooks/WebhookEvent.php`, red-first
+ * byte-pinned against recorded `sha256=` fixtures there) reuse this one
+ * audited primitive instead of hand-rolling the envelope — the "false-SSOT
+ * with zero importers is itself the defect" debt paid forward.
  *
  * @package Phlix\Shared\Security
  * @since 0.10.0

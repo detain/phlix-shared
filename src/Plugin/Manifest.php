@@ -49,8 +49,9 @@ use RuntimeException;
  * can be made `final` with the constructor changed to `private`
  * (or `final private`). That flip is a BREAKING change that must be
  * coordinated with phlix-server. It is kept here as a plan-tracking
- * note rather than a shipped tooling tag: the server-subclass
- * retirement is an open row — see plan step B5/CQ4.
+ * note rather than a shipped tooling tag: the phlix-server
+ * `src/Plugins/Manifest.php` subclass wrapper is still present, so the
+ * server-subclass retirement row stays open.
  *
  * @package Phlix\Shared\Plugin
  * @since 0.2.0

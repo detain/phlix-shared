@@ -32,18 +32,20 @@ use function strlen;
  *   - phlix-hub    tests/Unit/Relay/FrameWireCorpusTest.php
  *   - phlix-shared tests/Relay/FrameCodecTest.php        (this repo)
  *
- * Adoption plan: at the v0.56.0 release the server and hub encode legs
- * delegate to the statics below (per SHARED-056-DESIGN.md M-21). Until then
- * this class is INERT — no consumer requires it yet. The >65535 exception
- * wording takes this server phrasing at adoption (DESIGN ruling); the hub's
- * former per-repo wording change is the release lane's disclosed job.
+ * Adoption state: the phlix-server encode legs have delegated to the
+ * statics below since v0.56.0 (`src/Hub/RelayMessageFramer.php`). The hub
+ * still funnels every emitted byte through its own single encoder call
+ * site, pinned byte-identical to these statics by the corpus tests above;
+ * delegating the hub's encode legs here — and with them re-stringing its
+ * per-repo >65535 wording to the server phrasing this class takes by
+ * design ruling — is the next adoption wave's disclosed job.
  *
  * Decode is deliberately NOT unified here: the server skip-oracle (null on
  * unknown type, buffer head skippable) and the hub throw-on-unknown semantics
  * are intentional role-specific asymmetries (scan finding C-07). Per-repo
  * decoders stay per-repo.
  *
- * Self-contained per the shared charter: zero Workerman types, zero I/O.
+ * Self-contained: zero Workerman types, zero I/O.
  *
  * Wire format (all integers big-endian):
  *   [4-byte sequence (uint32)][1-byte frame type][2-byte payload length (uint16)][N payload bytes]
@@ -121,8 +123,8 @@ final class FrameCodec
     /**
      * Encode a HELLO_ACK handshake response (JSON text).
      *
-     * Note: SHARED-056-DESIGN.md M-21 sketched this with a single
-     * $relaySessionId argument. That is a DESIGN erratum — the frozen
+     * Note: the original design sketch specified this with a single
+     * $relaySessionId argument. That was a design erratum — the frozen
      * RelayWireCodecInterface, both repo implementations, and the actual wire
      * JSON all carry TWO fields (relay_session_id AND tunnel_id). This
      * signature follows the wire truth, not the sketch.

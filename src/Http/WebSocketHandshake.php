@@ -23,15 +23,15 @@ namespace Phlix\Shared\Http;
  * become real single-sourcing here); RFC 7230 per-entry comparison after OWS
  * trim: `bearer-chat` is a DIFFERENT protocol-id and does NOT count as an offer.
  *
- * Scope law (§5): ONLY the string kernels move. The Workerman `Request`
+ * Scope law: ONLY the string kernels move. The Workerman `Request`
  * adapter (`upgradeHeader()`, byte-identical bodies on both sides) stays
- * per-repo — its parameter is Workerman's Request class (G-14). The carrier
+ * per-repo — its parameter is Workerman's Request class. The carrier
  * POLICY stays per-repo ON PURPOSE and is NOT unified: the server still
  * accepts the legacy `?token=` carrier behind `QueryTokenGatePolicy` while
- * the hub refuses it (S237 bearer-only law). The echo gate for the 101 answer
+ * the hub refuses it (the bearer-only law). The echo gate for the 101 answer
  * lives here so both hosts negotiate identically; a token sharing the
  * browser carrier is never a selection candidate — echoing it would put a
- * live credential on the RESPONSE wire (the S2b/S237 exposure law).
+ * live credential on the RESPONSE wire (the exposure law).
  *
  * Disclosed kernel deltas (all behavior-preserving on real inputs):
  * `negotiatedSubprotocolEchoLine()` generalizes the hub's bearer-only echo to

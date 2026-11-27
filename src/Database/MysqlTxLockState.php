@@ -34,7 +34,7 @@ use PDOException;
  *  - Stranger-inert ends (incident 1.2, hub): commit/rollback by a
  *    non-holder is inert success, ABOVE the poison check — a stranger
  *    cannot deplete the holder's one-shot refusal budget.
- *  - Hand-off ordering (design §1.5): releasing clears the holder
+ *  - Hand-off ordering: releasing clears the holder
  *    BEFORE the token push is issued, and the push is the LAST write to
  *    the shared ledger, because Swoole resumes a parked waiter
  *    synchronously inside push(). Replacing or re-walking the ledger
@@ -44,8 +44,8 @@ use PDOException;
  *    by the refusal, cleared by begin/rollback paths, and flattened
  *    wholesale on reconnect because a fresh socket cannot carry the
  *    previous socket's transaction.
- *  - The query fast-path needs BOTH terms (incident 1.4, server cure
- *    A4): {@see self::holdingTransactionFor()} is the holder check that
+ *  - The query fast-path needs BOTH terms (incident 1.4, server cure):
+ *    {@see self::holdingTransactionFor()} is the holder check that
  *    the landed gate had to grow.
  *
  * What this class deliberately is NOT: it performs no I/O and knows no
@@ -288,7 +288,7 @@ final class MysqlTxLockState
      *     end, then {@see self::handOff()}.
      *
      * Why the flag moves BEFORE the vendor call: the hand-off must be
-     * observable as clean (§1.5), and a vendor throw still leaves the
+     * observable as clean, and a vendor throw still leaves the
      * finally-block hand-off well-formed.
      */
     public function claimCommit(int $cid): TxEnd
@@ -367,7 +367,7 @@ final class MysqlTxLockState
     /**
      * The hand-off: end the lease cleanly.
      *
-     * Order is the §1.5 invariant in code form — poison cleared, holder
+     * Order is the hand-off invariant in code form — poison cleared, holder
      * set free, and only then the token pushed. Because Swoole resumes a
      * parked waiter synchronously inside push(), anything visible after
      * the push is visible to the new holder at wake-up; the push is
