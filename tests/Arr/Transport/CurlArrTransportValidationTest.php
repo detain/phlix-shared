@@ -18,7 +18,9 @@ use RuntimeException;
 /**
  * Unit tests for CurlArrTransport input validation.
  *
- * Tests the validation branches in request() for empty URL and empty method.
+ * Tests the validation branches in request() for empty URL and empty method,
+ * and the constructor's fail-fast on a non-positive response cap
+ * (phlix-shared-032).
  *
  * @package Phlix\Shared\Tests\Arr\Transport
  */
@@ -102,11 +104,39 @@ final class CurlArrTransportValidationTest extends TestCase
     {
         $transport = new CurlArrTransport(1, 1);
 
+        $payload = '{"op":"replace","path":"/name","value":"new"}';
+
         try {
-            $transport->request('PATCH', 'http://0.0.0.0:1/api', ['Content-Type: application/json'], '{"op":"replace","path":"/name","value":"new"}');
+            $transport->request('PATCH', 'http://0.0.0.0:1/api', ['Content-Type: application/json'], $payload);
             $this->fail('Expected RuntimeException from cURL');
         } catch (RuntimeException $e) {
             $this->assertStringNotContainsString('empty request', $e->getMessage());
         }
+    }
+
+    /**
+     * phlix-shared-032: a zero/negative response cap would make the capped
+     * sink reject the first byte of every transfer (or worse, silently
+     * disable it under a "<=" comparison) — the knob fails fast at
+     * construction instead, naming itself.
+     *
+     * @return array<string, array{int}>
+     */
+    public static function nonPositiveCapProvider(): array
+    {
+        return [
+            'zero' => [0],
+            'negative' => [-1],
+            'far negative' => [-1024],
+        ];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('nonPositiveCapProvider')]
+    public function testConstructorRejectsNonPositiveMaxResponseBytes(int $cap): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessageMatches('/maxResponseBytes must be positive/');
+
+        new CurlArrTransport(1, 1, $cap);
     }
 }

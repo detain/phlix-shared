@@ -27,16 +27,22 @@ use RuntimeException;
  *
  * All HTTP I/O is delegated to an injected {@see ArrTransportInterface}. When none
  * is supplied the class falls back to the bundled, **blocking** {@see CurlArrTransport}
- * so direct instantiation in CLI scripts/tests keeps working unchanged. On a
- * cooperative event loop (Workerman/Webman) a blocking request stalls the whole
- * worker while an *arr call is in flight, so those consumers should inject an
- * async, non-blocking transport — unless the platform hooks curl itself:
- * phlix-hub deliberately keeps this default transport under its S425
- * adjudication (its resident workers enable `SWOOLE_HOOK_ALL`, which includes
- * `SWOOLE_HOOK_NATIVE_CURL`, so the blocking call yields its coroutine below
- * this layer), while phlix-server injects a workerman/http-client-backed
- * transport precisely because its curated Swoole hook mask excludes native
- * curl. See {@see ArrTransportInterface}.
+ * so direct instantiation in CLI scripts/tests keeps working unchanged.
+ *
+ * RUNTIME TRUTH (phlix-shared-001): an earlier revision of this note claimed
+ * phlix-hub keeps this default transport because its resident workers enable
+ * `SWOOLE_HOOK_ALL` (curl hooked, so the blocking call yields). That was false
+ * at the shipped config: hub's start.php re-applies the curated
+ * `SwooleRuntime` hook mask on every worker start, and that mask DROPS the
+ * curl hooks — `curl_exec` on hub workers is an ordinary blocking syscall.
+ * The hazard of the default transport there is a WORKER STALL of up to the
+ * request timeout, per *arr call, several calls deep on the admin approve
+ * chain — a tolerated stall, not a coroutine property. Cooperative
+ * event-loop consumers (Workerman/Webman) should therefore inject an async,
+ * non-blocking transport regardless of platform, which is exactly what
+ * phlix-server does. The bundled default additionally serializes on one
+ * process-wide handle behind a fail-loud in-flight guard (see
+ * {@see CurlArrTransport}). See {@see ArrTransportInterface}.
  *
  * @package Phlix\Shared\Arr
  * @since 0.4.0
@@ -61,18 +67,23 @@ abstract class AbstractArrClient
      *     their own timing (there used to be a write-once `$this->timeout`
      *     copy nothing ever read).
      * @param ArrTransportInterface|null $transport Optional HTTP transport. When null,
-     *     the blocking {@see CurlArrTransport} is used — appropriate for CLI/tests and
-     *     for runtimes that hook curl (phlix-hub's S425 position); cooperative
-     *     event-loop consumers (Workerman/Webman) should inject an async,
-     *     non-blocking transport. Building that default requires ext-curl;
-     *     a runtime without it fails loud at construction.
+     *     the blocking {@see CurlArrTransport} is used — appropriate for CLI/tests;
+     *     on a resident event-loop worker it stalls that worker for the duration of
+     *     every call (see the RUNTIME TRUTH note in the class docblock), so such
+     *     consumers should inject an async, non-blocking transport. Building the
+     *     default requires ext-curl; a runtime without it fails loud at construction.
+     * @param int $connectTimeout Connect-phase timeout in seconds (phlix-shared-032):
+     *     bounds how long the TCP+TLS handshake alone may stall, independent of the
+     *     overall $timeout. Forwarded to the default transport only; injected
+     *     transports own their own timing.
      */
     public function __construct(
         string $baseUrl,
         string $apiKey,
         ?LoggerInterface $logger = null,
         int $timeout = 30,
-        ?ArrTransportInterface $transport = null
+        ?ArrTransportInterface $transport = null,
+        int $connectTimeout = 5
     ) {
         $scheme = parse_url($baseUrl, PHP_URL_SCHEME);
         if ($scheme === null || ($scheme !== 'http' && $scheme !== 'https')) {
@@ -94,7 +105,7 @@ abstract class AbstractArrClient
         $this->baseUrl = rtrim($baseUrl, '/');
         $this->apiKey = $apiKey;
         $this->logger = $logger;
-        $this->transport = $transport ?? self::defaultTransport($timeout);
+        $this->transport = $transport ?? self::defaultTransport($timeout, $connectTimeout);
 
         // The constructor runs exactly once per instance, so no "logged"
         // flag is needed: one HTTP baseUrl means exactly one warning.
@@ -124,8 +135,12 @@ abstract class AbstractArrClient
      * a consumer without curl injects its own {@see ArrTransportInterface}.
      *
      * @param int $timeout Request timeout in seconds, forwarded to the default.
+     * @param int $connectTimeout Connect-phase timeout in seconds, forwarded to
+     *     the default (phlix-shared-032) — until now the only timeout the
+     *     client ever passed was the overall one, leaving the connect phase at
+     *     whatever the transport defaulted to.
      */
-    private static function defaultTransport(int $timeout): ArrTransportInterface
+    private static function defaultTransport(int $timeout, int $connectTimeout): ArrTransportInterface
     {
         if (!static::hasCurlSupport()) {
             throw new RuntimeException(
@@ -134,7 +149,7 @@ abstract class AbstractArrClient
             );
         }
 
-        return new CurlArrTransport($timeout);
+        return new CurlArrTransport($timeout, $connectTimeout);
     }
 
     /**
@@ -256,8 +271,11 @@ abstract class AbstractArrClient
             );
         }
 
-        // Neither bundled transport follows redirects (CurlArrTransport never
-        // sets CURLOPT_FOLLOWLOCATION), and a 3xx is never a success: a 301
+        // No transport follows redirects — CurlArrTransport pins
+        // CURLOPT_FOLLOWLOCATION => false (explicitly, not by inherited
+        // libcurl default) and the law is stated on ArrTransportInterface for
+        // injected implementations (phlix-shared-027). A 3xx is never a
+        // success: a 301
         // with an empty body used to fall through to the empty-body return
         // and decode as "no data" — surface it as the error it is.
         if ($httpCode >= 300) {

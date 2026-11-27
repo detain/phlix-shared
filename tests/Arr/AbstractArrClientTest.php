@@ -13,6 +13,7 @@ namespace Phlix\Shared\Tests\Arr;
 
 use Phlix\Shared\Arr\AbstractArrClient;
 use Phlix\Shared\Arr\RadarrClient;
+use Phlix\Shared\Arr\Transport\CurlArrTransport;
 use Phlix\Shared\Tests\Arr\Transport\FakeArrTransport;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -266,5 +267,63 @@ class AbstractArrClientTest extends TestCase
             (new ReflectionClass(AbstractArrClient::class))->hasProperty('timeout'),
             'AbstractArrClient::$timeout was write-once and never read — dropped.'
         );
+    }
+
+    /**
+     * Reaffirmation of the LW-056 law after phlix-shared-032 added a second
+     * timing knob: the connect timeout must reach the transport as a
+     * constructor argument only — no new inert property on the base class.
+     */
+    public function testBaseClassCarriesNoInertConnectTimeoutProperty(): void
+    {
+        $this->assertFalse(
+            (new ReflectionClass(AbstractArrClient::class))->hasProperty('connectTimeout'),
+            'connectTimeout is a forwarded-only value; storing it here would recreate LW-056.'
+        );
+    }
+
+    /**
+     * phlix-shared-032: the client used to forward only the overall timeout to
+     * the default transport, leaving the connect phase pinned at the
+     * transport's own default regardless of the consumer's request. Both
+     * timing knobs must now arrive on the bundled default: an untouched
+     * client keeps 30/5, and a client configured (7, null, 2) forwards
+     * exactly those. Red-first at the parent commit: defaultTransport() had a
+     * single parameter.
+     */
+    public function testDefaultTransportReceivesBothTimeouts(): void
+    {
+        $readTransport = function (AbstractArrClient $client): CurlArrTransport {
+            $transport = (new ReflectionClass(AbstractArrClient::class))->getProperty('transport')->getValue($client);
+            $this->assertInstanceOf(CurlArrTransport::class, $transport);
+
+            return $transport;
+        };
+        $readInt = function (object $transport, string $property): int {
+            $value = (new ReflectionClass($transport))->getProperty($property)->getValue($transport);
+            $this->assertIsInt($value);
+
+            return $value;
+        };
+
+        $default = new class ('https://localhost:7878', 'test-key') extends RadarrClient {
+            protected function vendorName(): string
+            {
+                return 'Test';
+            }
+        };
+        $defaultTransport = $readTransport($default);
+        $this->assertSame(30, $readInt($defaultTransport, 'timeout'));
+        $this->assertSame(5, $readInt($defaultTransport, 'connectTimeout'));
+
+        $tuned = new class ('https://localhost:7878', 'test-key', null, 7, null, 2) extends RadarrClient {
+            protected function vendorName(): string
+            {
+                return 'Test';
+            }
+        };
+        $tunedTransport = $readTransport($tuned);
+        $this->assertSame(7, $readInt($tunedTransport, 'timeout'));
+        $this->assertSame(2, $readInt($tunedTransport, 'connectTimeout'));
     }
 }
