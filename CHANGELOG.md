@@ -22,6 +22,25 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   in phlix-ui `src/api/test/webhook-events.json`, the server's installed
   vendor copy) rotate in their re-vendor legs at the next tag.
 
+Added: `schemas/hub-settings.schema.json` admits the `auth.cookie.*` pair
+  (18 → 20 properties) — `auth.cookie.enabled` (tier standard, default
+  `true`, fail-open master switch over issuance of the `phlix_hub_token` +
+  `phlix_hub_refresh` HttpOnly cookie pair) and `auth.cookie.insecure`
+  (tier advanced, default `false`, fail-closed plain-HTTP opt-in, stored
+  twin of `HUB_COOKIE_INSECURE`) — the hub-side mirror of the CP-010 pair
+  the server schema already carries, so the hub's live `CookiePolicy`
+  reads are finally described by the schema SSOT instead of riding
+  env/default-only. `tests/Schema/HubSettingsSchemaTest.php` rotates in
+  the same commit: property roster (+2 rows), count pin 18 → 20, and two
+  pin-table rows (boolean defaults `true`/`false`, no bounds). The
+  coordinated hub-side `ALLOWED_KEYS` admission is the consumer leg and
+  rides the stage-5 hub step (phlix-hub `src/Hub/HubSettingsRepository.php
+  :97`); until it lands the cross-repo drift guard is expected red against
+  a plain hub checkout — it passed green (200 tests) against a simulated
+  coordinated hub tree carrying the same two keys, and the mutation
+  battery (default flip, deletion, type flip) convicted on exactly the
+  new pins (S-shared-08).
+
 ## [0.59.0] - 2026-11-21
 
 Minor: v0.59.0 release cut (program `refactor-1119`, owner order

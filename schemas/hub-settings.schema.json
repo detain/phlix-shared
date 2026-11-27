@@ -84,6 +84,38 @@
             "default": false,
             "restart": false
         },
+        "auth.cookie.enabled": {
+            "type": "boolean",
+            "group": "auth",
+            "description": "Whether the hub issues the HttpOnly auth cookie pair (phlix_hub_token + phlix_hub_refresh) on browser-class login, refresh and logout responses. Absent or true means cookie issuance is on (still gated on the https/localhost scheme rule); false means the hub never sets auth cookies at all and browsers keep body-token custody. Device-class clients are unaffected either way.",
+            "label": "Issue browser session cookies",
+            "helpText": "When enabled, a sign-in from a real browser arriving over https (or localhost) receives its session as a pair of HttpOnly SameSite=Lax cookies, so the page's JavaScript never holds a long-lived credential: a cross-site script in that mode can act as the signed-in user but cannot copy the token out of the browser. Turning this off reverts browser logins to the older custody model where the web app stores the tokens itself and sends them as bearer headers. Device-class clients (TV apps, consoles, mobile, desktop) authenticate with bearer headers and never receive these cookies, so this switch changes nothing for them. The setting governs issuance only — flipping it never invalidates tokens or cookies that already exist. The shipped default is on; if the setting cannot be read the hub stays fail-open on cookie issuance rather than dropping a live custody mode. Takes effect on the next sign-in, no restart needed.",
+            "helpLinks": [
+                {
+                    "text": "HTTP cookie",
+                    "url": "https://en.wikipedia.org/wiki/HTTP_cookie"
+                }
+            ],
+            "tier": "standard",
+            "default": true,
+            "restart": false
+        },
+        "auth.cookie.insecure": {
+            "type": "boolean",
+            "group": "auth",
+            "description": "Whether auth cookies may be issued WITHOUT the Secure attribute over plain HTTP. Default false: cookies are only ever set when the request arrived over https or localhost, and plain-HTTP deployments stay in body-token custody. Setting true is an explicit operator opt-in to LAN-readable session cookies.",
+            "label": "Allow auth cookies over plain HTTP",
+            "helpText": "By default the hub refuses to set the auth cookies on a plain-HTTP request: without the Secure attribute a session cookie travels in clear text and anyone on the network path can capture it, so Phlix does not silently trade credentials for a missing certificate — a plain-HTTP deployment simply keeps working in the older body-token custody mode. Turn this on only on a network you control (a home LAN, a development box) when you specifically want cookie custody without HTTPS; the cookies then travel unencrypted, drop the Secure attribute, and are readable by any device on the path. This is the stored form of the HUB_COOKIE_INSECURE=1 environment opt-in the hub also honors for installs that need the decision before a setting can be written; either spelling on a production-marked hub additionally logs a one-time warning (HUB-4.2). For anything reachable beyond your own network, keep this off and terminate TLS at the front proxy.",
+            "helpLinks": [
+                {
+                    "text": "HTTP cookie",
+                    "url": "https://en.wikipedia.org/wiki/HTTP_cookie"
+                }
+            ],
+            "tier": "advanced",
+            "default": false,
+            "restart": false
+        },
         "hub.maintenance_mode": {
             "type": "boolean",
             "group": "hub",

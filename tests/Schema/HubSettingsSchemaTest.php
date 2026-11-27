@@ -86,6 +86,16 @@ final class HubSettingsSchemaTest extends TestCase
      * mapping was extended for it in {@see self::jsonSchemaTypeForHubType()}
      * at the same time.
      *
+     * Rotated 2026-11-27 [S-shared-08]: the `auth.cookie.*` pair admitted to
+     * the schema (18 → 20) — `auth.cookie.enabled` (fail-open master switch
+     * over cookie issuance) and `auth.cookie.insecure` (fail-closed plain-HTTP
+     * opt-in, stored twin of HUB_COOKIE_INSECURE), mirroring the CP-010 pair
+     * already present in the server schema. The hub-side
+     * `ALLOWED_KEYS` admission is the coordinated consumer leg that rides the
+     * stage-5 hub step; until it lands the sibling drift guard is expected to
+     * be red against a plain hub checkout (it passed green against a simulated
+     * coordinated hub tree with the two keys added — see the lane register).
+     *
      * @return array<string, array{0: string, 1: string}>
      */
     public static function propertyProvider(): array
@@ -97,6 +107,9 @@ final class HubSettingsSchemaTest extends TestCase
             'auth.access_ttl' => ['auth.access_ttl', 'integer'],
             'auth.refresh_ttl' => ['auth.refresh_ttl', 'integer'],
             'auth.signups_disabled' => ['auth.signups_disabled', 'boolean'],
+            // ---- CP-010 cookie program, hub pair (S-shared-08 2026-11-27) --
+            'auth.cookie.enabled' => ['auth.cookie.enabled', 'boolean'],
+            'auth.cookie.insecure' => ['auth.cookie.insecure', 'boolean'],
             // ---- W5 Phase-6 settings program (upstreamed 2026-10-07) ------
             // config/hub.php
             'hub.maintenance_mode' => ['hub.maintenance_mode', 'boolean'],
@@ -191,6 +204,12 @@ final class HubSettingsSchemaTest extends TestCase
      * through PHP's json_encode (which serialises 60.0 as `60`) will flip
      * these pins deliberately, not silently.
      *
+     * The two CP-010 cookie rows admitted 2026-11-27 [S-shared-08] carry no
+     * bounds and no lexical-form hazard — both are plain booleans pinning
+     * default `true` (enabled, fail-open) / `false` (insecure, fail-closed) —
+     * but they are pinned by === like every other row so a default flip on
+     * either knob is a deliberate, red-first change.
+     *
      * @return array<string, array{type: string, default: mixed, minimum: int|float|null, maximum: int|float|null, enum: list<string>|null, restart: bool, secret: bool}>
      */
     private static function pinTable(): array
@@ -200,6 +219,8 @@ final class HubSettingsSchemaTest extends TestCase
             'auth.access_ttl' => ['type' => 'integer', 'default' => 3600, 'minimum' => 300.0, 'maximum' => 86400.0, 'enum' => null, 'restart' => false, 'secret' => false],
             'auth.refresh_ttl' => ['type' => 'integer', 'default' => 604800, 'minimum' => 3600.0, 'maximum' => 2592000.0, 'enum' => null, 'restart' => false, 'secret' => false],
             'auth.signups_disabled' => ['type' => 'boolean', 'default' => false, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
+            'auth.cookie.enabled' => ['type' => 'boolean', 'default' => true, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
+            'auth.cookie.insecure' => ['type' => 'boolean', 'default' => false, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
             'hub.maintenance_mode' => ['type' => 'boolean', 'default' => false, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
             'federation.enabled' => ['type' => 'boolean', 'default' => true, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
             'requests.auto_approve' => ['type' => 'boolean', 'default' => false, 'minimum' => null, 'maximum' => null, 'enum' => null, 'restart' => false, 'secret' => false],
@@ -272,7 +293,7 @@ final class HubSettingsSchemaTest extends TestCase
         sort($expected);
 
         $this->assertSame($expected, $actual, 'hub-settings schema must declare exactly the expected settings keys.');
-        $this->assertCount(18, $actual);
+        $this->assertCount(20, $actual);
     }
 
     public function test_forbidden_infrastructure_keys_are_absent(): void
