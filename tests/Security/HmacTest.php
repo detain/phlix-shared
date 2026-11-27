@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace Phlix\Shared\Tests\Security;
 
+use AssertionError;
 use Phlix\Shared\Security\Hmac;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -18,6 +19,9 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(\Phlix\Shared\Security\Hmac::class)]
 final class HmacTest extends TestCase
 {
+    /** A separator outside the two frozen envelope constants (guard bait). */
+    private const string FOREIGN_SEPARATOR = '#';
+
     public function testComputeReturnsSha256Prefix(): void
     {
         $signature = Hmac::compute('payload', 'secret');
@@ -271,6 +275,73 @@ final class HmacTest extends TestCase
             $this->assertSame(
                 Hmac::verify('payload', $signature, 'secret', $separator),
                 Hmac::verifySha256Hex('payload', $signature, 'secret', $separator)
+            );
+        }
+    }
+
+    /**
+     * phlix-shared-039 (S-shared-33): the separator membership guard must
+     * never reject the shapes the class exists to serve — both frozen
+     * constants pass every public entry point, whatever the running
+     * `zend.assertions` mode. A guard that tripped on a sanctioned constant
+     * would itself be the BC break it was written to avoid.
+     */
+    public function testSeparatorAssertAcceptsBothFrozenConstants(): void
+    {
+        foreach ([Hmac::SEPARATOR_COLON, Hmac::SEPARATOR_EQUALS] as $separator) {
+            $signature = Hmac::compute('payload', 'secret', $separator);
+
+            $this->assertStringStartsWith('sha256' . $separator, $signature);
+            $this->assertTrue(Hmac::verify('payload', $signature, 'secret', $separator));
+            $this->assertTrue(Hmac::verifySha256Hex('payload', $signature, 'secret', $separator));
+        }
+    }
+
+    /**
+     * phlix-shared-039 (S-shared-33): the guard is an `assert()`, so it is
+     * compiled in (`zend.assertions=1`, dev) or out (`0`/`-1`, the
+     * production default) per running mode — this test pins whichever arm
+     * the current mode documents, so it is green under either. Dev mode:
+     * a foreign separator trips every public boundary (the deprecated alias
+     * through its delegation). Compiled-out mode: the tolerated pre-guard
+     * wire behavior is pinned byte-for-byte — that silence is itself BC.
+     */
+    public function testSeparatorAssertTripsOnlyWhereAssertionsAreCompiled(): void
+    {
+        $assertionsLive = ini_get('zend.assertions') === '1';
+        $colonSignature = Hmac::compute('payload', 'secret');
+
+        $boundaries = [
+            'compute()' => static function (): void {
+                Hmac::compute('payload', 'secret', self::FOREIGN_SEPARATOR);
+            },
+            'verify()' => static function () use ($colonSignature): void {
+                Hmac::verify('payload', $colonSignature, 'secret', self::FOREIGN_SEPARATOR);
+            },
+            'verifySha256Hex()' => static function () use ($colonSignature): void {
+                Hmac::verifySha256Hex('payload', $colonSignature, 'secret', self::FOREIGN_SEPARATOR);
+            },
+        ];
+
+        foreach ($boundaries as $entryPoint => $call) {
+            try {
+                $call();
+                $tripped = false;
+            } catch (AssertionError) {
+                $tripped = true;
+            }
+
+            $this->assertSame(
+                $assertionsLive,
+                $tripped,
+                sprintf('%s must trip the separator guard exactly when assertions are compiled in.', $entryPoint)
+            );
+        }
+
+        if (!$assertionsLive) {
+            $this->assertSame(
+                'sha256#' . hash_hmac('sha256', 'payload', 'secret'),
+                Hmac::compute('payload', 'secret', self::FOREIGN_SEPARATOR)
             );
         }
     }

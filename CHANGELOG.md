@@ -92,6 +92,30 @@ Added: `RelayHttpRequestHead::fromJsonGated()` — the one-call gated parse
   `RelayHttpRequestHead:` prefix; gate refusals carry the
   `RelayHttpRequest:` one (phlix-shared-030, S-shared-25).
 
+Changed: `Hmac::compute()` and `Hmac::verify()` now guard their `$separator`
+  argument at their own boundaries — a dev-mode `assert()` pins membership of
+  the two frozen envelope constants (`SEPARATOR_COLON`, `SEPARATOR_EQUALS`).
+  A computed separator could in principle collide across arms, and two
+  constants exist to be enforced. Being an `assert()`, the guard is compiled
+  out under `zend.assertions=0`/`-1`, so production wire behavior — the
+  server webhook `sha256=` arm included — is byte-unchanged, exactly as the
+  class header documents (phlix-shared-039, S-shared-33).
+
+Docs: the `Hmac` class header re-sentences the v0.56.0 separator rationale
+  into parseable prose, states the new guard and its assertion-mode semantics,
+  and documents the `compute()`/`verify()` secret-position flip (and the
+  phlix-server wrapper's secret-first third shape) as a known BC-frozen wart:
+  a named `sign()`/`match()` re-pair was weighed and declined — named
+  arguments neutralize it without widening the exposed surface
+  (phlix-shared-039, S-shared-33).
+
+Tests: `HmacTest` pins the guard in both modes — both frozen constants pass
+  every public entry point regardless of `zend.assertions`, and a foreign
+  separator trips each boundary exactly where assertions are compiled in
+  (`php -d zend.assertions=1`, including the deprecated alias's inherited
+  trip), while the compiled-out mode pins the tolerant pre-guard envelope
+  byte-for-byte (phlix-shared-039, S-shared-33).
+
 ## [0.59.0] - 2026-11-21
 
 Minor: v0.59.0 release cut (program `refactor-1119`, owner order

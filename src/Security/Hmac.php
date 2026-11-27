@@ -31,16 +31,32 @@ namespace Phlix\Shared\Security;
  * {@see self::verifySha256Hex()} is a deprecated alias delegating to it
  * verbatim — one comparison, no duplicated logic that could diverge.
  *
- * Envelope separator (v0.56.0). The class documented exactly one
- * envelope — `sha256:<hex>` — while the estate has a second, wire-frozen
- * sibling: the webhook legacy header is `sha256=<hex>` and receivers gate on
- * that literal. The separator is now a trailing parameter defaulting to the
- * colon, so the documented `sha256:` contract above stays byte-true for every
- * existing call shape, and the equals arm lets the webhook signer/verifier
- * adoption in phlix-server (`src/Webhooks/WebhookEvent.php`, red-first
- * byte-pinned against recorded `sha256=` fixtures there) reuse this one
- * audited primitive instead of hand-rolling the envelope — the "false-SSOT
- * with zero importers is itself the defect" debt paid forward.
+ * Envelope separator (v0.56.0). The class documented exactly one envelope,
+ * `sha256:<hex>`, while the estate carries a second, wire-frozen sibling:
+ * the webhook legacy header `sha256=<hex>`, which receivers gate on
+ * literally. The separator is a trailing parameter defaulting to the
+ * historical colon, so every existing call shape stays byte-true to the
+ * documented `sha256:` contract above. The equals arm lets the webhook
+ * signer/verifier adoption in phlix-server (`src/Webhooks/WebhookEvent.php`,
+ * red-first byte-pinned against recorded `sha256=` fixtures there) reuse
+ * this one audited primitive instead of hand-rolling the envelope — the
+ * "false-SSOT with zero importers is itself the defect" debt, paid forward.
+ * Both public entry points additionally assert that the separator is one of
+ * the two constants: a computed separator could in principle collide across
+ * arms, and two constants exist to be enforced. Being an `assert()`, the
+ * guard is active in development (`zend.assertions=1`) and compiled out in
+ * production (`0`/`-1`), so the wire behavior of valid calls is unchanged in
+ * either mode.
+ *
+ * Argument order (known wart). `compute()` takes the secret second
+ * (`compute(payload, secret, separator)`) while `verify()` takes it third,
+ * behind the signature (`verify(payload, signature, secret, separator)`);
+ * the phlix-server wrapper leads with the secret outright
+ * (`WebhookEvent::verify()`), a third shape again. The flip is frozen by BC
+ * law, so it is documented terrain, not a rename: a named `sign()`/`match()`
+ * re-pair was weighed and declined — named arguments (`secret:` and
+ * friends) neutralize the wart at every call site without widening the
+ * surface this class exposes.
  *
  * @package Phlix\Shared\Security
  * @since 0.10.0
@@ -61,6 +77,29 @@ final class Hmac
     }
 
     /**
+     * Separator membership law: exactly the two wire-frozen envelope
+     * constants, never a computed string (one could collide across arms).
+     *
+     * A development-mode guard called at each public boundary: `assert()`
+     * is active under `zend.assertions=1` and compiled out entirely under
+     * `0`/`-1`, so production keeps the pre-guard wire behavior
+     * byte-for-byte — BC law for the frozen envelopes. Every live call
+     * site in the estate already hands over a constant or the default.
+     *
+     * @param string $separator The separator handed to a public entry point.
+     *
+     * @throws \AssertionError In development mode only, when the separator
+     *                         is foreign to the two constants.
+     */
+    private static function assertFrozenSeparator(string $separator): void
+    {
+        assert(
+            in_array($separator, [self::SEPARATOR_COLON, self::SEPARATOR_EQUALS], true),
+            'Hmac $separator must be Hmac::SEPARATOR_COLON or Hmac::SEPARATOR_EQUALS (the two frozen envelopes).'
+        );
+    }
+
+    /**
      * Verify an HMAC-SHA256 signature against a payload.
      *
      * The canonical contract of this class: compares the provided signature
@@ -72,7 +111,8 @@ final class Hmac
      * @param string $payload The data that was signed.
      * @param string $signature The signature to verify (expecting `sha256<separator><hex>` format).
      * @param string $secret The shared secret key.
-     * @param string $separator The envelope separator; defaults to the historical colon.
+     * @param string $separator The envelope separator; defaults to the historical colon, and must be one of the two
+     *                          frozen constants (guarded by {@see self::assertFrozenSeparator()}).
      *
      * @return bool True when the signature is valid, false otherwise.
      *
@@ -84,6 +124,8 @@ final class Hmac
         string $secret,
         string $separator = self::SEPARATOR_COLON
     ): bool {
+        self::assertFrozenSeparator($separator);
+
         $expected = self::compute($payload, $secret, $separator);
 
         return hash_equals($expected, $signature);
@@ -99,7 +141,8 @@ final class Hmac
      *
      * @param string $payload The data to sign.
      * @param string $secret The shared secret key.
-     * @param string $separator The envelope separator; defaults to the historical colon.
+     * @param string $separator The envelope separator; defaults to the historical colon, and must be one of the two
+     *                          frozen constants (guarded by {@see self::assertFrozenSeparator()}).
      *
      * @return string The computed signature in `sha256<separator><hex>` format.
      *
@@ -107,6 +150,8 @@ final class Hmac
      */
     public static function compute(string $payload, string $secret, string $separator = self::SEPARATOR_COLON): string
     {
+        self::assertFrozenSeparator($separator);
+
         $hash = hash_hmac('sha256', $payload, $secret, true);
 
         return 'sha256' . $separator . bin2hex($hash);
@@ -125,7 +170,8 @@ final class Hmac
      * @param string $payload The data that was signed.
      * @param string $signature The signature in `sha256<separator><hex>` format.
      * @param string $secret The shared secret key.
-     * @param string $separator The envelope separator; defaults to the historical colon.
+     * @param string $separator The envelope separator; defaults to the historical colon. The membership guard is
+     *                          inherited: this verbatim delegation routes through `verify()`'s boundary check.
      *
      * @return bool True when the signature is valid, false otherwise.
      *
