@@ -24,6 +24,22 @@ use ReflectionMethod;
 use RuntimeException;
 
 /**
+ * Test-local exposure seam ([S-shared-27 fix1 (a)]): respondingClient() must
+ * carry an explicit return type, and the anon client it builds is unnameable,
+ * so the one public method callers invoke on it (fetch, the protected GET
+ * widened for path-driven redaction pins) is typed through this interface.
+ */
+interface ExposedArrFetchClient
+{
+    /**
+     * @param string $path Arbitrary API path the test wants request() to see.
+     *
+     * @return array<array-key, mixed>
+     */
+    public function fetch(string $path): array;
+}
+
+/**
  * Unit tests for AbstractArrClient scheme validation and HTTP warning.
  *
  * @package Phlix\Shared\Tests\Arr
@@ -499,8 +515,10 @@ class AbstractArrClientTest extends TestCase
      *
      * @param int    $status Canned HTTP status the fake transport returns.
      * @param string $body   Canned response body ('' — the error arms throw first).
+     *
+     * @return AbstractArrClient&ExposedArrFetchClient
      */
-    private function respondingClient(int $status, string $body)
+    private function respondingClient(int $status, string $body): AbstractArrClient&ExposedArrFetchClient
     {
         return new class (
             'http://0.0.0.0:1',
@@ -508,7 +526,7 @@ class AbstractArrClientTest extends TestCase
             null,
             30,
             new FakeArrTransport($status, $body)
-        ) extends RadarrClient {
+        ) extends RadarrClient implements ExposedArrFetchClient {
             protected function vendorName(): string
             {
                 return 'Test';

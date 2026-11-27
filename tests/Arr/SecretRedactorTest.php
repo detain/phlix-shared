@@ -33,7 +33,22 @@ use ReflectionClass;
 #[CoversClass(SecretRedactor::class)]
 class SecretRedactorTest extends TestCase
 {
+    /**
+     * The legacy FQCN as it appeared to callers before the S-shared-10 move.
+     *
+     * Only reachable as a string: the Arr-side name exists via a class_alias()
+     * registration, so PHPStan sees no symbol at that address and would bind
+     * any class-string<...> tag (or literal-folded read) to a non-existent
+     * class. Reflection consumers therefore read it through legacyName(),
+     * whose declared `string` return keeps it opaque until class_exists()
+     * narrows it back to class-string at the use site.
+     */
     private const LEGACY_NAME = 'Phlix\Shared\Arr\SecretRedactor';
+
+    private function legacyName(): string
+    {
+        return self::LEGACY_NAME;
+    }
 
     public function testTheLegacyArrNameStillExists(): void
     {
@@ -45,9 +60,14 @@ class SecretRedactorTest extends TestCase
 
     public function testTheLegacyNameResolvesToTheCanonicalClass(): void
     {
+        $legacy = $this->legacyName();
+        if (!class_exists($legacy)) {
+            $this->fail('The legacy FQCN must exist via the S-shared-10 class_alias shim.');
+        }
+
         $this->assertSame(
             SecretRedactor::class,
-            (new ReflectionClass(self::LEGACY_NAME))->getName(),
+            (new ReflectionClass($legacy))->getName(),
             'The alias must name the canonical Security kernel, not a duplicate.'
         );
     }
@@ -55,7 +75,7 @@ class SecretRedactorTest extends TestCase
     public function testRedactRoutesThroughTheLegacyNameByteIdentically(): void
     {
         /** @var class-string<SecretRedactor> $legacy */
-        $legacy = self::LEGACY_NAME;
+        $legacy = $this->legacyName();
 
         $message = 'Connection failed: API key abc123secret was rejected';
         $this->assertSame(

@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace Phlix\Shared\Arr;
 
+use Phlix\Shared\Security\SecretRedactor;
 use RuntimeException;
 
 /**

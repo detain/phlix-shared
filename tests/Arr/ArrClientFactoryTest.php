@@ -379,8 +379,14 @@ class ArrClientFactoryTest extends TestCase
     }
 
     /**
-     * @param array<string, array<string, mixed>> $config
-     * @param list<string> $expectedMisconfigured
+     * $config carries the constructor's own declared input shape. The sentinel
+     * datasets deliberately violate it (non-string api_key, nonsense
+     * connect_timeout) to probe the coercion arms, reaching the body unchecked
+     * through the untyped data-provider boundary — the constructor tolerates
+     * that by design.
+     *
+     * @param array{sonarr?: array{url?: string, api_key?: string, enabled?: bool, connect_timeout?: int|string|null}, radarr?: array{url?: string, api_key?: string, enabled?: bool, connect_timeout?: int|string|null}} $config                 Client map under test.
+     * @param list<string>                                                                                                                                                                                               $expectedMisconfigured Exactly which sections must be reported.
      */
     #[DataProvider('branchLawCoercionSentinels')]
     public function testTheSharedBranchLawComparesEmptinessStrictly(array $config, array $expectedMisconfigured): void
