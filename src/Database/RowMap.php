@@ -139,7 +139,7 @@ final class RowMap
      * missing key, NULL, or any other type yields the explicit default.
      *
      * @param array<string, mixed> $row
-     * @since Wave 5 E-09
+     * @since 0.59.0 (wave 5 E-09 lineage)
      */
     public static function str(array $row, string $col, string $default): string
     {
@@ -153,7 +153,7 @@ final class RowMap
      * passes; everything else hydrates to null.
      *
      * @param array<string, mixed> $row
-     * @since Wave 5 E-09
+     * @since 0.59.0 (wave 5 E-09 lineage)
      */
     public static function nullableStr(array $row, string $col): ?string
     {
@@ -167,7 +167,7 @@ final class RowMap
      * string takes the default (the legacy Webhook-record discipline).
      *
      * @param array<string, mixed> $row
-     * @since Wave 5 E-09
+     * @since 0.59.0 (wave 5 E-09 lineage)
      */
     public static function int(array $row, string $col, int $default): int
     {
@@ -181,7 +181,7 @@ final class RowMap
      * everything else (including numeric strings) hydrates to null.
      *
      * @param array<string, mixed> $row
-     * @since Wave 5 E-09
+     * @since 0.59.0 (wave 5 E-09 lineage)
      */
     public static function nullableInt(array $row, string $col): ?int
     {
@@ -196,7 +196,7 @@ final class RowMap
      * default. For INT columns the driver may deliver as strings.
      *
      * @param array<string, mixed> $row
-     * @since Wave 5 E-09
+     * @since 0.59.0 (wave 5 E-09 lineage)
      */
     public static function intFromNumeric(array $row, string $col, int $default): int
     {
@@ -210,7 +210,7 @@ final class RowMap
      * `(int)` cast; anything else hydrates to null.
      *
      * @param array<string, mixed> $row
-     * @since Wave 5 E-09
+     * @since 0.59.0 (wave 5 E-09 lineage)
      */
     public static function nullableIntFromNumeric(array $row, string $col): ?int
     {
@@ -224,7 +224,7 @@ final class RowMap
      * cast; non-numeric values take the explicit default.
      *
      * @param array<string, mixed> $row
-     * @since Wave 5 E-09
+     * @since 0.59.0 (wave 5 E-09 lineage)
      */
     public static function floatFromNumeric(array $row, string $col, float $default): float
     {
@@ -239,7 +239,7 @@ final class RowMap
      * arrays, objects and resources take the explicit default.
      *
      * @param array<string, mixed> $row
-     * @since Wave 5 E-09
+     * @since 0.59.0 (wave 5 E-09 lineage)
      */
     public static function stringFromScalar(array $row, string $col, string $default): string
     {
@@ -262,7 +262,7 @@ final class RowMap
      * non-scalar value becomes `''` rather than null.
      *
      * @param array<string, mixed> $row
-     * @since Wave 5 E-09
+     * @since 0.59.0 (wave 5 E-09 lineage)
      */
     public static function nullableStringFromScalar(array $row, string $col): ?string
     {
@@ -290,7 +290,7 @@ final class RowMap
      * and outputs are never silently harmonized between them.
      *
      * @param array<string, mixed> $row
-     * @since E-09 cohort 4 (ScanJobRepository extraction)
+     * @since 0.59.0 (E-09 cohort 4 lineage; ScanJobRepository extraction)
      */
     public static function nullableScalarStr(array $row, string $col): ?string
     {
@@ -313,7 +313,7 @@ final class RowMap
      * a named accessor rather than a bare cast at each call site.
      *
      * @param array<string, mixed> $row
-     * @since Wave 5 E-09
+     * @since 0.59.0 (wave 5 E-09 lineage)
      */
     public static function boolFromCast(array $row, string $col, bool $defaultWhenNull): bool
     {
@@ -369,7 +369,7 @@ final class RowMap
      * either alone.
      *
      * @param array<string, mixed> $row
-     * @since E-09 cohort 2 (music DTO extraction; S121/S127 law)
+     * @since 0.59.0 (E-09 cohort 2 lineage; music DTO extraction; S121/S127 law)
      */
     public static function nullableNonEmptyStr(array $row, string $col): ?string
     {
@@ -407,7 +407,7 @@ final class RowMap
      * parser byte-for-byte as-is — `' 2019-03-04 '` still parses exactly as
      * it always did. Widening what parses is not this law's business.
      *
-     * @since E-09 cohort 2 (music DTO extraction; S143 law)
+     * @since 0.59.0 (E-09 cohort 2 lineage; music DTO extraction; S143 law)
      */
     public static function parseMysqlDateTime(mixed $value): ?\DateTime
     {
@@ -444,7 +444,7 @@ final class RowMap
      * only duplicated the same collapse for the missing-key case.
      *
      * @param array<string, mixed> $row
-     * @since E-09 cohort 2 (music DTO extraction; S143 law)
+     * @since 0.59.0 (E-09 cohort 2 lineage; music DTO extraction; S143 law)
      */
     public static function nullableDateTime(array $row, string $col): ?\DateTime
     {

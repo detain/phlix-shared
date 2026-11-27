@@ -110,6 +110,15 @@ optional `config/trash_guides.php` local read; see [`AGENTS.md`](AGENTS.md) (in 
   carrying the single begin ceremony the server and hub landed identically,
   while the end ceremonies stay per-repo by design. The lock channel itself
   stays consumer-side; the family is pure state and decision, zero I/O.
+- `Phlix\Shared\Database\RowMap` — the E-09 row-coercion family (0.59.0): key-narrowing
+  `fromMixed()`/`listFromMixed()` plus the strict, numeric-coercive, scalar-cast,
+  truthy-cast and MySQL-datetime column accessors, lifted verbatim from the server
+  twin with its eight adjudicated keeps honored — the two `nullableString()`
+  vocabularies stay distinct by name (`nullableScalarStr()` hydrates a non-scalar to
+  null where `nullableStringFromScalar()` hydrates it to `''`) and outputs are never
+  silently harmonized between them; authoritative for both hosts — the server demoted
+  its twin to a thin delegate onto these accessors and the hub retired its hand-rolls
+  against this home.
 - `Phlix\Shared\Settings\SettingsCodec` — the settings-column value codec (0.57.0+):
   `decode()` byte-identical to both repos' private ancestors; `encode()` ships the
   hub's strict `JSON_THROW_ON_ERROR` posture (the server silent variant is the
@@ -409,9 +418,9 @@ own `src/`); re-derive before restating. Disposition vocabulary:
 | `Arr\BazarrClient` | 0.4.0 | frozen-for-hosts | no twin; published client awaiting a factory arm + consumer |
 
 Adopted surfaces (SettingsCodec, LivenessWindows, the Database
-transaction/retry/upsert family, MysqlError, Uuid, WriteResult, UpsertSyntax
-and friends) show non-zero import counts in the same census and need no
-disposition row.
+transaction/retry/upsert family, RowMap, MysqlError, Uuid, WriteResult,
+UpsertSyntax and friends) show non-zero import counts in the same census and
+need no disposition row.
 
 ## Consumer examples
 
