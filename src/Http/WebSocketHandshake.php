@@ -44,7 +44,7 @@ namespace Phlix\Shared\Http;
  *
  * ADOPTION STATUS — INERT (PENDING consumer adoption): `Phlix\Shared\Http`
  * has zero imports in the committed phlix-server and phlix-hub `src/` trees
- * (greps verified at this pass, 2026-11-28). Both hosts still negotiate
+ * (greps verified at this pass, 2026-11-27). Both hosts still negotiate
  * through their OWN kits named above — server
  * `src/Server/WebSocket/SyncPlayAuthMiddleware.php` (`offersBearerSubprotocol()`
  * :494, `bearerSubprotocolToken()` :519, consts :68/:77) and hub

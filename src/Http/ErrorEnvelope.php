@@ -29,7 +29,7 @@ namespace Phlix\Shared\Http;
  *
  * ADOPTION STATUS — INERT (PENDING consumer adoption): `Phlix\Shared\Http`
  * has zero imports in the committed phlix-server `src/` tree and zero in the
- * committed phlix-hub `src/` tree (greps verified at this pass, 2026-11-28).
+ * committed phlix-hub `src/` tree (greps verified at this pass, 2026-11-27).
  * Both hosts still emit through their own private `rateLimitedBody()` /
  * `retryAfterHeader()` twins listed above; the server seam's own docblock
  * states the same law ("the seam now owns the vocabulary so S1 adoption of

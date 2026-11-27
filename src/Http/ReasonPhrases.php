@@ -34,7 +34,7 @@ namespace Phlix\Shared\Http;
  *
  * ADOPTION STATUS — INERT (PENDING consumer adoption): `Phlix\Shared\Http`
  * has zero imports in the committed phlix-server and phlix-hub `src/` trees
- * (greps verified at this pass, 2026-11-28). The hub's canonical source
+ * (greps verified at this pass, 2026-11-27). The hub's canonical source
  * (`src/Http/BodylessResponse.php:114-119`) still resolves through its OWN
  * strict-empty copy, and the server twin still carries the named bug live
  * (`src/Server/Workerman/BodylessResponse.php:109` — `$this->reason ?: ...`,

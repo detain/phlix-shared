@@ -41,7 +41,7 @@ namespace Phlix\Shared\Http;
  *
  * ADOPTION STATUS — INERT (PENDING consumer adoption): `Phlix\Shared\Http`
  * has zero imports in the committed phlix-server and phlix-hub `src/` trees
- * (greps verified at this pass, 2026-11-28). Both daemons still deny through
+ * (greps verified at this pass, 2026-11-27). Both daemons still deny through
  * their own copies named above (server inlined predicate, hub public-static
  * method); one deny VOCABULARY is held today by coordination, not by this
  * class. Migration to this kernel is the pending consumer wave.

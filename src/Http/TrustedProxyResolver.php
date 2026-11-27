@@ -61,7 +61,7 @@ namespace Phlix\Shared\Http;
  *
  * ADOPTION STATUS — INERT (PENDING consumer adoption): `Phlix\Shared\Http`
  * has zero imports in the committed phlix-server and phlix-hub `src/` trees
- * (greps verified at this pass, 2026-11-28). Both hosts still resolve through
+ * (greps verified at this pass, 2026-11-27). Both hosts still resolve through
  * their OWN copies — server `src/Common/Http/TrustedProxyResolver.php`
  * (`use` at `src/Server/Http/Request.php:15`, instantiated :583, and
  * `src/Server/WebSocket/WebSocketServer.php:20`) and hub
