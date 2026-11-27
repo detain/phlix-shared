@@ -72,8 +72,9 @@ lockstep: the `Phlix\Shared\Version::VERSION` constant, the git tag, the
 `**vX.Y.Z**` status line and the `composer require detain/phlix-shared:^X.Y`
 install example (below 1.0 the caret does not admit the next minor, so a
 stale install line silently pins adopters to the old release).
-[`tests/VersionTest.php`](tests/VersionTest.php) machine-pins each half of
-that lockstep.
+[`tests/VersionTest.php`](tests/VersionTest.php) machine-pins the
+CHANGELOG-heading and README-stamp halves of that lockstep (the git tag
+moves with the release ritual itself).
 
 ## CHANGELOG entries
 
@@ -94,7 +95,7 @@ Depth beyond these gates:
 - [`README.md`](README.md) — usage, the bundled-schema census, and the
   "Adding a server settings key (runbook)" walk-through.
 - The developer pages under
-  [`detain/phlix-docs/docs/dev`](https://github.com/detain/phlix-docs/tree/main/docs/dev)
+  [`detain/phlix-docs/docs/dev`](https://github.com/detain/phlix-docs/tree/master/docs/dev)
   (`shared-schemas.md`, `arr-clients.md`, `relay-protocol.md`).
 - [`AGENTS.md`](AGENTS.md) in the git checkout — the binding ritual for
   agents, including its Caliber-managed config-sync sections, which have
