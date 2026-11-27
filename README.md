@@ -19,7 +19,7 @@ optional `config/trash_guides.php` local read; see [`AGENTS.md`](AGENTS.md) (in 
 
 ## Status
 
-**v0.59.0** (`Phlix\Shared\Version::VERSION`). At the working tip, `schemas/server-settings.schema.json` carries 87 keys (51 `restart: true`, 36 `restart: false`; a census of the working tree, not a v0.59.0 tag-time stamp); `schemas/hub-settings.schema.json` carries 20 keys in lockstep with `phlix-hub`'s `HubSettingsRepository::ALLOWED_KEYS`. Cumulative surface:
+**v0.59.0** (`Phlix\Shared\Version::VERSION`). Schema censuses (`tests/VersionTest.php` pins these figures against the schema files, this paragraph, and the tag): `schemas/server-settings.schema.json` carries 87 keys (51 `restart: true`, 36 `restart: false`), byte-identical between the working tip and the v0.59.0 tag; `schemas/hub-settings.schema.json` carries 20 keys at the working tip — in lockstep with `phlix-hub`'s `HubSettingsRepository::ALLOWED_KEYS` — up from 18 at v0.59.0 tag time: the `auth.cookie.*` pair added after the cut ships in the next release. Cumulative surface:
 
 - `Phlix\Shared\Plugin\{LifecycleInterface, ConfigurableInterface, Manifest, ManifestType, ManifestValidationError, EventNameMap}`
 - `Phlix\Shared\Events\{AbstractEvent, Playback\*, Library\*, Auth\*}` — 12 event DTOs.
@@ -211,7 +211,8 @@ for the files without a dedicated accessor, such as `manifest.schema.json`):
   `transcoding.segment_format`, arrived with the 0.49.0 addition named just above); keys
   added since each carry an explicit flag too. As of 0.53.0 the schema held 84 keys (51 true /
   33 false); the cookie-program trio (`auth.cookie.enabled`, `auth.cookie.insecure`,
-  `auth.ws_query_token` — all live reads, Unreleased) brings it to 87 keys: 51 carry
+  `auth.ws_query_token` — all live reads) shipped in v0.55.0 — that release's schema is
+  byte-identical to the current one — bringing it to 87 keys: 51 carry
   `restart: true` and 36 carry `restart: false`. `restart: true` means the
   admin **Restart server** control (a graceful SIGUSR2 reload that cycles workers, re-runs
   `onWorkerStart`, and rebuilds DI containers) — required for any value captured at worker
@@ -380,9 +381,13 @@ $profiles = $radarr?->getQualityProfiles();      // this is the first line that 
 ```
 
 Without a second constructor argument the factory hands clients the bundled
-blocking `CurlArrTransport` (CLI/test posture). Event-loop consumers inject
+blocking `CurlArrTransport` — strictly the right shape for CLI scripts and test
+rigs, and elsewhere a tolerated worker STALL (up to the request timeout, per
+call) rather than a prohibited construction: phlix-hub's DI builds the factory
+transport-less today, so hub workers run exactly that default. Cooperative
+event-loop consumers (Workerman/Webman hosts and the hub alike) should inject
 one `ArrTransportInterface` into the factory and every client it builds
-shares it.
+shares it; the factory's class docblock carries the full posture truth.
 
 ### *arr clients: the transport seam
 
