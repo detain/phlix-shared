@@ -84,7 +84,7 @@ final class ErrorEnvelope
      *
      * @param array<string, mixed> $extra additive top-level keys — the auth
      *                                      throttles merge a human `message`
-     *                                      sentence here (HUB-19)
+     *                                      sentence here
      *
      * @return array<string, mixed>
      */

@@ -21,7 +21,7 @@ use function strlen;
 /**
  * Canonical encoder for the multiplexed relay-tunnel wire protocol.
  *
- * FRAME lane (scan finding C-06): two byte-identical copies of this encoder
+ * FRAME lane: two byte-identical copies of this encoder
  * have lived since inception — phlix-server src/Hub/RelayMessageFramer.php
  * (encode/encodeHello/encodeHelloAck) and phlix-hub src/Relay/FrameDecoder.php
  * (+ its src/Relay/FrameEncoder.php wrapper). Each repo now funnels every
@@ -42,7 +42,7 @@ use function strlen;
  *
  * Decode is deliberately NOT unified here: the server skip-oracle (null on
  * unknown type, buffer head skippable) and the hub throw-on-unknown semantics
- * are intentional role-specific asymmetries (scan finding C-07). Per-repo
+ * are intentional role-specific asymmetries. Per-repo
  * decoders stay per-repo.
  *
  * Self-contained: zero Workerman types, zero I/O.

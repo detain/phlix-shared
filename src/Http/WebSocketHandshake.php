@@ -12,7 +12,7 @@ declare(strict_types=1);
 namespace Phlix\Shared\Http;
 
 /**
- * String-level `Sec-WebSocket-Protocol` handshake kernels (v0.57 leg 0.10 M-20, A-07/C-10).
+ * String-level `Sec-WebSocket-Protocol` handshake kernels (v0.57 wave).
  *
  * Lifted from the estate twins' parse kit: phlix-server
  * `src/Server/WebSocket/SyncPlayAuthMiddleware.php` — `offersBearerSubprotocol()`

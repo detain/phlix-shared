@@ -25,11 +25,18 @@ use function strtr;
  * PKCE (RFC 7636) — **S256 only**.
  *
  * Canonical source: phlix-hub `src/OAuth/Pkce.php`, ported verbatim at the
- * v0.56.0 wave. The server-side OAuth2 client helpers
- * (`computeCodeChallenge` / `base64UrlEncode` / verifier generation in
- * phlix-server `src/Plugins/OAuth2/Pkce.php`) converged onto this class in
- * the same adoption wave; {@see self::generateCodeVerifier()} is the
- * additive client-side seam that replaced them.
+ * v0.56.0 wave. Server-side adoption (phlix-server
+ * `src/Plugins/OAuth2/Pkce.php`) is per-helper, not wholesale:
+ * `computeCodeChallenge` delegates to this class (`SharedPkce::challengeFor`),
+ * while `base64UrlEncode` delegates to the shared sibling
+ * `Phlix\Shared\Security\Base64Url` — not to this class. Verifier generation
+ * has NOT converged: the server still mints `code_verifier`s through its own
+ * `src/Common/Token.php::pkceVerifier()` (:128-131, reached from server
+ * `Pkce::generateCodeVerifier()`, consumed at
+ * `src/Plugins/Github/Controller/GithubCallbackController.php:284` and
+ * `src/Plugins/Oidc/OidcProvider.php:398-400`).
+ * {@see self::generateCodeVerifier()} is the additive client-side seam the
+ * server has not yet adopted — zero calls to it exist in server/hub `src/`.
  *
  * ## The one thing to understand about this class
  *
@@ -97,7 +104,7 @@ final class Pkce
     /**
      * Generate a cryptographically-random RFC 7636 `code_verifier`.
      *
-     * Additive client-side seam (design M-02): 64 lowercase hex characters
+     * Additive client-side seam: 64 lowercase hex characters
      * from the CSPRNG, comfortably inside the 43–128-character unreserved
      * window {@see isValidVerifier()} enforces. Byte budget and hex shape
      * mirror the server lineage (`Token::pkceVerifier()`, 32 bytes), so a

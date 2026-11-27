@@ -22,16 +22,17 @@ use PDOException;
  * transaction is a LEASE: exactly one coroutine may hold it, the lease
  * must survive cancellation and error cleanup without forking, and a
  * stranger must never be able to end it. The server and hub each landed
- * the same hardening independently (TXMUTEX-A arms A1-A7); this class
- * is the Option-B single source of truth for the mechanics they share,
- * so the ordering laws stop living only in two copies of prose.
+ * the same hardening independently, in their own
+ * `src/Common/Database/PhlixMySQLConnection.php`; this class is the
+ * Option-B single source of truth for the mechanics they share, so the
+ * ordering laws stop living only in two copies of prose.
  *
  * The laws encoded here, each pinned by the characterization suite:
- *  - Cancelled acquire, no contamination (incident 1.3, hub): the park
+ *  - Cancelled acquire, no contamination (observed on the hub): the park
  *    decision runs BEFORE any bookkeeping is touched; a cancelled
  *    waiter neither installs itself as holder nor mints a token, so the
  *    next waiter wakes to a clean ledger instead of a spurious lease.
- *  - Stranger-inert ends (incident 1.2, hub): commit/rollback by a
+ *  - Stranger-inert ends (observed on the hub): commit/rollback by a
  *    non-holder is inert success, ABOVE the poison check — a stranger
  *    cannot deplete the holder's one-shot refusal budget.
  *  - Hand-off ordering: releasing clears the holder
@@ -39,12 +40,12 @@ use PDOException;
  *    the shared ledger, because Swoole resumes a parked waiter
  *    synchronously inside push(). Replacing or re-walking the ledger
  *    after the push forks the mutex.
- *  - Poison is one-shot (incident 1.1, server): a transaction lost to a
+ *  - Poison is one-shot (observed on the server): a transaction lost to a
  *    dropped connection denies exactly ONE commit; the mark is consumed
  *    by the refusal, cleared by begin/rollback paths, and flattened
  *    wholesale on reconnect because a fresh socket cannot carry the
  *    previous socket's transaction.
- *  - The query fast-path needs BOTH terms (incident 1.4, server cure):
+ *  - The query fast-path needs BOTH terms (server fast-path cure):
  *    {@see self::holdingTransactionFor()} is the holder check that
  *    the landed gate had to grow.
  *
@@ -248,9 +249,10 @@ final class MysqlTxLockState
      * The release lowers the nesting flag with the holder: the hub's
      * refusal-path releases through this verb while the lease still reads
      * open (its landed `finally` cleared the transaction flag on every end
-     * path, refusal included — register row F-1), and every other landed
-     * call site abandons a lease whose flag was never raised, so zeroing
-     * here is a no-op there and faithful here.
+     * path, refusal included — phlix-hub's
+     * `src/Common/Database/PhlixMySQLConnection.php`), and every other
+     * landed call site abandons a lease whose flag was never raised, so
+     * zeroing here is a no-op there and faithful here.
      *
      * @param callable(): void $push        hands the token to the next waiter
      * @param bool             $clearPoison whether the release also consumes
