@@ -64,6 +64,60 @@ final class SchemaPathsTest extends TestCase
         $this->assertStringEndsWith('/schemas/library-query.schema.json', SchemaPaths::libraryQuery());
     }
 
+    public function test_manifest_path_has_the_right_filename(): void
+    {
+        $this->assertStringEndsWith('/schemas/manifest.schema.json', SchemaPaths::manifest());
+    }
+
+    public function test_all_six_shipped_schema_filenames_are_pinned_in_one_test(): void
+    {
+        // One row per shipped schema file: accessor path => the exact
+        // filename under schemas/. This is the family pin — a renamed or
+        // dropped file must redden here, and a seventh file shipped without
+        // an accessor is caught by the completeness arm below.
+        $pins = [
+            SchemaPaths::serverSettings() => 'server-settings.schema.json',
+            SchemaPaths::hubSettings() => 'hub-settings.schema.json',
+            SchemaPaths::webhookEvents() => 'webhook-events.json',
+            SchemaPaths::mediaItem() => 'media-item.schema.json',
+            SchemaPaths::libraryQuery() => 'library-query.schema.json',
+            SchemaPaths::manifest() => 'manifest.schema.json',
+        ];
+
+        $this->assertCount(6, $pins, 'SchemaPaths must expose exactly six file accessors.');
+
+        $expected = [];
+        foreach ($pins as $path => $filename) {
+            $this->assertStringEndsWith(
+                '/schemas/' . $filename,
+                $path,
+                "SchemaPaths must resolve {$filename} by that exact filename."
+            );
+            $this->assertFileExists($path, "Bundled schema {$filename} must exist at the resolved path.");
+            $expected[] = $filename;
+        }
+
+        // Completeness arm: every JSON file shipped under schemas/ is named
+        // by exactly one accessor — the family cannot silently drift.
+        sort($expected);
+        $shipped = array_map('basename', glob(SchemaPaths::dir() . '/*.json') ?: []);
+        sort($shipped);
+        $this->assertSame(
+            $expected,
+            $shipped,
+            'schemas/ must ship exactly the six files SchemaPaths pins — no more, no less.'
+        );
+    }
+
+    public function test_manifest_path_points_at_an_existing_valid_json_file(): void
+    {
+        $path = SchemaPaths::manifest();
+        $this->assertFileExists($path);
+
+        $decoded = json_decode((string) file_get_contents($path), true);
+        $this->assertIsArray($decoded, 'manifest.schema.json must decode to a JSON object.');
+    }
+
     public function test_media_item_schema_declares_the_series_hierarchy(): void
     {
         $path = SchemaPaths::mediaItem();

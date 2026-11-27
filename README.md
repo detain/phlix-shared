@@ -143,8 +143,8 @@ optional `config/trash_guides.php` local read; see [`AGENTS.md`](AGENTS.md) (in 
 The package ships the canonical JSON files used by both phlix-server and the
 admin SPA under `schemas/` (resolve their absolute paths via the dedicated
 `Phlix\Shared\Schema\SchemaPaths` accessors — `serverSettings()`, `hubSettings()`,
-`webhookEvents()`, `mediaItem()`, `libraryQuery()` — and via `SchemaPaths::dir()`
-for the files without a dedicated accessor, such as `manifest.schema.json`):
+`webhookEvents()`, `mediaItem()`, `libraryQuery()`, `manifest()` — with
+`SchemaPaths::dir()` reserved for the directory itself):
 
 - `schemas/manifest.schema.json` — JSON Schema (draft 2020-12) for plugin manifests,
   loaded at runtime by `phlix-server`'s `Phlix\Plugins\Manifest\ManifestSchema` validator (0.6.0+).

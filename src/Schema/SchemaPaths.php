@@ -118,6 +118,23 @@ final class SchemaPaths
     }
 
     /**
+     * Absolute path to the plugin-manifest JSON Schema (draft 2020-12) —
+     * the install-time validation contract for every plugin's `plugin.json`,
+     * loaded by `phlix-server`'s `Phlix\Plugins\Manifest\ManifestSchema`
+     * validator. Shipped since 0.6.0; this accessor closes the last schema
+     * file the README prescribed resolving by `dir()` string concatenation.
+     *
+     * @return non-empty-string Absolute path to `manifest.schema.json`.
+     *
+     * @since S-shared-31 (phlix-shared-037 — the manifest joins the
+     *        accessor family; ships in the next coordinated release)
+     */
+    public static function manifest(): string
+    {
+        return self::dir() . '/manifest.schema.json';
+    }
+
+    /**
      * Prevent instantiation — this class is a static path resolver only.
      */
     private function __construct()
