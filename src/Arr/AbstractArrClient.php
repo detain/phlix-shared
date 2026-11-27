@@ -13,6 +13,7 @@ namespace Phlix\Shared\Arr;
 
 use Phlix\Shared\Arr\Transport\ArrTransportInterface;
 use Phlix\Shared\Arr\Transport\CurlArrTransport;
+use Phlix\Shared\Security\SecretRedactor;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
 
@@ -252,7 +253,14 @@ abstract class AbstractArrClient
         }
 
         if ($httpCode === 404) {
-            throw new RuntimeException($vendor . ' API resource not found (404): ' . $path);
+            // phlix-shared-010: a caller-supplied $path can itself carry a
+            // secret (`?apikey=…` shaped query values, userinfo), so the echo
+            // goes through the URI arm — pattern-shaped material collapses
+            // even when it is not the configured key, and the key still
+            // collapses through the exact-value layer.
+            throw new RuntimeException(
+                $vendor . ' API resource not found (404): ' . SecretRedactor::redactUri($path, $this->apiKey)
+            );
         }
 
         if ($httpCode >= 400) {
@@ -279,8 +287,11 @@ abstract class AbstractArrClient
         // with an empty body used to fall through to the empty-body return
         // and decode as "no data" — surface it as the error it is.
         if ($httpCode >= 300) {
+            // Same URI arm as the 404 echo above (phlix-shared-010): the path
+            // in a redirect error is caller-supplied and may carry secrets.
             throw new RuntimeException(
-                $vendor . ' API redirect not followed (HTTP ' . $httpCode . '): ' . $path
+                $vendor . ' API redirect not followed (HTTP ' . $httpCode . '): '
+                . SecretRedactor::redactUri($path, $this->apiKey)
             );
         }
 

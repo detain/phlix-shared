@@ -43,10 +43,12 @@ optional `config/trash_guides.php` local read; see [`AGENTS.md`](AGENTS.md) (in 
   plus `Relay\{RelayHttpRequest, RelayHttpRequestHead, RelayHttpRequestChunk, RelayHttpRequestCodec}` and
   `Relay\{RelayHttpResponseHead, RelayHttpResponseChunk, RelayHttpResponseCodec}` —
   HTTP-over-relay request/response envelopes + `HEAD→BODY*→END` chunk framing (0.10.0+).
-- `Phlix\Shared\Arr\{ArrClientInterface, ArrClientFactory, AbstractArrClient, BazarrClient, ProwlarrClient, RadarrClient, SonarrClient, SyncResult, SecretRedactor, TrashGuidesProvider}` —
-  *arr HTTP clients with their factory, shared base, sync value object, redactor and
+- `Phlix\Shared\Arr\{ArrClientInterface, ArrClientFactory, AbstractArrClient, BazarrClient, ProwlarrClient, RadarrClient, SonarrClient, SyncResult, TrashGuidesProvider}` —
+  *arr HTTP clients with their factory, shared base, sync value object and
   TrashGuides provider; `Arr\Transport\{ArrTransportInterface, CurlArrTransport}` is the pluggable
-  wire layer underneath.
+  wire layer underneath. The redactor that used to sit in this namespace was
+  promoted to `Phlix\Shared\Security\SecretRedactor` (S-shared-10); the old
+  `Arr\SecretRedactor` name stays importable through a `class_alias` shim.
 - `Phlix\Shared\Security\Hmac` — the shared `compute()`/`verify()` seam for timing-safe
   HMAC-SHA256 in the `sha256:<hex>` colon-hex format, plus an additive envelope-separator
   arm (`SEPARATOR_EQUALS` serves the webhook legacy `sha256=<hex>` shape; the colon default
@@ -64,6 +66,14 @@ optional `config/trash_guides.php` local read; see [`AGENTS.md`](AGENTS.md) (in 
   forwarded/proto/localhost/same-site/verb/sec-fetch guards and `custodyMode`, proven
   zero server/hub divergence); and Ed25519 PEM/JWK primitives with the kid fingerprint
   parameterized per emitting shape. Consumer delegation to these is the S1/S2 adoption waves.
+- `Phlix\Shared\Security\SecretRedactor` — the secret-redaction kernel (0.11.0, promoted
+  from `Phlix\Shared\Arr` at S-shared-10). `redact()` replaces exact secret values
+  longest-first; the pattern arms `redactUri()` (credential-named query values +
+  `scheme://user:pass@` userinfo) and `redactBearer()` (entropy-gated
+  `Bearer`/`Basic`/`token`-shaped values) collapse secret-SHAPED material even when
+  the caller does not hold the value; every arm also layers the exact-value kernel
+  over a variadic `...$secrets`. The old `Arr\SecretRedactor` name is a `class_alias`
+  to this class and remains importable.
 - `Phlix\Shared\Support\PayloadAssert` — the presence/type assertion trait used by the wire DTOs
   that parse payloads through it: `ClaimRequest`, `ClaimResponse`, `ServerInfoDto`,
   `HeartbeatDto` and `JwtClaims`. `Hub\LibraryRef` is the deliberate manual-validation exception
