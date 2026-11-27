@@ -61,6 +61,11 @@ class SecretRedactorTest extends TestCase
     public function testTheLegacyNameResolvesToTheCanonicalClass(): void
     {
         $legacy = $this->legacyName();
+        $this->assertNotSame(
+            SecretRedactor::class,
+            $legacy,
+            'The boundary must carry the legacy address, not the canonical name.'
+        );
         if (!class_exists($legacy)) {
             $this->fail('The legacy FQCN must exist via the S-shared-10 class_alias shim.');
         }
