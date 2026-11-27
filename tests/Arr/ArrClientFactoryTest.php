@@ -284,6 +284,18 @@ class ArrClientFactoryTest extends TestCase
             true,
             [],
         ];
+        yield 'sonarr enabled with zero-string key' => [
+            ['sonarr' => ['enabled' => true, 'api_key' => '0']],
+            false,
+            true,
+            [],
+        ];
+        yield 'radarr enabled with zero-string key' => [
+            ['radarr' => ['enabled' => true, 'api_key' => '0']],
+            true,
+            false,
+            [],
+        ];
         yield 'radarr enabled without key' => [
             ['radarr' => ['enabled' => true, 'api_key' => '']],
             true,
@@ -313,6 +325,9 @@ class ArrClientFactoryTest extends TestCase
     /**
      * The null a creator returns must mean exactly "disabled OR named by
      * misconfigured()" — detector and branch can never drift apart (S-shared-20).
+     * The zero-string rows are the in-contract coercion sentinels: '0' is a
+     * falsy-yet-non-empty key, so restating either side with falsy coercion
+     * (`!$apiKey`) instead of the shared strict law convicts here (r1 minor).
      *
      * @param array{sonarr?: array{url?: string, api_key?: string, enabled?: bool, connect_timeout?: int|string|null},
      *               radarr?: array{url?: string, api_key?: string, enabled?: bool, connect_timeout?: int|string|null}} $config
@@ -330,6 +345,47 @@ class ArrClientFactoryTest extends TestCase
         $this->assertSame($sonarrExpectNull, $factory->createSonarrClient() === null);
         $this->assertSame($radarrExpectNull, $factory->createRadarrClient() === null);
         $this->assertSame($expectedMisconfigured, $factory->misconfigured());
+    }
+
+    /**
+     * Coercion sentinels for the ONE shared branch law (S-shared-20 r1 minor).
+     *
+     * These api_key shapes sit outside the documented string contract, so the
+     * pin runs through the detector window: the creators call this very same
+     * predicate, but constructing a client with a bool or int key dies in
+     * AbstractArrClient's strict string parameter — a constructor law, not a
+     * branch law, and the matrix above never feeds it such shapes. Emptiness
+     * must stay strict: on PHP 8 `0 == ''` is already false, so the `== ''`
+     * mutation of the shared law diverges from `=== ''` exactly on bool false
+     * — this is the row that convicts a loose-comparison "simplification" of
+     * the one predicate the detector and the creators now literally share.
+     *
+     * @return iterable<string, array{array<string, array<string, mixed>>, list<string>}>
+     */
+    public static function branchLawCoercionSentinels(): iterable
+    {
+        yield 'bool false key is present, not empty' => [
+            ['sonarr' => ['enabled' => true, 'api_key' => false]],
+            [],
+        ];
+        yield 'int zero key is present, not empty' => [
+            ['radarr' => ['enabled' => true, 'api_key' => 0]],
+            [],
+        ];
+        yield 'null key coalesces to absent' => [
+            ['sonarr' => ['enabled' => true, 'api_key' => null]],
+            ['sonarr'],
+        ];
+    }
+
+    /**
+     * @param array<string, array<string, mixed>> $config
+     * @param list<string> $expectedMisconfigured
+     */
+    #[DataProvider('branchLawCoercionSentinels')]
+    public function testTheSharedBranchLawComparesEmptinessStrictly(array $config, array $expectedMisconfigured): void
+    {
+        $this->assertSame($expectedMisconfigured, (new ArrClientFactory($config))->misconfigured());
     }
 
     /**

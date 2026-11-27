@@ -77,8 +77,9 @@ final class ArrClientFactory
      * @return SonarrClient|null Client instance, or null if Sonarr is disabled
      *     OR enabled with an empty api_key — the enabled-but-keyless branch is
      *     a misconfiguration, distinguishable via {@see self::misconfigured()}.
-     * @throws InvalidArgumentException When the enabled section carries a
-     *     `connect_timeout` that is neither absent nor a positive int.
+     * @throws InvalidArgumentException When a usable section (enabled AND
+     *     carrying a non-empty api_key) sets a `connect_timeout` that is
+     *     neither absent nor a positive int; an unusable section is inert.
      */
     public function createSonarrClient(?LoggerInterface $logger = null): ?SonarrClient
     {
@@ -91,7 +92,7 @@ final class ArrClientFactory
         $url = $sonarrConfig['url'] ?? 'http://localhost:8989';
         $apiKey = $sonarrConfig['api_key'] ?? '';
 
-        if ($apiKey === '') {
+        if (self::isEnabledWithoutKey($sonarrConfig)) {
             $logger?->warning('Sonarr API key is empty but client is enabled');
             return null;
         }
@@ -110,8 +111,9 @@ final class ArrClientFactory
      * @return RadarrClient|null Client instance, or null if Radarr is disabled
      *     OR enabled with an empty api_key — the enabled-but-keyless branch is
      *     a misconfiguration, distinguishable via {@see self::misconfigured()}.
-     * @throws InvalidArgumentException When the enabled section carries a
-     *     `connect_timeout` that is neither absent nor a positive int.
+     * @throws InvalidArgumentException When a usable section (enabled AND
+     *     carrying a non-empty api_key) sets a `connect_timeout` that is
+     *     neither absent nor a positive int; an unusable section is inert.
      */
     public function createRadarrClient(?LoggerInterface $logger = null): ?RadarrClient
     {
@@ -124,7 +126,7 @@ final class ArrClientFactory
         $url = $radarrConfig['url'] ?? 'http://localhost:7878';
         $apiKey = $radarrConfig['api_key'] ?? '';
 
-        if ($apiKey === '') {
+        if (self::isEnabledWithoutKey($radarrConfig)) {
             $logger?->warning('Radarr API key is empty but client is enabled');
             return null;
         }
@@ -171,8 +173,11 @@ final class ArrClientFactory
 
     /**
      * The single branch law shared by the create*() keyless return and
-     * {@see self::misconfigured()}: a truthy `enabled` (exactly the creators'
-     * truthiness test) plus an absent-or-empty `api_key`.
+     * {@see self::misconfigured()} — both call this one predicate, so the
+     * detector can never disagree with what create*() actually does: a
+     * truthy `enabled` (exactly the creators' truthiness test) plus an
+     * absent-or-empty `api_key`. Emptiness is strict: absent, null or ''
+     * are keyless; a falsy-but-present key ('0', 0, false) is a key.
      *
      * @param array<string, mixed> $section One provider's config section.
      */
