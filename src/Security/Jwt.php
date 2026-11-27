@@ -14,6 +14,7 @@ namespace Phlix\Shared\Security;
 use InvalidArgumentException;
 use JsonException;
 
+use function array_is_list;
 use function explode;
 use function hash_equals;
 use function hash_hmac;
@@ -34,9 +35,12 @@ use function strlen;
  *
  *  1. three dot-separated segments or fail (`malformed`);
  *  2. decode the header with `JSON_THROW_ON_ERROR` — bad JSON is `malformed`,
- *     never a silent null that could sneak past an `?? null` probe; and the
+ *     never a silent null that could sneak past an `?? null` probe; the
  *     segment must be canonical unpadded base64url, so malleable equivalent
- *     encodings (`+`, `/`, `=`) are `malformed` too (phlix-shared-007);
+ *     encodings (`+`, `/`, `=`) are `malformed` too (phlix-shared-007); and
+ *     it must decode to a JSON object mapping — list segments, and the
+ *     `{}`/`[]` empty-decode collapse, are `malformed` as well, never the
+ *     mislabeling `alg-unexpected` (phlix-shared-031);
  *  3. pin `alg === 'HS256'` and, when present, `typ === 'JWT'` —
  *     BEFORE any signature work. This ordering is the whole point: an
  *     `alg:none`/`alg:HS512`-labeled token whose HMAC is mathematically
@@ -45,8 +49,10 @@ use function strlen;
  *     refused on what it CLAIMS, not on whether it PROVED itself;
  *  4. only then recompute the HMAC and `hash_equals` the signature
  *     (`signature-mismatch`);
- *  5. decode the payload with `JSON_THROW_ON_ERROR`, require an object,
- *     keep string keys only (both parents' verbatim loop).
+ *  5. decode the payload under the same object-mapping law — a signed list
+ *     payload is refused `malformed` there, not stripped by the string-key
+ *     filter into empty claims (phlix-shared-031) — then keep string keys
+ *     only (both parents' verbatim loop).
  *
  * Every rejection is a {@see JwtException} with one of exactly three
  * machine-readable reasons. Claim semantics (exp/nbf/aud/iss) are NOT
@@ -206,7 +212,7 @@ final class Jwt
     }
 
     /**
-     * base64url-decode a segment and require it to be a JSON object.
+     * base64url-decode a segment and require it to be a JSON object mapping.
      *
      * The segment must be canonical unpadded base64url — the JWT-segment arm
      * {@see Base64Url::decodeJwtSegment()} (phlix-shared-007): `+`, `/` and
@@ -214,7 +220,24 @@ final class Jwt
      * refused here, so byte-distinct equivalent tokens can no longer verify
      * identically. Then `JSON_THROW_ON_ERROR` (hub law) plus the object check
      * (both parents): a segment that is not a JSON object never survives to
-     * the caller.
+     * the caller — phlix-shared-031 closes the hole in that parents' arm,
+     * where `json_decode(..., true)` returns a PHP array for a JSON LIST too.
+     * A list HEADER used to die as `alg-unexpected`, a label lying about a
+     * segment with no `alg` member at all; an honestly-signed list PAYLOAD
+     * passed the signature check and the string-key filter stripped its
+     * integer keys into `payload = []` — an accepted credential with zero
+     * claims, downstream fail-closed only by accident.
+     *
+     * `array_is_list()` refuses both shapes. It also refuses every segment
+     * whose assoc decode collapses to the empty array, which is deliberate:
+     * after `json_decode(..., true)` the JSON texts `{}` and `[]` are
+     * indistinguishable, this mint serializes empty claims to the LIST form
+     * anyway (`json_encode([])` is `[]`, never `{}`), and no consumer here
+     * can use an `alg`-less header or a principal-less claim set — so the
+     * whole empty class is `malformed` rather than silently survivable.
+     * The ban is top-level only: a list as the VALUE of a named member
+     * (`{"scope":["read","write"]}`) is ordinary claim material and stays
+     * legal.
      *
      * @return array<array-key, mixed>
      *
@@ -228,8 +251,8 @@ final class Jwt
             throw JwtException::malformed("JWT {$what} is not valid JSON.");
         }
 
-        if (!is_array($decoded)) {
-            throw JwtException::malformed("JWT {$what} did not decode to an object.");
+        if (!is_array($decoded) || array_is_list($decoded)) {
+            throw JwtException::malformed("JWT {$what} did not decode to a JSON object mapping.");
         }
 
         return $decoded;

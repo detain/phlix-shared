@@ -26,7 +26,10 @@ use PHPUnit\Framework\TestCase;
  * BOTH live header shapes in the estate: the strict `{"alg","typ"}` header
  * that phlix-server and phlix-hub mint today, and the typ-less legacy header
  * older verifiers have always had to keep accepting; plus the `alg:none`
- * attack token (bug2) as a permanent regression pin.
+ * attack token (bug2) as a permanent regression pin, and the two
+ * list-segment tokens (phlix-shared-031) — the object-mapping law frozen as
+ * bytes so no future `is_array`-shaped regression can quietly re-accept
+ * them.
  *
  * @package Phlix\Shared\Tests\Security
  * @since 0.56.0
@@ -56,6 +59,28 @@ final class JwtVectorPinTest extends TestCase
         'eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0'
         . '.eyJzdWIiOiJ1c2VyLTEiLCJpYXQiOjE3MDAwMDAwMDAsImV4cCI6MTgwMDAwMDAwMH0'
         . '.pvXz-aXCVNSSAgsJu-WIW5Ve07xBs0m7a2HUeLcxRGA';
+
+    /**
+     * Header `["HS256","JWT"]` — a JSON LIST wearing a strict header's bytes
+     * (phlix-shared-031). Honest HMAC over exactly these segments. The
+     * pre-fix decoder walked this list into the `alg` probe and refused it as
+     * `alg-unexpected`; the object-mapping law refuses it `malformed`.
+     */
+    private const TOKEN_LIST_HEADER =
+        'WyJIUzI1NiIsIkpXVCJd'
+        . '.eyJzdWIiOiJ1c2VyLTEiLCJpYXQiOjE3MDAwMDAwMDAsImV4cCI6MTgwMDAwMDAwMH0'
+        . '.0suHdx-GxHRFCmcpBcTei8NguaanZxMsfIQWfmJENl8';
+
+    /**
+     * Claims wrapped in a JSON LIST — `[{"sub":...}]` with an HONEST HMAC
+     * (phlix-shared-031). Pre-fix this token VERIFIED: the signature passed,
+     * then the string-key filter emptied the payload. Frozen as bytes so it
+     * must answer `malformed` forever.
+     */
+    private const TOKEN_LIST_PAYLOAD =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9'
+        . '.W3sic3ViIjoidXNlci0xIiwiaWF0IjoxNzAwMDAwMDAwLCJleHAiOjE4MDAwMDAwMDB9XQ'
+        . '.Y2W9qG4U_lpbWxqqodNjlcYsx0j0LU_FxxczS4s1UWA';
 
     public function testStrictHeaderVectorVerifiesToExactParts(): void
     {
@@ -89,6 +114,31 @@ final class JwtVectorPinTest extends TestCase
             self::fail('the alg:none vector must never verify');
         } catch (JwtException $e) {
             self::assertSame(JwtException::REASON_ALG_UNEXPECTED, $e->reason);
+        }
+    }
+
+    public function testListHeaderVectorIsMalformedForever(): void
+    {
+        // phlix-shared-031, header arm, frozen: the list's absent `alg` may
+        // never again reach the pin and answer `alg-unexpected`.
+        try {
+            Jwt::verify(self::TOKEN_LIST_HEADER, self::SECRET);
+            self::fail('the list-header vector must never verify');
+        } catch (JwtException $e) {
+            self::assertSame(JwtException::REASON_MALFORMED, $e->reason);
+        }
+    }
+
+    public function testListPayloadVectorIsRefusedPreClaimsForever(): void
+    {
+        // phlix-shared-031, payload arm, frozen: this HMAC is honest, so the
+        // only lawful outcome left is refusal at the object check — before
+        // any claims object exists to be emptied.
+        try {
+            Jwt::verify(self::TOKEN_LIST_PAYLOAD, self::SECRET);
+            self::fail('the signed list-payload vector must never verify');
+        } catch (JwtException $e) {
+            self::assertSame(JwtException::REASON_MALFORMED, $e->reason);
         }
     }
 }

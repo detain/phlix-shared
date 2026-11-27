@@ -297,6 +297,106 @@ final class JwtTest extends TestCase
         }
     }
 
+    public function testListHeaderSegmentIsMalformedNotAlgUnexpected(): void
+    {
+        // phlix-shared-031, header arm. A JSON list decodes to a PHP array,
+        // so the parents' `is_array` check let `["HS256","JWT"]` through to
+        // the alg probe, where the absent member killed it as
+        // `alg-unexpected` — a label claiming the header LIES about its alg
+        // when in truth there is no header object at all. The
+        // REASON_MALFORMED doc ("header/payload is not a JSON object")
+        // demanded this label fix; the guard now honors it.
+        $token = self::forge('["HS256","JWT"]', '{"sub":"x"}');
+
+        try {
+            Jwt::verify($token, self::SECRET);
+            self::fail('list header must be malformed');
+        } catch (JwtException $e) {
+            self::assertSame(JwtException::REASON_MALFORMED, $e->reason);
+        }
+    }
+
+    public function testSignedListPayloadIsRejectedBeforeAnyClaims(): void
+    {
+        // phlix-shared-031, payload arm — the dangerous one. The HMAC here is
+        // mathematically honest, so the old arm sailed through signature
+        // verification and the string-key filter stripped `[{"sub":...}]`
+        // into `payload = []`: an ACCEPTED token with zero claims. Rejection
+        // now happens inside decodeJsonObject — no claims object is ever
+        // produced from a list, hence "rejected pre-claims".
+        $token = self::forge('{"alg":"HS256","typ":"JWT"}', '[{"sub":"x"},{"role":"admin"}]');
+
+        try {
+            Jwt::verify($token, self::SECRET);
+            self::fail('signed list payload must not verify');
+        } catch (JwtException $e) {
+            self::assertSame(JwtException::REASON_MALFORMED, $e->reason);
+        }
+    }
+
+    public function testEmptyDecodedSegmentsAreRefusedAsMalformed(): void
+    {
+        // The documented empty-collapse law: after `json_decode(..., true)`
+        // the texts `{}` and `[]` are both the empty array, and the codec
+        // refuses the whole class. Pre-fix arms: the `{}` header died as the
+        // lying `alg-unexpected` label; both empty payloads verified (honest
+        // HMAC) and yielded the accepted-but-claimless shape this step
+        // removes. Jwt::create([]) mints the `[]` spelling itself —
+        // `json_encode([])` is `[]`, never `{}` — so no honest mint of this
+        // codec ever produced a segment these arms used to accept.
+        $cases = [
+            'empty-object header'  => ['{}', '{"sub":"x"}'],
+            'empty-object payload' => ['{"alg":"HS256","typ":"JWT"}', '{}'],
+            'empty-list payload'   => ['{"alg":"HS256","typ":"JWT"}', '[]'],
+        ];
+        foreach ($cases as $label => [$headerJson, $payloadJson]) {
+            try {
+                Jwt::verify(self::forge($headerJson, $payloadJson), self::SECRET);
+                self::fail("{$label} must not verify");
+            } catch (JwtException $e) {
+                self::assertSame(JwtException::REASON_MALFORMED, $e->reason, $label);
+            }
+        }
+    }
+
+    public function testSequentialNumericKeyObjectIsRefusedAsListCollapse(): void
+    {
+        // Boundary of the list law. `{"0":"zero"}` is JSON-object TEXT, but
+        // PHP re-keys `"0"` to int 0 and array_is_list sees the full
+        // positional collapse — the very shape `json_encode(['0' => 'zero'])`
+        // serializes as `["zero"]`, so refusing it keeps mint and verify
+        // truthful with each other. The contrast with
+        // testNumericPayloadKeysAreDroppedNotExportedToIntOffsets is the
+        // law: one named member keeps an array out of list-hood and the
+        // token legal.
+        $token = self::forge('{"alg":"HS256","typ":"JWT"}', '{"0":"zero"}');
+
+        try {
+            Jwt::verify($token, self::SECRET);
+            self::fail('a pure positional collapse must not verify');
+        } catch (JwtException $e) {
+            self::assertSame(JwtException::REASON_MALFORMED, $e->reason);
+        }
+    }
+
+    public function testListsInsideObjectsStayLegal(): void
+    {
+        // Anti-over-tightening control: the phlix-shared-031 refusal is
+        // top-level only. List-valued claims are ordinary JWT material (the
+        // round trip pins `scope`), and a header member carrying a list (an
+        // `x5c`-style chain) must survive — the guard bans list SEGMENTS,
+        // never list VALUES.
+        $token = self::forge(
+            '{"alg":"HS256","typ":"JWT","x5c":["a","b"]}',
+            '{"sub":"x","groups":["admins"]}',
+        );
+
+        $parts = Jwt::verify($token, self::SECRET);
+
+        self::assertSame(['a', 'b'], $parts->header['x5c']);
+        self::assertSame(['admins'], $parts->payload['groups']);
+    }
+
     public function testNumericPayloadKeysAreDroppedNotExportedToIntOffsets(): void
     {
         // The parents' string-key filter loop, pinned.
