@@ -347,6 +347,163 @@ WHAT-MOVES-WHERE table in `plans/expansion/b.1-shared-design.md` of
 [`detain/phlix`](https://github.com/detain/phlix) is history-only and not
 part of the estate checkouts.)
 
+## Consumer examples
+
+The three highest-friction surfaces — *arr client construction, the
+HTTP-over-relay framing sequence, and the settings value codec — as
+copy-pasteable snippets mirroring the tested call shapes in `src/`.
+[`tests/ReadmeExamplesTest.php`](tests/ReadmeExamplesTest.php) enforces the
+pairing: it greps every call shape below out of this file, resolves every
+`use` line against the autoloader, and pins the reflection arity of each
+constructor and static method the snippets lean on — so an API rename cannot
+land without these examples being updated in the same commit.
+
+### *arr clients: factory construction
+
+`ArrClientFactory` builds clients from a config array: each section carries
+`url` / `api_key` / `enabled`, a disabled section yields `null` from the
+matching `create*()`, and an enabled one with an empty `api_key` also returns
+`null` after warning through the optional logger:
+
+```php
+use Phlix\Shared\Arr\ArrClientFactory;
+
+$factory = new ArrClientFactory([
+    'sonarr' => ['url' => 'http://sonarr.local:8989', 'api_key' => 'sonarr-api-key', 'enabled' => true],
+    'radarr' => ['url' => 'http://radarr.local:7878', 'api_key' => 'radarr-api-key', 'enabled' => true],
+]);
+
+$sonarr = $factory->createSonarrClient();        // ?SonarrClient
+$radarr = $factory->createRadarrClient($logger); // ?RadarrClient; $logger is an optional ?Psr\Log\LoggerInterface
+
+$profiles = $radarr?->getQualityProfiles();      // this is the first line that performs real HTTP
+```
+
+Without a second constructor argument the factory hands clients the bundled
+blocking `CurlArrTransport` (CLI/test posture). Event-loop consumers inject
+one `ArrTransportInterface` into the factory and every client it builds
+shares it.
+
+### *arr clients: the transport seam
+
+The seam is one method: raw `Name: value` header strings in, shaped
+`['status' => int, 'body' => string]` out. Implementing it over your own
+event-loop HTTP client is what keeps the `Arr\*` clients cooperative on
+Workerman/Swoole runtimes. This example answers canned bytes, so it runs
+hermetically — no network:
+
+```php
+use Phlix\Shared\Arr\RadarrClient;
+use Phlix\Shared\Arr\Transport\ArrTransportInterface;
+
+$transport = new class implements ArrTransportInterface {
+    public function request(string $method, string $url, array $headers, ?string $body): array
+    {
+        return ['status' => 200, 'body' => '[]'];
+    }
+};
+
+// Ctor law: (baseUrl, apiKey, ?logger, timeout, ?transport, connectTimeout).
+// Non-http(s) base URLs and API keys carrying line breaks throw
+// RuntimeException here, before any request is built.
+$client = new RadarrClient('http://radarr.local:7878', 'radarr-api-key', null, 30, $transport);
+$profiles = $client->getQualityProfiles(); // decoded from the canned '[]' above
+```
+
+### HTTP-over-relay: the `HEAD -> BODY* -> END` sequence
+
+One relayed message is a HEAD payload (tag + JSON head), zero or more BODY
+payloads (tag + raw bytes — `chunkBody()` splits at `MAX_BODY_CHUNK`, and an
+empty body yields no BODY frames), then one END payload. `decode()` answers
+a typed `RelayHttpRequestChunk` (`kind` plus `head`/`body`) per payload; the
+response direction is the mirror through the `RelayHttpResponse*` trio:
+
+```php
+use Phlix\Shared\Relay\RelayHttpRequestChunk;
+use Phlix\Shared\Relay\RelayHttpRequestCodec;
+use Phlix\Shared\Relay\RelayHttpRequestHead;
+use Phlix\Shared\Relay\RelayHttpResponseChunk;
+use Phlix\Shared\Relay\RelayHttpResponseCodec;
+use Phlix\Shared\Relay\RelayHttpResponseHead;
+
+$requestBody = '{"name":"Films"}';
+
+$payloads = array_merge(
+    [RelayHttpRequestCodec::encodeHead(new RelayHttpRequestHead('POST', '/api/v1/libraries', '', ['Content-Type' => 'application/json']))],
+    RelayHttpRequestCodec::chunkBody($requestBody),
+    [RelayHttpRequestCodec::encodeEnd()]
+);
+
+$method = null;
+$reassembled = '';
+$complete = false;
+foreach ($payloads as $payload) {
+    $chunk = RelayHttpRequestCodec::decode($payload);
+    if ($chunk->kind === RelayHttpRequestChunk::KIND_HEAD) {
+        $method = $chunk->head?->method;  // RelayHttpRequestHead properties: method/path/query/headers
+    } elseif ($chunk->kind === RelayHttpRequestChunk::KIND_BODY) {
+        $reassembled .= $chunk->body;
+    } else {
+        $complete = true;                 // RelayHttpRequestChunk::KIND_END
+    }
+}
+// $method === 'POST', $reassembled === $requestBody, $complete === true.
+
+$responseBody = '{"id":1}';
+$responsePayloads = array_merge(
+    [RelayHttpResponseCodec::encodeHead(new RelayHttpResponseHead(200, ['Content-Type' => 'application/json'], null))],
+    RelayHttpResponseCodec::chunkBody($responseBody), // $bodyLength null = streaming: length unknown at HEAD time
+    [RelayHttpResponseCodec::encodeEnd()]
+);
+
+$receivedStatus = null;
+$receivedBody = '';
+foreach ($responsePayloads as $responsePayload) {
+    $responseChunk = RelayHttpResponseCodec::decode($responsePayload);
+    if ($responseChunk->kind === RelayHttpResponseChunk::KIND_HEAD) {
+        $receivedStatus = $responseChunk->head?->status;
+    } elseif ($responseChunk->kind === RelayHttpResponseChunk::KIND_BODY) {
+        $receivedBody .= $responseChunk->body;
+    }
+}
+```
+
+Envelope-level framing (putting these payloads into `RelayFrame`s under the
+64 KB cap) is `FrameCodec`'s job; and in the request direction a received
+head must be parsed with `RelayHttpRequestHead::fromJsonGated()` — never the
+ungated `fromJson()` — before it is trusted, because the head carries
+caller-supplied headers. The reassembled request must then clear
+`RelayHttpRequest::assertSafe()`.
+
+### Settings value codec
+
+The persisted-text round-trip. The `$valueType` argument is exactly the
+settings-schema family `string|int|bool|float|json`; anything outside that
+vocabulary throws `InvalidArgumentException` in both directions — an unknown
+type is a programmer error or a corrupt stored row, never silently passed
+through. The `json` arms are strict: corrupt text raises `JsonException`
+rather than yielding a silent `null`:
+
+```php
+use Phlix\Shared\Settings\SettingsCodec;
+
+$stored = SettingsCodec::encode(['tmdb', 'imdb'], 'json'); // '["tmdb","imdb"]'
+$restored = SettingsCodec::decode($stored, 'json');        // ['tmdb', 'imdb']
+
+SettingsCodec::encode(7, 'int');                        // '7'
+SettingsCodec::decode('1', 'bool');                     // true  (the persisted '1'/'0' leg)
+
+// The two pure reader primitives. An override wins whenever it EXISTS, so a
+// stored false/0/'' is a real setting and only null falls through to the
+// default; the clamp is inclusive on both bounds.
+SettingsCodec::effective(null, 'midnight');             // 'midnight'
+SettingsCodec::effective('nocturne', 'midnight');       // 'nocturne'
+SettingsCodec::clampValue(42, 1, 30);                   // 30
+```
+
+Every statement above runs hermetically against a local install — no
+transport, no database, no network.
+
 ## Related repositories
 
 - [`detain/phlix-server`](https://github.com/detain/phlix-server) — the Phlix media server (consumes this package).
