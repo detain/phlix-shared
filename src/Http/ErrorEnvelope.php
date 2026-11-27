@@ -64,8 +64,25 @@ namespace Phlix\Shared\Http;
 final class ErrorEnvelope
 {
     /**
-     * The stable machine code a tripped limiter answers with. Owned by the
-     * `@phlix/contracts` error-code registry — no new codes (estate law).
+     * The stable machine code a tripped limiter answers with.
+     *
+     * PROVENANCE (phlix-shared-035): the literal below is a CITE-ONLY
+     * mirror of the registered code `rate_limited` in the `@phlix/contracts`
+     * error-code registry — declared in that repo's `src/errors.ts`,
+     * emitted by its `scripts/emit-error-codes.mjs` into
+     * `dist/error-codes.json` (the `codes` array; the order there is the
+     * registry declaration order). Estate law: no new codes — the registry
+     * is the SSOT; regens move only that file's md5-pinned family over in
+     * phlix-contracts. Nothing here vendors the registry (dependency-churn
+     * rule), and the registry's own tripwire
+     * (`scripts/check-error-cites.mjs`, run as `npm run verify:cites`)
+     * token-verifies cites against the phlix-server and phlix-hub working
+     * trees only — it never scans this repo — so a registry rotation could
+     * silently orphan this literal. The in-repo link is the dedicated pin
+     * test `ErrorEnvelopeTest` (method named for the registry entry,
+     * finding id cited in its docblock); together they are the tripwire.
+     * If the registry ever renames or retires `rate_limited`, update the
+     * registry, this constant, and that pin in one reconciliation.
      */
     public const string RATE_LIMITED_CODE = 'rate_limited';
 
