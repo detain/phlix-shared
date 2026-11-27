@@ -28,11 +28,78 @@ use RuntimeException;
  * anti-rot pin that the disproven "runtime hooks curl" docblock premise cannot
  * creep back into the three Arr classes.
  *
+ * The cap family carries an end-to-end loopback pin besides the reflection
+ * pins: a real over-cap response must surface the DEDICATED cap-naming error
+ * from request() itself, not the generic cURL-error branch (S-shared-01 r1
+ * Minor cure — the out-of-band "loopback php -S harness" mutation proof in the
+ * commit body becomes a committed, re-runnable conviction here).
+ *
  * @package Phlix\Shared\Tests\Arr\Transport
  * @since 0.11.0
  */
 class CurlArrTransportTest extends TestCase
 {
+    /**
+     * Source of the throwaway loopback HTTP child used by the end-to-end cap
+     * pin below. Written to a private scratch file at runtime (never
+     * committed) and started with proc_open([PHP_BINARY, script, port,
+     * witness]); the test's finally block terminates it on every exit path.
+     * Lifecycle mirrors tests/Support/Arr/trash_guides_redirect_server.php:
+     * bind the reserved 127.0.0.1 port, report READY on stdout, answer exactly
+     * one request with a fixed 2048-byte body — strictly more than the 64-byte
+     * cap the test installs — log the SERVED witness to disk BEFORE the
+     * response bytes, then exit; idle accept of 5 s and a 20 s hard wall keep
+     * an orphan impossible if the parent dies mid-transfer.
+     */
+    private const OVER_CAP_SERVER_SCRIPT = <<<'PHP'
+<?php
+declare(strict_types=1);
+
+$port = (int) ($argv[1] ?? 0);
+$witnessPath = (string) ($argv[2] ?? '');
+if ($port <= 0 || $witnessPath === '') {
+    fwrite(STDERR, "usage: <port> <witnessPath>\n");
+    exit(1);
+}
+
+$listener = @stream_socket_server('tcp://127.0.0.1:' . $port, $errno, $errstr);
+if ($listener === false) {
+    fwrite(STDERR, "bind fail $errno $errstr\n");
+    exit(1);
+}
+fwrite(STDOUT, "READY\n");
+
+$deadline = time() + 20;
+while (time() < $deadline) {
+    $connection = @stream_socket_accept($listener, 5);
+    if ($connection === false) {
+        break;
+    }
+
+    // Drain the request headers so the client sees a well-formed exchange.
+    while (($headerLine = fgets($connection, 1024)) !== false && $headerLine !== "\r\n") {
+        // no-op: the response is fixed; request headers are irrelevant
+    }
+
+    $body = str_repeat('A', 2048);
+    $response = "HTTP/1.1 200 OK\r\n"
+        . "Content-Type: application/json\r\n"
+        . "Content-Length: " . strlen($body) . "\r\n"
+        . "Connection: close\r\n"
+        . "\r\n" . $body;
+
+    // Log BEFORE answering: the SERVED line exists on disk before the
+    // response bytes can reach the client (precedent witness law).
+    file_put_contents($witnessPath, "SERVED\n", FILE_APPEND);
+    fwrite($connection, $response);
+    fclose($connection);
+    break;
+}
+
+fclose($listener);
+exit(0);
+PHP;
+
     /**
      * Tests that the transport rejects file:// URLs via protocol pinning.
      * cURL should fail because CURLOPT_PROTOCOLS is set to HTTP|HTTPS only.
@@ -393,6 +460,137 @@ class CurlArrTransportTest extends TestCase
             $prop->getValue(new CurlArrTransport()),
             'A default-constructed transport must run with the house cap.'
         );
+    }
+
+    /**
+     * End-to-end cap pin (phlix-shared-032, S-shared-01 r1 Minor cure):
+     * request() against a REAL over-cap loopback response must throw the
+     * dedicated, cap-naming error — the mapping that runs BEFORE the generic
+     * 'cURL error' branch. The reflection pins (writeChunk arithmetic at the
+     * sink, WRITEFUNCTION entry in the option set) never reach
+     * responseOverflow === true inside request(), so the reviewer's
+     * overflow-map-off mutant (`if ($this->responseOverflowed())` → `if
+     * (false)`) survived the entire committed suite: the error degraded to a
+     * generic cURL failure and nothing went red. This pin convicts it — the
+     * dedicated message is asserted literally (cap value included), and a
+     * degraded generic 'cURL error: ...' fails both assertions.
+     *
+     * Hermetic: php child (proc_open, killed in finally) on a reserved
+     * ephemeral 127.0.0.1 port answers one 2048-byte body; the transport runs
+     * (timeout 2 s, connect 1 s, cap 64 bytes), so the first body chunk
+     * exceeds the cap and the sink aborts mid-transfer. No DNS, no fixed
+     * port, no external network is ever touched.
+     */
+    public function test_response_over_the_cap_maps_to_the_dedicated_cap_error_end_to_end(): void
+    {
+        $dir = sys_get_temp_dir() . '/curl-cap-e2e-' . bin2hex(random_bytes(6));
+        if (!mkdir($dir, 0700) && !is_dir($dir)) {
+            $this->fail("could not create the scratch dir $dir");
+        }
+
+        $scriptPath = $dir . '/over_cap_server.php';
+        $witnessPath = $dir . '/served.log';
+
+        /** @var resource|false $process */
+        $process = false;
+        /** @var array<int, mixed> $pipes */
+        $pipes = [];
+
+        try {
+            $port = $this->reserveLoopbackPort();
+
+            if (
+                file_put_contents($scriptPath, self::OVER_CAP_SERVER_SCRIPT) === false
+                || file_put_contents($witnessPath, '') === false
+            ) {
+                $this->fail("could not seed the scratch dir $dir");
+            }
+
+            $process = proc_open(
+                [PHP_BINARY, $scriptPath, (string) $port, $witnessPath],
+                [
+                    0 => ['file', '/dev/null', 'r'],
+                    1 => ['pipe', 'w'],
+                    2 => ['pipe', 'w'],
+                ],
+                $pipes
+            );
+            if (!is_resource($process)) {
+                $this->fail('could not start the loopback over-cap server child');
+            }
+
+            $ready = is_resource($pipes[1] ?? null) ? fgets($pipes[1]) : false;
+            if ($ready !== "READY\n") {
+                $stderr = is_resource($pipes[2] ?? null) ? (string) stream_get_contents($pipes[2]) : '';
+                $this->fail('over-cap server child never reported READY; stderr: ' . $stderr);
+            }
+
+            $transport = new CurlArrTransport(2, 1, 64);
+
+            try {
+                $outcome = $transport->request('GET', 'http://127.0.0.1:' . $port . '/over-cap.json', [], null);
+                $this->fail(
+                    'an over-cap response must abort the transfer; returned status=' . $outcome['status']
+                );
+            } catch (RuntimeException $exception) {
+                $this->assertMatchesRegularExpression(
+                    '/exceeded the \d+-byte cap/',
+                    $exception->getMessage(),
+                    'the dedicated overflow mapping must fire before the generic cURL-error branch'
+                );
+                $this->assertStringStartsWith(
+                    'cURL response exceeded the 64-byte cap',
+                    $exception->getMessage(),
+                    'the cap in force must be named in the error'
+                );
+            }
+
+            $this->assertStringContainsString(
+                "SERVED\n",
+                (string) file_get_contents($witnessPath),
+                'the loopback server must have answered before the capped sink aborted the transfer'
+            );
+        } finally {
+            foreach ($pipes as $pipe) {
+                if (is_resource($pipe)) {
+                    fclose($pipe);
+                }
+            }
+            if (is_resource($process)) {
+                proc_terminate($process);
+                proc_close($process);
+            }
+            foreach (['over_cap_server.php', 'served.log'] as $artifact) {
+                if (is_file($dir . '/' . $artifact)) {
+                    unlink($dir . '/' . $artifact);
+                }
+            }
+            @rmdir($dir);
+        }
+    }
+
+    /**
+     * Reserve a free ephemeral 127.0.0.1 port by binding port 0 and reading
+     * the kernel-assigned number back — the exact discipline of
+     * TrashGuidesTlsMaterial::reservePort(), inlined so this pin stays inside
+     * the step's locked test file.
+     */
+    private function reserveLoopbackPort(): int
+    {
+        $socket = @stream_socket_server('tcp://127.0.0.1:0', $errno, $errstr);
+        if ($socket === false) {
+            $this->fail("cannot reserve a loopback port: $errstr");
+        }
+
+        $name = (string) stream_socket_get_name($socket, false);
+        fclose($socket);
+
+        $port = (int) substr($name, (int) strrpos($name, ':') + 1);
+        if ($port <= 0) {
+            $this->fail("could not read back a port from '$name'");
+        }
+
+        return $port;
     }
 
     /**
