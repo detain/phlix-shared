@@ -34,7 +34,9 @@ use function strlen;
  *
  *  1. three dot-separated segments or fail (`malformed`);
  *  2. decode the header with `JSON_THROW_ON_ERROR` — bad JSON is `malformed`,
- *     never a silent null that could sneak past an `?? null` probe;
+ *     never a silent null that could sneak past an `?? null` probe; and the
+ *     segment must be canonical unpadded base64url, so malleable equivalent
+ *     encodings (`+`, `/`, `=`) are `malformed` too (phlix-shared-007);
  *  3. pin `alg === 'HS256'` and, when present, `typ === 'JWT'` —
  *     BEFORE any signature work. This ordering is the whole point: an
  *     `alg:none`/`alg:HS512`-labeled token whose HMAC is mathematically
@@ -206,8 +208,11 @@ final class Jwt
     /**
      * base64url-decode a segment and require it to be a JSON object.
      *
-     * The strict Base64Url arm (both parents' `(string) base64_decode(..., true)`
-     * lineage) plus `JSON_THROW_ON_ERROR` (hub law) plus the object check
+     * The segment must be canonical unpadded base64url — the JWT-segment arm
+     * {@see Base64Url::decodeJwtSegment()} (phlix-shared-007): `+`, `/` and
+     * `=` encodings that decode to the same bytes under plain strict mode are
+     * refused here, so byte-distinct equivalent tokens can no longer verify
+     * identically. Then `JSON_THROW_ON_ERROR` (hub law) plus the object check
      * (both parents): a segment that is not a JSON object never survives to
      * the caller.
      *
@@ -218,7 +223,7 @@ final class Jwt
     private static function decodeJsonObject(string $encoded, string $what): array
     {
         try {
-            $decoded = json_decode(Base64Url::decode($encoded, true), true, 512, JSON_THROW_ON_ERROR);
+            $decoded = json_decode(Base64Url::decodeJwtSegment($encoded), true, 512, JSON_THROW_ON_ERROR);
         } catch (JsonException) {
             throw JwtException::malformed("JWT {$what} is not valid JSON.");
         }

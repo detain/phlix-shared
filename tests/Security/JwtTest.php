@@ -55,6 +55,21 @@ final class JwtTest extends TestCase
         return $h . '.' . $p . '.' . self::b64(hash_hmac('sha256', "{$h}.{$p}", $secret, true));
     }
 
+    /**
+     * Hand-forge from PRE-ENCODED segments (malleable variants forge()'s
+     * canonical b64() cannot produce), signature HMAC'd honestly over
+     * exactly those raw bytes — the shape a token-malleability probe needs.
+     */
+    private static function forgeRaw(
+        string $headerEncoded,
+        string $payloadEncoded,
+        string $secret = self::SECRET
+    ): string {
+        $raw = "{$headerEncoded}.{$payloadEncoded}";
+
+        return $raw . '.' . self::b64(hash_hmac('sha256', $raw, $secret, true));
+    }
+
     public function testCreateVerifyRoundTripExposesBothSegments(): void
     {
         $claims = ['sub' => 'user-1', 'scope' => ['read', 'write'], 'iat' => 1700000000];
@@ -202,6 +217,71 @@ final class JwtTest extends TestCase
         } catch (JwtException $e) {
             self::assertSame(JwtException::REASON_MALFORMED, $e->reason);
         }
+    }
+
+    public function testPaddedHeaderSegmentIsRefusedAsMalformed(): void
+    {
+        // phlix-shared-007 (token malleability): '=' padding encodes the SAME
+        // header bytes as the canonical segment (this 23-byte JSON standard-
+        // encodes as the canonical 31 chars plus one '='), so under a lenient
+        // decoder the two byte-distinct tokens verify identically. The segment
+        // arm refuses padding, and it fires at the HEADER stage — before any
+        // signature work.
+        $paddedHeader = self::b64('{"alg":"HS256","x":"y"}') . '=';
+        $token = self::forgeRaw($paddedHeader, self::b64('{"sub":"x"}'));
+
+        try {
+            Jwt::verify($token, self::SECRET);
+            self::fail('padded header segment must not verify');
+        } catch (JwtException $e) {
+            self::assertSame(JwtException::REASON_MALFORMED, $e->reason);
+        }
+
+        // Control: the canonical encoding of the same header bytes still verifies.
+        $canonical = self::forgeRaw(self::b64('{"alg":"HS256","x":"y"}'), self::b64('{"sub":"x"}'));
+        self::assertSame('x', Jwt::verify($canonical, self::SECRET)->payload['sub']);
+    }
+
+    public function testPaddedPayloadSegmentIsRefusedAsMalformed(): void
+    {
+        // The payload half of the same malleability: an honest HMAC over the
+        // padded segment must not buy the token a pass.
+        $p = self::b64('{"sub":"x"}');
+        $h = self::b64('{"alg":"HS256","typ":"JWT"}');
+
+        try {
+            Jwt::verify(self::forgeRaw($h, $p . '='), self::SECRET);
+            self::fail('padded payload segment must not verify');
+        } catch (JwtException $e) {
+            self::assertSame(JwtException::REASON_MALFORMED, $e->reason);
+        }
+
+        // Control: the canonical payload verifies.
+        self::assertSame('x', Jwt::verify(self::forgeRaw($h, $p), self::SECRET)->payload['sub']);
+    }
+
+    public function testStandardAlphabetPayloadSegmentIsRefusedAsMalformed(): void
+    {
+        // The third malleable form: '+' and '/' are outside base64url's own
+        // alphabet, so encode() never emits them — but a lenient decoder
+        // accepts them, minting a second byte-distinct spelling of one token.
+        // '{"sub":"~~~"}' standard-encodes as 'eyJzdWIiOiJ+fn4ifQ=='.
+        $standard = base64_encode('{"sub":"~~~"}');
+        $h = self::b64('{"alg":"HS256","typ":"JWT"}');
+
+        try {
+            Jwt::verify(self::forgeRaw($h, $standard), self::SECRET);
+            self::fail('standard-alphabet payload segment must not verify');
+        } catch (JwtException $e) {
+            self::assertSame(JwtException::REASON_MALFORMED, $e->reason);
+        }
+
+        // Control: the canonical url-safe form of the same bytes verifies.
+        $canonicalPayload = self::b64('{"sub":"~~~"}');
+        self::assertSame(
+            '~~~',
+            Jwt::verify(self::forgeRaw($h, $canonicalPayload), self::SECRET)->payload['sub'],
+        );
     }
 
     public function testScalarJsonPayloadIsRejectedAsMalformed(): void
