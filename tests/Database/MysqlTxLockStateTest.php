@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace Phlix\Shared\Tests\Database;
 
+use JsonException;
 use PDOException;
 use Phlix\Shared\Database\MysqlTxLockState;
 use Phlix\Shared\Database\TxEnd;
@@ -97,6 +98,21 @@ final class MysqlTxLockStateTest extends TestCase
                 MysqlTxLockState::CANCELLED_ACQUIRE_MESSAGE,
                 $e->getMessage(),
                 'the cancellation wording is byte-identical to the landed server and hub arms'
+            );
+            self::assertSame(
+                PDOException::class,
+                $e::class,
+                'the refusal is the vendor type itself — the estate catch-shape posture (class header) '
+                    . 'is a bare PDOException, not a shared subclass'
+            );
+            self::assertSame(
+                0,
+                $e->getCode(),
+                'message-only refusal: the machine never reaches a driver, so no SQLSTATE rides along'
+            );
+            self::assertNull(
+                $e->errorInfo,
+                'message-only refusal: errorInfo is driver evidence this path by law has none of'
             );
         }
 
@@ -519,6 +535,22 @@ final class MysqlTxLockStateTest extends TestCase
                 'the refusal is the vendor text itself'
             );
             self::assertSame('There is already an active transaction', $e->getMessage());
+            self::assertSame(
+                PDOException::class,
+                $e::class,
+                'the refusal is the vendor type itself — the estate catch-shape posture (class header) '
+                    . 'is a bare PDOException, not a shared subclass'
+            );
+            self::assertSame(
+                0,
+                $e->getCode(),
+                'message-only refusal: the pre-throw never reaches Connection.php:2000, so no '
+                    . 'driver code or errorInfo rides along (the T5 venue-noise law in this docblock)'
+            );
+            self::assertNull(
+                $e->errorInfo,
+                'message-only refusal: the machine instance is text-equivalent, not driver-complete'
+            );
         }
 
         self::assertSame(1, $state->nestingLevel(), 'the refusal leaves the open transaction alone');
@@ -606,6 +638,52 @@ final class MysqlTxLockStateTest extends TestCase
 
         $this->expectException(\InvalidArgumentException::class);
         $state->acquire(-1, $channel->parkTrue(...));
+    }
+
+    /**
+     * phlix-shared-036 tripwire: the PDOException refusals are a
+     * SUGGESTION posture, not a requirement — the class header carries
+     * the law prose, composer.json carries the consumer-facing copy,
+     * and this pin binds the two so neither half can be rewritten
+     * without reddening the other. The refusal arms themselves are
+     * pinned above to the vendor type with message-only shape; here
+     * the documented wording must keep naming what the code actually
+     * does (throws PDOException, for catch-shape parity), because the
+     * day that sentence stops being true is the day a non-PDO
+     * consumer trusts it and walks into the class-not-found error the
+     * header documents as the honest limit of the posture.
+     *
+     * @throws JsonException on a malformed composer.json
+     */
+    public function test_the_ext_pdo_suggestion_states_the_refusal_throw_posture(): void
+    {
+        /** @var array{suggest?: array<string, string>} $composer */
+        $composer = json_decode(
+            (string) file_get_contents(dirname(__DIR__, 2) . '/composer.json'),
+            true,
+            512,
+            JSON_THROW_ON_ERROR
+        );
+
+        $suggest = $composer['suggest'] ?? [];
+        $text = $suggest['ext-pdo'] ?? null;
+
+        self::assertIsString($text, 'ext-pdo must stay in suggest — the machine itself performs no I/O');
+        self::assertStringContainsString(
+            'transaction-mutex',
+            $text,
+            'the suggestion must name the class family that carries the PDO-typed refusals'
+        );
+        self::assertStringContainsString(
+            'throws PDOException',
+            $text,
+            'the suggestion must state the throw the suite pins (exact-class PDOException, message-only)'
+        );
+        self::assertStringContainsString(
+            'catch-shape parity',
+            $text,
+            'the suggestion must give the reason the header gives — parity with the estate arms'
+        );
     }
 }
 

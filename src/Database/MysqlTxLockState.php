@@ -58,6 +58,32 @@ use PDOException;
  * keeps its extension and repo-specific arms and delegates the
  * bookkeeping here.
  *
+ * PDOException posture (phlix-shared-036). The two refusal arms of
+ * {@see self::acquire()} throw a bare `PDOException`, message-only.
+ * That is the documented suggestion posture of composer.json, not an
+ * oversight: the estate transaction-refusal surface is ONE dialect —
+ * the landed server and hub arms catch `PDOException` around the begin
+ * ceremony, and both re-throw their own `PDOException` carrying
+ * {@see self::POISONED_COMMIT_MESSAGE} verbatim — so a shared-side
+ * retype to a neutral base would silently miss live catch-sites and
+ * force a coordinated server+hub release wave, and a
+ * conditionally-parented class (extends PDOException when the
+ * extension is loaded) additionally collides with this package's PSR-1
+ * one-structure-per-file rule and its no-baseline phpstan/psalm bar,
+ * which reject conditionally declared classes at their use sites.
+ * Because the machine performs no I/O, ext-pdo correctly stays a
+ * `suggest`: every verb except the two refusals runs on a PDO-less
+ * runtime. The honest limit of that shape, stated here rather than
+ * left to chance: a PDO-less consumer that TRIPS a refusal arm gets
+ * `Error: Class "PDOException" not found` inside the error path.
+ * A runtime without ext-pdo has no MySQL layer whose refusal this
+ * could be — reach acquire() only through a park closure that answers
+ * true, and treat a nested begin as the caller misuse it is. The
+ * thrown type (the vendor class itself, not a subclass), the
+ * message-only shape, and the composer `suggest` wording are pinned
+ * together by the characterization suite, so code and documentation
+ * cannot drift apart silently.
+ *
  * @see TxEnd            the verdicts the end-claims return
  * @see MysqlRetryPolicy the sibling decision table for the error path
  */
@@ -167,7 +193,9 @@ final class MysqlTxLockState
      * @throws PDOException             on nested-begin and cancellation
      *                                  refusals, message-only for
      *                                  catch-shape parity with the
-     *                                  landed arms
+     *                                  landed arms — the class-header
+     *                                  PDOException posture note is
+     *                                  the why of that typing
      */
     public function acquire(int $cid, callable $park): void
     {
