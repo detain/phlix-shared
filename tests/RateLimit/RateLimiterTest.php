@@ -261,8 +261,19 @@ final class RateLimiterTest extends TestCase
         self::assertSame(1, $negState->resetAt, 'Negative windowSeconds clamps to 1: reset one second out.');
         self::assertSame(1, $negState->limit, 'Negative maxAttempts clamps to 1.');
 
-        // Negative cap clamps to 1: the map never retains more than one key.
+        // Negative cap COERCES to 1 — pinned at the coerced property itself
+        // (house reflection idiom, as in testDefaultsMatchTheRatifiedProfileWindow):
+        // with an unclamped cap <= 0 the eviction guards are always false yet
+        // the map still never grows past one key, so the retention bound below
+        // cannot falsify the clamp on its own. Only the property pin has teeth.
+        self::assertSame(
+            1,
+            (new \ReflectionProperty(RateLimiter::class, 'cap'))->getValue($negatives),
+            'Negative cap coerces to 1 at the property.',
+        );
         $negatives->hit('ip-2');
+        // Observable consequence kept as the retention bound it is: with cap 1
+        // the map never retains more than one key.
         self::assertSame(1, $negatives->size());
     }
 
