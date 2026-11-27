@@ -147,7 +147,7 @@ of the estate checkouts, so the summary above is what a contributor can
 actually act on. Do not re-litigate that design here — propose changes
 in a new plan step against `detain/phlix` if needed.
 
-## Before committing
+## Verify before committing
 
 1. `composer install` resolves clean (contributors need `ext-curl` — a `require-dev` entry for the `CurlArrTransport` tests).
 2. `./vendor/bin/phpunit` green.
@@ -220,6 +220,18 @@ grep -q "caliber" .git/hooks/pre-commit 2>/dev/null && echo "hook-active" || ech
 
 If `caliber` is not found, read `.agents/skills/setup-caliber/SKILL.md` and follow its instructions to install Caliber.
 <!-- /caliber:managed:pre-commit -->
+
+**Repo note (maintained outside the managed block above — this annotates
+around Caliber output, it never reverts it).** This repo ships no
+`.agents/` directory: it is in neither the working tree nor `git ls-files`,
+so the `caliber refresh && git add CALIBER_LEARNINGS.md AGENTS.md .agents/`
+arm above fails on its pathspec and stages nothing (rc=128 here, stderr
+suppressed), and for this checkout the two
+`.agents/skills/setup-caliber/SKILL.md` mentions (this block and the
+Context Sync block below) are satisfied by the tracked path
+`.claude/skills/setup-caliber/SKILL.md` instead. The gates to run before a
+commit are the eight commands in "Verify before committing" above; this
+managed block is Caliber sync guidance only.
 
 <!-- caliber:managed:learnings -->
 ## Session Learnings

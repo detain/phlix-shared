@@ -276,7 +276,7 @@ this runbook is those steps written down before you hit them:
    legs, `./vendor/bin/psalm --no-progress`, `composer validate --strict` and
    `php scripts/security-audit-check.php` — all green in the same commit. This
    runbook lists the schema-relevant gates; the complete eight-command list is
-   in AGENTS.md "Before committing". Release is lockstep:
+   in AGENTS.md "Verify before committing". Release is lockstep:
    `Version::VERSION` = CHANGELOG heading = annotated git tag
    (AGENTS.md "Versioning"); consumers then bump their `^0.x` pin.
 
@@ -366,7 +366,7 @@ composer validate --strict
 php scripts/security-audit-check.php
 ```
 
-CI runs the gates above — the same list as the "Before committing" ritual in
+CI runs the gates above — the same list as the "Verify before committing" ritual in
 [`AGENTS.md`](AGENTS.md) — at the error level: a failing
 phpunit/phpstan/phpcs/psalm/audit run reddens the build. That enforcement is
 error-level, not literal, and the known leniencies are: the psalm leg runs
