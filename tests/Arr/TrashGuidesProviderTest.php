@@ -922,9 +922,9 @@ class TrashGuidesProviderTest extends TestCase
             (int) $method->getEndLine() - (int) $method->getStartLine() + 1
         ));
         $this->assertStringContainsString(
-            'file_get_contents($url, false, $context, 0, $maxBytes + 1)',
+            '@file_get_contents($url, false, $context, 0, $maxBytes + 1)',
             $body,
-            'the read itself must stay bounded at cap + 1 bytes'
+            'the read itself must stay bounded at cap + 1 bytes, suppressed via the load-bearing @'
         );
     }
 
