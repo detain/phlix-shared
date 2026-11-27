@@ -73,7 +73,7 @@ final class MigrationChecksumTest extends TestCase
 
     public function testInlineCommentOnASqlLineSurvivesTheHash(): void
     {
-        // The narrow normalisation CANNOT mask a real change: an inline
+        // The narrow normalization CANNOT mask a real change: an inline
         // "-- ..." appended to a statement line still diverges.
         self::assertNotSame(
             MigrationChecksum::checksum("SELECT 1;"),

@@ -113,7 +113,7 @@ final class FamilyRefusalTest extends TestCase
         );
     }
 
-    public function test_custom_grace_window_is_honoured(): void
+    public function test_custom_grace_window_is_honored(): void
     {
         $this->assertTrue(FamilyGrace::withinGrace(1000, 1000, 0));
         $this->assertFalse(FamilyGrace::withinGrace(1000, 1001, 0));

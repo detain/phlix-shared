@@ -29,7 +29,7 @@ use function rtrim;
  * own docblock says "Ported verbatim (algorithm) from phlix-server's
  * MigrationRunner (SV-4.9)").
  *
- * The normalisation is deliberately narrow and CANNOT mask a real SQL
+ * The normalization is deliberately narrow and CANNOT mask a real SQL
  * change: it only drops lines that are ENTIRELY a `--`/`#` comment (after
  * leading whitespace) and per-line trailing whitespace. Any change to an
  * actual SQL token — including an inline `-- ...` comment appended to a
@@ -77,7 +77,7 @@ final class MigrationChecksum
 
     /**
      * Compute the ledger checksum of a migration file's contents: md5 over
-     * the normalised text — byte-ident to both twins on every input,
+     * the normalized text — byte-ident to both twins on every input,
      * including the (unreachable for these patterns) split-failure arm,
      * which md5s the raw text on both hosts.
      */

@@ -23,7 +23,7 @@ use InvalidArgumentException;
  * ## The `seq` field carries a per-client CHANNEL ID (multiplexing)
  *
  * The relay tunnel runs over a single reliable WebSocket/TCP connection, so
- * the 4-byte `seq` field is NOT used for acknowledgements or reordering.
+ * the 4-byte `seq` field is NOT used for acknowledgments or reordering.
  * Instead it is repurposed as a per-client **channel id (uint32)** for the
  * client-scoped frame types, so multiple concurrent clients can be
  * demultiplexed over one tunnel:

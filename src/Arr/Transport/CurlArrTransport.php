@@ -18,7 +18,7 @@ use RuntimeException;
  * Default, **blocking** cURL transport for the *arr API clients.
  *
  * This is the implementation {@see \Phlix\Shared\Arr\AbstractArrClient} falls back
- * to when no transport is injected, preserving the original synchronous behaviour
+ * to when no transport is injected, preserving the original synchronous behavior
  * for direct instantiation in CLI scripts and tests.
  *
  * WARNING — this transport calls `curl_exec()` synchronously and therefore BLOCKS.
@@ -27,7 +27,7 @@ use RuntimeException;
  * MUST inject an async, non-blocking {@see ArrTransportInterface} implementation
  * instead (e.g. a `workerman/http-client`-backed transport in the consumer).
  * Keeping this blocking call behind the injected seam is what lets the shared
- * library honour its "zero I/O" charter.
+ * library honor its "zero I/O" charter.
  *
  * SHARED-HANDLE LAW — every instance's transfer runs on ONE process-wide
  * `private static ?\CurlHandle` (`self::$handle`), created lazily and

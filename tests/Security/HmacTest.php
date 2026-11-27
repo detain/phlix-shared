@@ -252,7 +252,7 @@ final class HmacTest extends TestCase
         $this->assertSame('=', Hmac::SEPARATOR_EQUALS);
     }
 
-    public function testVerifyHonoursTheSeparatorAndCrossSeparationFails(): void
+    public function testVerifyHonorsTheSeparatorAndCrossSeparationFails(): void
     {
         $equalsSig = Hmac::compute('payload', 'secret', Hmac::SEPARATOR_EQUALS);
         $colonSig = Hmac::compute('payload', 'secret');

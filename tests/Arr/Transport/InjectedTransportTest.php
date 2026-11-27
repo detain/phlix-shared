@@ -19,7 +19,7 @@ use RuntimeException;
 /**
  * Verifies the F2b transport seam: an injected {@see \Phlix\Shared\Arr\Transport\ArrTransportInterface}
  * short-circuits cURL entirely, while the default {@see CurlArrTransport} preserves
- * the original blocking behaviour.
+ * the original blocking behavior.
  *
  * @package Phlix\Shared\Tests\Arr\Transport
  */

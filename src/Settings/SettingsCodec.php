@@ -86,7 +86,7 @@ final class SettingsCodec
     }
 
     /**
-     * Serialise a PHP value to its text representation for storage.
+     * Serialize a PHP value to its text representation for storage.
      *
      * @param mixed  $value     Value to encode.
      * @param string $valueType One of string|int|bool|float|json.

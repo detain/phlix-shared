@@ -21,7 +21,7 @@ namespace Phlix\Shared\Schema;
  * relative to its own location, so the result is correct whether the
  * package is checked out for development or installed under `vendor/`.
  *
- * Honours the package's zero-I/O charter: every method here performs pure
+ * Honors the package's zero-I/O charter: every method here performs pure
  * string computation against `__DIR__`. It does NOT read, stat, or open
  * any file — callers decide whether and how to load the contents.
  *

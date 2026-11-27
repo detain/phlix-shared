@@ -119,7 +119,7 @@ interface MetadataSourceInterface
      * {@see self::search()}.
      *
      * The returned map is the source's raw-but-named detail shape; the host's
-     * field mappers normalise it into the canonical record. Return an empty
+     * field mappers normalize it into the canonical record. Return an empty
      * array when the id is unknown or the lookup fails — never a partially
      * `null`-filled map (absent keys signal "this source has no value").
      *

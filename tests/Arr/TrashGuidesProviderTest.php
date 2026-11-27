@@ -1386,13 +1386,13 @@ class TrashGuidesProviderTest extends TestCase
     }
 
     /**
-     * S-shared-09: the enabled knob is honoured end to end. The posture is
+     * S-shared-09: the enabled knob is honored end to end. The posture is
      * opt-OUT — absent or truthy keeps fetching (the observable behavior of
      * every config that ever ran this class); explicit false/0/'' mute the
      * cold-path ladders with the documented refusal, mirroring the sibling
      * Arr factory truthiness law.
      */
-    public function testRequireEnabledHonoursTheOptOutTruthTable(): void
+    public function testRequireEnabledHonorsTheOptOutTruthTable(): void
     {
         $provider = new TrashGuidesProvider();
         $method = new \ReflectionMethod(TrashGuidesProvider::class, 'requireEnabled');

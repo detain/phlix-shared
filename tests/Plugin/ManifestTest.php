@@ -183,12 +183,12 @@ final class ManifestTest extends TestCase
         $this->assertSame(
             '["42","extra","-7","08","-0","1.5"]',
             json_encode($fields, JSON_THROW_ON_ERROR),
-            'the unknown-field keys must serialise as JSON strings, exactly as written'
+            'the unknown-field keys must serialize as JSON strings, exactly as written'
         );
     }
 
     /**
-     * SHR-S5: the recognised top-level keys are the bundled schema's own
+     * SHR-S5: the recognized top-level keys are the bundled schema's own
      * `properties` (schemas/manifest.schema.json is the canonical schema;
      * phlix-server's ManifestSchema validates against it), so the
      * unknown-field report can never disagree with the schema.

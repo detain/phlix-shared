@@ -358,7 +358,7 @@ final class RowMap
      * 🟡 Residual, disclosed rather than closed (S121 review r8 INFO-2):
      * whitespace is NOT trimmed — `' '`, `"\0"` pass through unchanged and a
      * padded `' <uuid> '` keeps its padding byte-for-byte. Adding `trim()`
-     * here would be a behaviour change and is deliberately out of law.
+     * here would be a behavior change and is deliberately out of law.
      *
      * ⚠ The music-family sweep is SIX sites, not three — one grep is a false
      * all-clear: the scanner at the head of that family (the server-tree

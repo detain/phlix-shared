@@ -39,7 +39,7 @@ final class JsonEnvelopeTest extends TestCase
         );
     }
 
-    public function testDataIsNormalisedToAListPreservingOrder(): void
+    public function testDataIsNormalizedToAListPreservingOrder(): void
     {
         // The emitJsonSuccess law: array_values so even a single logical
         // record or a string-keyed map renders as a JSON array.

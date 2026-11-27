@@ -39,7 +39,7 @@ final class WriteResultTest extends TestCase
     {
         return [
             // ── the two arms ───────────────────────────────────────────────
-            'null — a zero-row INSERT, or an unrecognised leading keyword' => [null, true],
+            'null — a zero-row INSERT, or an unrecognized leading keyword' => [null, true],
             'false — the defensive arm; this client never produces it' => [false, true],
 
             // ── the falsy value that means SUCCESS ─────────────────────────

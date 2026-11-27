@@ -126,7 +126,7 @@ final class TrustedProxyResolver
      *                                  list of hops), or null when absent.
      * @param string|null $realIp       The `X-Real-IP` header value, or null.
      *
-     * @return string A validated, normalised client IP — never longer than
+     * @return string A validated, normalized client IP — never longer than
      *                {@see MAX_IP_LENGTH} chars.
      */
     public function resolve(string $remoteIp, ?string $forwardedFor, ?string $realIp = null): string

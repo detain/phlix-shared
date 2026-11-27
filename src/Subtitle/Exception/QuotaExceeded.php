@@ -26,7 +26,7 @@ use Throwable;
  * the quota state to the operator. It optionally carries the remaining
  * allowance and the reset time when the provider reports them.
  *
- * The reset time is always exposed as a normalised ISO-8601 UTC string
+ * The reset time is always exposed as a normalized ISO-8601 UTC string
  * (`DateTimeImmutable::ATOM`, e.g. `2026-07-22T00:00:00+00:00`) or null. A
  * string argument is provider-reported, so it is parsed with
  * {@see DateTimeImmutable} rather than passed through: it must be a
@@ -35,6 +35,14 @@ use Throwable;
  * UTC). Anything else — empty, relative (`tomorrow`, `2026-07-13 next monday`),
  * or garbage — degrades to null ("reset time unknown") instead of throwing, so
  * a malformed reset field can never mask the quota signal itself.
+ *
+ * Dialect note (S-shared-34, phlix-shared-040): this package's prose reads
+ * American, but the identifier `normaliseResetTime()` deliberately keeps its
+ * original spelling — the sweep's law leaves identifiers untouched. The
+ * finding's "public API identifier" framing is stale on disk: the helper is
+ * `private static`, so no consumer surface pins it; should a rename ever
+ * ship, land `normalizeResetTime()` and keep an `@deprecated` alias to the
+ * old name for roster hygiene.
  *
  * @package Phlix\Shared\Subtitle\Exception
  * @since 0.42.0
@@ -62,9 +70,9 @@ final class QuotaExceeded extends RuntimeException
      *                                                          the provider does not report it.
      * @param DateTimeImmutable|string|null $resetTimeUtc      When the quota resets. Accepts a
      *                                                          {@see DateTimeImmutable} (converted to UTC and
-     *                                                          normalised to an ISO-8601 string), a
+     *                                                          normalized to an ISO-8601 string), a
      *                                                          provider-reported date-time string (validated
-     *                                                          and normalised the same way; unparseable
+     *                                                          and normalized the same way; unparseable
      *                                                          values become null), or null when the
      *                                                          provider does not report it.
      * @param int                          $code               Exception code (default 0).
@@ -84,7 +92,7 @@ final class QuotaExceeded extends RuntimeException
     }
 
     /**
-     * Normalise a reset time to an ISO-8601 UTC string, or null when absent/invalid.
+     * Normalize a reset time to an ISO-8601 UTC string, or null when absent/invalid.
      *
      * @param DateTimeImmutable|string|null $resetTimeUtc Reset time as given to the constructor.
      *

@@ -396,7 +396,7 @@ class AbstractArrClientTest extends TestCase
      * one of them degraded into silent success, an undefined-key warning
      * storm, or a raw TypeError from json_decode — never a domain error
      * naming the broken shape. At the parent these arms are red; with the
-     * guard shipped each mutation-reverts to its pre-fix behaviour.
+     * guard shipped each mutation-reverts to its pre-fix behavior.
      *
      * @return array<string, array{array<array-key, mixed>}>
      */

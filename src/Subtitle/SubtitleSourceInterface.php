@@ -91,7 +91,7 @@ interface SubtitleSourceInterface
      *
      * The implementation derives whatever provider-specific keys it can from the
      * path — most notably an OpenSubtitles-style OSDb movie hash + byte size
-     * computed from the file's head/tail bytes and length — and/or a normalised
+     * computed from the file's head/tail bytes and length — and/or a normalized
      * release-name heuristic parsed from the filename. Results are ordered
      * best-match first; return an empty list when nothing matches. This method
      * does NOT consume download quota.

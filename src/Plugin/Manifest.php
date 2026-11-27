@@ -59,7 +59,7 @@ use RuntimeException;
 class Manifest
 {
     /**
-     * Top-level keys recognised by the schema. Anything else is reported
+     * Top-level keys recognized by the schema. Anything else is reported
      * as `unknown_field` by the validator.
      *
      * @var list<string>
@@ -235,10 +235,10 @@ class Manifest
     }
 
     /**
-     * Serialise the manifest back to its original decoded shape.
+     * Serialize the manifest back to its original decoded shape.
      *
      * Note: this returns the original decoded payload (`$this->rawData`)
-     * verbatim — it is NOT a re-serialisation of the mutated typed
+     * verbatim — it is NOT a re-serialization of the mutated typed
      * properties. Any changes made to typed props after construction are
      * not reflected here.
      *
@@ -269,7 +269,7 @@ class Manifest
 
     /**
      * Top-level keys present in the manifest payload that are not part
-     * of the recognised schema. Used by the validator to emit
+     * of the recognized schema. Used by the validator to emit
      * `unknown_field` errors.
      *
      * @return list<string>

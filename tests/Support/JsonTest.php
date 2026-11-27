@@ -111,7 +111,7 @@ final class JsonTest extends TestCase
         Json::decodeInbound($deep);
     }
 
-    public function test_decode_inbound_honours_a_stricter_per_site_depth(): void
+    public function test_decode_inbound_honors_a_stricter_per_site_depth(): void
     {
         // The F-14 law: the const is only the DEFAULT; a call site that owes
         // depth 3 gets the throw at a 4-level document, not at the global

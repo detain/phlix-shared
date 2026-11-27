@@ -637,7 +637,7 @@ final class ServerSettingsSchemaTest extends TestCase
      * - Comparisons are `assertSame` (===). For `number`-typed keys the JSON
      *   lexical form decides the PHP decode type: a `0.0` literal decodes to
      *   float, an `0` literal to int. This is fragile in one known direction:
-     *   PHP's own json_encode serialises float 0.0 as the bare token `0`, so
+     *   PHP's own json_encode serializes float 0.0 as the bare token `0`, so
      *   any tooling that re-writes the schema through a PHP decode/encode
      *   round-trip WILL flip these pins (0.0 -> int 0) even though the two
      *   forms are numerically identical on the wire. That flip must be a
@@ -1390,7 +1390,7 @@ final class ServerSettingsSchemaTest extends TestCase
             $helpText = $properties[$key]['helpText'] ?? null;
             $this->assertIsString($helpText);
 
-            // Turning a worker OFF is honoured on the next restart/reload.
+            // Turning a worker OFF is honored on the next restart/reload.
             $this->assertMatchesRegularExpression(
                 '/Turning it OFF takes effect after a restart/i',
                 $helpText,

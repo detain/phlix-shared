@@ -63,7 +63,7 @@ final class JsonEnvelope
     }
 
     /**
-     * Render a success envelope. `$data` is normalised to a JSON list (the
+     * Render a success envelope. `$data` is normalized to a JSON list (the
      * `emitJsonSuccess` law) so the shape always matches
      * `{"ok":true,"data":[...]}` even for a single logical record or a
      * string-keyed map.

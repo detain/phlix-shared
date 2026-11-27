@@ -20,8 +20,12 @@ namespace Phlix\Shared\Arr\Transport;
  * "zero I/O" charter: network code is confined to the `Arr/` exception — within
  * this seam the only bundled implementation is {@see CurlArrTransport}, intended
  * for CLI/test use — and, stated plainly, `TrashGuidesProvider` performs
- * its own blocking stream fetches that do NOT route through this interface (no
- * transport seam there today; see that class's documented limitations).
+ * its own blocking stream fetches that do NOT route through this interface.
+ * Since S-shared-09 the provider takes its own per-hop callable transport
+ * seam; that seam deliberately does not reuse this interface, because
+ * `request()` here carries no response headers and the provider must
+ * re-validate every redirect `Location` itself (see that class's documented
+ * shape).
  *
  * **Event-loop consumers (Workerman/Webman) should inject an async, non-blocking
  * transport** (e.g. a `workerman/http-client`-backed implementation living in the

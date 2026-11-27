@@ -47,7 +47,7 @@ namespace Phlix\Shared\Database;
  * `$result === false` check is **simultaneously unreachable and blind to
  * `null`** — it can never fire, and it misses the one falsy value that IS
  * returned. That shape is what this class replaced. The `false` arm is kept
- * for defensive breadth (a driver swap, or a `lastInsertId()` that honours its
+ * for defensive breadth (a driver swap, or a `lastInsertId()` that honors its
  * declared `false`), NOT because it is reachable today; do not "simplify" it
  * away on the grounds that nothing produces it.
  *
@@ -87,7 +87,7 @@ final class WriteResult
      * `tests/Database/WriteResultTest.php`:
      *
      *  - `null` is what the client actually returns for a zero-row INSERT and
-     *    for any statement whose leading keyword it did not recognise;
+     *    for any statement whose leading keyword it did not recognize;
      *  - `false` is the defensive arm described in the class docblock.
      *
      * Every other value — including the falsy string `'0'`, `int 0` from a

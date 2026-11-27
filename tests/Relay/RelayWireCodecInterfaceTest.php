@@ -161,7 +161,7 @@ final class RelayWireCodecInterfaceTest extends TestCase
     {
         $codec = $this->fakeCodec();
 
-        // Less than 7 bytes (4-byte channel/seq + 1-byte type + 2-byte length)
+        // Less than 7 bytes (4-byte channel id + 1-byte type + 2-byte length)
         $result = $codec->decode('short');
         $this->assertNull($result);
     }

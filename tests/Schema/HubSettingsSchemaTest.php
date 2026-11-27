@@ -201,7 +201,7 @@ final class HubSettingsSchemaTest extends TestCase
      * `server.relay.reconnect_drain_grace_seconds` keeps its float `5.0`
      * default because the TunnelManager grace has always been a float seconds
      * value. Every lexical form is pinned by === below; re-encoding the schema
-     * through PHP's json_encode (which serialises 60.0 as `60`) will flip
+     * through PHP's json_encode (which serializes 60.0 as `60`) will flip
      * these pins deliberately, not silently.
      *
      * The two CP-010 cookie rows admitted 2026-11-27 [S-shared-08] carry no
@@ -796,7 +796,7 @@ final class HubSettingsSchemaTest extends TestCase
             'bool' => 'boolean',
             'string' => 'string',
             'float', 'number' => 'number',
-            // The hub serialises sparse-JSON blobs (e.g. `server.rate_limit`)
+            // The hub serializes sparse-JSON blobs (e.g. `server.rate_limit`)
             // under the `json` type; the schema renders them as objects —
             // mapped deliberately when the W5 keys were upstreamed (v0.52.0).
             'json' => 'object',

@@ -44,7 +44,7 @@ final class BackoffTest extends TestCase
         self::assertSame(300, Backoff::stepped(20, 5, 300));
     }
 
-    public function test_stepped_honours_a_custom_factor(): void
+    public function test_stepped_honors_a_custom_factor(): void
     {
         self::assertSame(3, Backoff::stepped(0, 3, 1000, 3));
         self::assertSame(27, Backoff::stepped(2, 3, 1000, 3)); // 3 * 3^2

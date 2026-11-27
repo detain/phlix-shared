@@ -22,7 +22,7 @@ use ReflectionNamedType;
  * implementation detail to a public-stable surface. This suite is the
  * executable stamp of that promotion — it reddens if the marker ever comes
  * back or the public grammar API is reshaped out from under a documented
- * surface. No behaviour changes in this leg; only the docblock flips.
+ * surface. No behavior changes in this leg; only the docblock flips.
  */
 #[CoversClass(HostGrammar::class)]
 final class HostGrammarPromotionTest extends TestCase

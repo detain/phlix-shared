@@ -18,7 +18,7 @@ use InvalidArgumentException;
  *
  * Wire format (all integers are big-endian):
  *
- *   [4-byte channel/seq (uint32)][1-byte frame type][2-byte payload length (uint16)][N payload bytes]
+ *   [4-byte channel id (uint32)][1-byte frame type][2-byte payload length (uint16)][N payload bytes]
  *
  * Maximum frame payload: 65535 bytes.
  *
@@ -80,7 +80,7 @@ use InvalidArgumentException;
  * read (e.g. an active transcode/stream). The server-side handler that stops the
  * in-flight work on receipt is the server's responsibility;
  * the hub side only PROPAGATES the cancellation. A server that does not yet
- * honour HTTP_CANCEL simply ignores it — the frame is advisory and never
+ * honor HTTP_CANCEL simply ignores it — the frame is advisory and never
  * requires a response frame back to the hub.
  *
  * ## Federation wire types 0x09–0x0F — RETIRED
@@ -147,7 +147,7 @@ enum RelayFrameType: int
     /**
      * RETIRED federation wire type (`phlix-hub/docs/websockets.md` :63).
      *
-     * The hello acknowledgement rides a JSON **text** WebSocket frame
+     * The hello acknowledgment rides a JSON **text** WebSocket frame
      * (`hub_hello_ack`), never this binary opcode. Decode-compat only.
      *
      * @deprecated Since 0.49.1 the hub wire authority declares 0x0A retired;

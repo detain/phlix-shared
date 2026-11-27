@@ -35,7 +35,7 @@ use Psr\Container\ContainerInterface;
  *   loader unsubscribes the listeners returned earlier from
  *   {@see self::subscribedEvents()}.
  *
- * Plugins should keep {@see self::onEnable()} cheap: any heavy initialisation
+ * Plugins should keep {@see self::onEnable()} cheap: any heavy initialization
  * (HTTP client warmup, background workers) belongs in the listeners
  * themselves, which only run when a relevant event fires.
  *

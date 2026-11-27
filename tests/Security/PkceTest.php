@@ -157,7 +157,7 @@ final class PkceTest extends TestCase
     public function testPlainStyleVerificationIsImpossible(): void
     {
         // Under `plain`, challenge === verifier. This asserts the server cannot
-        // be tricked into that behaviour by simply sending the challenge as the
+        // be tricked into that behavior by simply sending the challenge as the
         // verifier — which is precisely the attack `plain` enables.
         $challenge = Pkce::challengeFor(self::VERIFIER);
 

@@ -15,7 +15,7 @@ use JsonException;
 use PHPUnit\Framework\TestCase;
 
 /**
- * S246 — behaviour of `scripts/security-audit-check.php`, by execution.
+ * S246 — behavior of `scripts/security-audit-check.php`, by execution.
  *
  * ## The defect these tests pin shut
  *
@@ -38,7 +38,7 @@ use PHPUnit\Framework\TestCase;
  *
  *  1. **The dev half is really audited.** {@see testAnAdvisoryAgainstADevelopmentDependencyBlocks()}
  *     is the direct regression test: a `require-dev` advisory must exit 1 and be
- *     labelled `[require-dev]` so the reader can still see the scope.
+ *     labeled `[require-dev]` so the reader can still see the scope.
  *  2. **`--no-dev` cannot appear.** The audit flags are a declared constant,
  *     read here rather than pattern-matched out of prose, and the workflow is
  *     parsed with its comments stripped — the new job carries a comment naming
@@ -52,7 +52,7 @@ use PHPUnit\Framework\TestCase;
  *     a clean run, so the printed size is checked against an independent count,
  *     and both floors are driven to failure.
  *  5. **Cannot-measure fails.** Missing lock, unparseable lock, missing payload,
- *     empty payload, unparseable payload, unrecognised payload shape and an
+ *     empty payload, unparseable payload, unrecognized payload shape and an
  *     unreachable advisory repository each exit 1 rather than passing.
  *  6. **The blocking/advisory split holds.** Abandonment and config-ignored
  *     advisories are loud but non-blocking; a real advisory blocks even when
@@ -394,7 +394,7 @@ final class SecurityAuditCheckTest extends TestCase
         self::assertStringContainsString('https://github.com/advisories/GHSA-hmqg-cxww-wqhq', $result['output']);
     }
 
-    public function testAnAdvisoryAgainstARuntimeDependencyBlocksAndIsLabelledAsSuch(): void
+    public function testAnAdvisoryAgainstARuntimeDependencyBlocksAndIsLabeledAsSuch(): void
     {
         $lock = $this->lock(
             self::MIN_PACKAGES,

@@ -48,7 +48,7 @@ final class QuotaExceededTest extends TestCase
         $this->assertSame('2026-07-22T00:00:00+00:00', $e->getResetTimeUtc());
     }
 
-    public function test_normalises_datetimeimmutable_reset_time_to_iso8601(): void
+    public function test_normalizes_datetimeimmutable_reset_time_to_iso8601(): void
     {
         $reset = new DateTimeImmutable('2026-07-22T06:30:00+00:00');
         $e = new QuotaExceeded('x', resetTimeUtc: $reset);
@@ -56,7 +56,7 @@ final class QuotaExceededTest extends TestCase
         $this->assertSame('2026-07-22T06:30:00+00:00', $e->getResetTimeUtc());
     }
 
-    public function test_normalises_non_utc_datetimeimmutable_reset_time_to_utc(): void
+    public function test_normalizes_non_utc_datetimeimmutable_reset_time_to_utc(): void
     {
         $reset = new DateTimeImmutable('2026-07-22T08:30:00+02:00');
         $e = new QuotaExceeded('x', resetTimeUtc: $reset);
@@ -64,7 +64,7 @@ final class QuotaExceededTest extends TestCase
         $this->assertSame('2026-07-22T06:30:00+00:00', $e->getResetTimeUtc());
     }
 
-    public function test_normalises_system_timezone_datetimeimmutable_reset_time_to_utc(): void
+    public function test_normalizes_system_timezone_datetimeimmutable_reset_time_to_utc(): void
     {
         $previous = date_default_timezone_get();
         date_default_timezone_set('Europe/Berlin');
@@ -89,7 +89,7 @@ final class QuotaExceededTest extends TestCase
         $this->assertSame($previous, $e->getPrevious());
     }
 
-    public function test_normalises_provider_string_reset_time_to_utc_atom(): void
+    public function test_normalizes_provider_string_reset_time_to_utc_atom(): void
     {
         // OpenSubtitles reports fractional-second `Z` timestamps.
         $this->assertSame(

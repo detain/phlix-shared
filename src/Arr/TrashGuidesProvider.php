@@ -41,7 +41,7 @@ use RuntimeException;
  * worker indefinitely. The wrapper warning is no longer captured by swapping
  * the GLOBAL error handler for the duration of the read (a cross-coroutine
  * hazard while held): the failure diagnostic rides the exception chain from
- * error_get_last() instead. And the config `enabled` key is honoured end to
+ * error_get_last() instead. And the config `enabled` key is honored end to
  * end — absent or truthy keeps the fetch ladders live, an explicit false
  * refuses every cold path before anything is dialed; the knob is no longer
  * phantom in either direction.

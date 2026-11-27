@@ -24,9 +24,12 @@ Keep everything else that way.
   > `CurlArrTransport` when no transport is injected — perform real
   > HTTP/cURL calls, and `TrashGuidesProvider` performs real network
   > fetches. The tree's remaining members (`ArrClientInterface`,
-  > `Transport/ArrTransportInterface`, `ArrClientFactory`, `SyncResult`,
-  > `SecretRedactor`) are its interface, wiring, DTO, and helper parts and
-  > perform no I/O themselves. This is the sole I/O exception to the
+  > `Transport/ArrTransportInterface`, `ArrClientFactory`, `SyncResult`) are
+  > its interface, wiring, DTO, and helper parts and perform no I/O
+  > themselves; `SecretRedactor.php` in this tree is a `class_alias` shim —
+  > the canonical kernel lives at `src/Security/SecretRedactor.php` since the
+  > S-shared-10 promotion (`cc629d4`), and the Arr path is kept only for
+  > compatibility and roster hygiene. This is the sole I/O exception to the
   > zero-I/O policy. Both `phlix-server` and the
   > `phlix-hub` daemon need Sonarr/Radarr/Prowlarr/Bazarr integration; keeping
   > it in `phlix-shared` avoids duplicating HTTP wiring across repos. A future
@@ -39,7 +42,8 @@ Keep everything else that way.
   > See the full developer guide
   > [`arr-clients.md`](../phlix-docs/docs/dev/arr-clients.md)
   > (also published at
-  > [`docs/dev/arr-clients.md`](https://github.com/detain/phlix-docs/blob/main/docs/dev/arr-clients.md))
+  > [`docs/dev/arr-clients.md`](https://github.com/detain/phlix-docs/tree/master/docs/dev/arr-clients.md)
+  > — the docs repo has no `main` ref, so its default branch is `master`)
   > in `detain/phlix-docs`.
 - **Forensics visibility.** `composer.json` excludes this file,
   `CHANGELOG.md`, and `CALIBER_LEARNINGS.md` from the Composer archive, so a

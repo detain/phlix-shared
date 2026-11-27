@@ -157,7 +157,7 @@ final class RateLimitExceptionTest extends TestCase
         );
     }
 
-    public function testEveryArmSharesTheClientRecognisedPrefix(): void
+    public function testEveryArmSharesTheClientRecognizedPrefix(): void
     {
         // Consumer password forms let a sentence starting with this prefix
         // win over their generic copy; the literal is wire copy and pinned

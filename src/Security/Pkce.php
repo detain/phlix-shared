@@ -42,7 +42,7 @@ use function strtr;
  *
  * RFC 7636 §4.4 says that when `code_challenge_method` is absent the server
  * MUST default to `plain`, and §4.2 says a server MAY support `plain`. This
- * kernel does neither. {@see isSupportedMethod()} recognises exactly one
+ * kernel does neither. {@see isSupportedMethod()} recognizes exactly one
  * string, and the hub authorize endpoint demands the parameter be present,
  * so:
  *
@@ -116,7 +116,7 @@ final class Pkce
     }
 
     /**
-     * Whether `$method` is a challenge method this server will honour.
+     * Whether `$method` is a challenge method this server will honor.
      *
      * True for `S256` and for nothing else — see the class docblock for why
      * `plain` and the omitted-parameter default are both absent.
