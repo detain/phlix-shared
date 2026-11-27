@@ -355,6 +355,11 @@ part of the estate checkouts.)
 
 ## Development
 
+Contribution on-ramp for humans: [`CONTRIBUTING.md`](CONTRIBUTING.md)
+restates the gates and version ritual below for people and ships inside the
+composer package; in the git checkout [`AGENTS.md`](AGENTS.md) remains the
+binding authority (it is excluded from the archive).
+
 ```bash
 composer install
 ./vendor/bin/phpunit
