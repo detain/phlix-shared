@@ -58,6 +58,14 @@ use const JSON_THROW_ON_ERROR;
  * smuggling, header/query control-byte injection, and credential-header
  * injection from an untrusted hub → server wire.
  *
+ * {@see self::fromJsonGated()} exists so the parse surface cannot be used
+ * wrong by a consumer that holds only the HEAD chunk and has no envelope-
+ * reconstitution step of its own: it runs this parser and applies the
+ * envelope's {@see RelayHttpRequest::assertSafe()} gate before handing the
+ * head back, so an unsafe head is refused instead of returned. Trust-
+ * bearing header REMOVAL still belongs to the caller in both paths — the
+ * gate decides, it never rewrites (see {@see self::fromJsonGated()}).
+ *
  * @package Phlix\Shared\Relay
  * @since 0.17.0
  */
@@ -108,7 +116,8 @@ final readonly class RelayHttpRequestHead
      *
      * Shape-only validation — see the class SECURITY CONTRACT: the result is
      * not gated until reconstituted through
-     * {@see RelayHttpRequest::assertSafe()}.
+     * {@see RelayHttpRequest::assertSafe()}. For a one-call parse that will
+     * not hand back an ungated head, use {@see self::fromJsonGated()}.
      *
      * @param string $json JSON text from a HEAD chunk.
      *
@@ -161,6 +170,56 @@ final readonly class RelayHttpRequestHead
         }
 
         return new self($method, $path, $query, $headers);
+    }
+
+    /**
+     * Parse a head JSON string and gate the result through
+     * {@see RelayHttpRequest::assertSafe()} before returning it — the
+     * fail-safe sibling of {@see self::fromJson()} for consumers that hold
+     * only the HEAD chunk and have no envelope-reconstitution step in which
+     * they would call `assertSafe()` themselves.
+     *
+     * The gate is NOT re-implemented here: the parsed method, path, query
+     * and every header name/value are loaded into a zero-body
+     * {@see RelayHttpRequest} probe and screened by the single canonical
+     * gate. `assertSafe()` inspects head fields only (never the body), so
+     * the probe envelope adds nothing the head does not already carry. A
+     * gated parse therefore refuses: any method outside
+     * {@see RelayHttpRequest::ALLOWED_METHODS}; a path that is protocol-
+     * relative, contains '..', a NUL byte, a backslash, '://', a query
+     * string, a fragment, or any control/DEL byte — in the raw path and in
+     * every percent-decoding layer of it — or a path encoded deeper than
+     * the gate inspects; and any control/DEL byte in the query or in a
+     * header name or value.
+     *
+     * The gate decides, it never rewrites: fields pass through verbatim
+     * (verbatim-raw-path law), and trust-bearing headers
+     * ({@see RelayHttpRequest::STRIPPED_HEADERS}) are NOT stripped —
+     * `authorization`, `cookie`, `x-forwarded-for` and `x-phlix-relay-user`
+     * survive a gated parse as clean strings because the consumer owns
+     * identity injection. Callers forwarding the head must still filter
+     * those names with {@see RelayHttpRequest::isForbiddenHeader()} (or
+     * {@see RelayHttpRequest::withoutForbiddenHeaders()} once the body is
+     * accumulated) before dispatch — exactly as in the server-side
+     * reconstitution pattern.
+     *
+     * @param string $json JSON text from a HEAD chunk.
+     *
+     * @return self A head that is shape-valid AND head-gated.
+     *
+     * @throws InvalidArgumentException On malformed or wrong-shaped JSON
+     *                                  (messages prefixed
+     *                                  "RelayHttpRequestHead:") or on a
+     *                                  refused field (the gate's own
+     *                                  messages, prefixed "RelayHttpRequest:").
+     */
+    public static function fromJsonGated(string $json): self
+    {
+        $head = self::fromJson($json);
+
+        (new RelayHttpRequest($head->method, $head->path, $head->query, $head->headers, ''))->assertSafe();
+
+        return $head;
     }
 
     /**

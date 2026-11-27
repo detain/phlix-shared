@@ -75,6 +75,23 @@ Fixed: src docblocks no longer point at the private-program design notes
   moved. Historical CHANGELOG entries citing the notes stay verbatim by
   the history law (phlix-shared-038, S-shared-32).
 
+Added: `RelayHttpRequestHead::fromJsonGated()` — the one-call gated parse
+  of HEAD-chunk JSON. `fromJson()` validates shape only, so a consumer
+  wiring the parse surface straight into policy could hand an ungated head
+  downstream; the streaming hosts gate separately (the server relay path
+  re-checks reconstituted envelopes via `RelayHttpRequest::assertSafe()`),
+  and that split was easy to use wrong (phlix-shared-030). `fromJsonGated()`
+  runs the same gate — not a re-implemented one — by probing a zero-body
+  `RelayHttpRequest` through `assertSafe()`, bringing the method allowlist,
+  the per-decode-layer path denylist and the whole-head control-byte screen
+  to the streaming surface in one call. Like the envelope surface the gate
+  decides, it never rewrites: raw paths pass through verbatim and trust
+  headers (authorization, cookie, x-forwarded-for, x-phlix-relay-user) are
+  returned unstripped — consumers still apply
+  `RelayHttpRequest::withoutForbiddenHeaders()`. Shape failures keep the
+  `RelayHttpRequestHead:` prefix; gate refusals carry the
+  `RelayHttpRequest:` one (phlix-shared-030, S-shared-25).
+
 ## [0.59.0] - 2026-11-21
 
 Minor: v0.59.0 release cut (program `refactor-1119`, owner order
