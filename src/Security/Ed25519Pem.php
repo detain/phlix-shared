@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace Phlix\Shared\Security;
 
 use InvalidArgumentException;
+use RuntimeException;
 
 /**
  * Pure Ed25519 key-material primitives: native PEM build/parse, PKCS#8 seed
@@ -38,6 +39,16 @@ use InvalidArgumentException;
  * the server's long-standing `strlen >= 64` substr posture. The hub's exact
  * 64 check rejected them, but that was incidental strictness, not a security
  * boundary (extra trailing bytes were never consulted).
+ *
+ * Sodium arm (phlix-shared-023). Expanding a PKCS#8 seed into the 64-byte
+ * libsodium secret key is the only place this class touches the sodium
+ * extension; the native dialect and {@see self::extractSeedFromPkcs8()} are
+ * sodium-free. The dependency is declared in composer.json `suggest`, and
+ * every sodium call is routed through one guarded expansion seam behind a
+ * {@see self::hasSodiumSupport()} probe (the AbstractArrClient ext-curl
+ * idiom), so a build without the extension gets a typed
+ * {@see \RuntimeException} carrying the install hint and the native-dialect
+ * escape hatch — never a fatal undefined-function error mid-parse.
  *
  * kid law (E-1). The fingerprint is parameterized, not unified: each repo
  * passes what it emits TODAY — `8` for the server's historical 11-character
@@ -125,6 +136,10 @@ final class Ed25519Pem
      * @return array{secret: string, public: string}|null Null on any parse failure;
      *                                                    callers map that to their own
      *                                                    load-error posture.
+     *
+     * @throws RuntimeException If a well-formed PKCS#8 Ed25519 key must expand its
+     *                          seed but the PHP sodium extension is absent. Native
+     *                          dialects and parse failures never reach this arm.
      */
     public static function parsePem(string $pem): ?array
     {
@@ -304,12 +319,18 @@ final class Ed25519Pem
      * The seed is expanded via libsodium rather than ext-openssl because
      * PHP's `openssl_pkey_get_details()` does not reliably expose raw Ed25519
      * material across builds, whereas seed expansion is portable and exact.
+     * Both sodium calls sit behind {@see self::expandSeedToSecret()} so a
+     * build without the extension gets the typed refusal, not a fatal
+     * undefined-function error (phlix-shared-023).
      *
      * @param string $pem The PEM content.
      *
      * @return string|null The 64-byte secret key, or null if the PKCS#8 label
      *                     is absent, the DER is malformed, or the key type is
      *                     not Ed25519.
+     *
+     * @throws RuntimeException If the seed is well-formed but the PHP sodium
+     *                          extension is absent.
      */
     private static function parsePkcs8Pem(string $pem): ?string
     {
@@ -332,6 +353,47 @@ final class Ed25519Pem
         $seed = self::extractSeedFromPkcs8($der);
         if ($seed === null || $seed === '') {
             return null;
+        }
+
+        return self::expandSeedToSecret(self::hasSodiumSupport(), $seed);
+    }
+
+    /**
+     * Whether this runtime carries the sodium functions the PKCS#8 arm needs.
+     *
+     * Overridable-probe idiom: the caller feeds the verdict into
+     * {@see self::expandSeedToSecret()} so tests exercise the fail-loud arm
+     * without uninstalling the extension (the curl analogue in
+     * AbstractArrClient; reached via reflection from the suite).
+     */
+    private static function hasSodiumSupport(): bool
+    {
+        return function_exists('sodium_crypto_sign_seed_keypair')
+            && function_exists('sodium_crypto_sign_secretkey');
+    }
+
+    /**
+     * The single guarded door to libsodium: expand a 32-byte PKCS#8 seed
+     * into its 64-byte secret key.
+     *
+     * @param bool             $sodiumSupported Probe verdict ({@see self::hasSodiumSupport()}).
+     * @param non-empty-string $seed            32-byte Ed25519 seed (already
+     *                                          length-checked by the extractor).
+     *
+     * @return string The 64-byte libsodium secret key (seed || public).
+     *
+     * @throws RuntimeException If the extension is absent: install ext-sodium,
+     *                          or store keys in the native dialect, which this
+     *                          class parses without sodium.
+     */
+    private static function expandSeedToSecret(bool $sodiumSupported, string $seed): string
+    {
+        if (!$sodiumSupported) {
+            throw new RuntimeException(
+                'Ed25519Pem PKCS#8 seed expansion requires the PHP sodium extension'
+                    . ' (ext-sodium): install it, or store keys in the native'
+                    . ' ED25519 PRIVATE KEY dialect, which parses without sodium.'
+            );
         }
 
         $keypair = sodium_crypto_sign_seed_keypair($seed);

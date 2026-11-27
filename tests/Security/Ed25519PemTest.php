@@ -15,6 +15,8 @@ use InvalidArgumentException;
 use Phlix\Shared\Security\Ed25519Pem;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use ReflectionMethod;
+use RuntimeException;
 
 /**
  * Seed-vector corpus built on RFC 8032 test vector 1 (the canonical fixed
@@ -294,6 +296,75 @@ final class Ed25519PemTest extends TestCase
 
 
     /**
+     * phlix-shared-023: a sodium-less build must get the typed refusal,
+     * never a fatal undefined-function error mid-parse. The flag is the
+     * probe verdict the class feeds into the expansion seam, so the arm is
+     * reachable without uninstalling sodium — mirroring the LW-056 ext-curl
+     * posture pinned in AbstractArrClientTest.
+     */
+    public function test_expandSeedToSecret_refuses_loudly_without_sodium(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessageMatches('/requires the PHP sodium extension \\(ext-sodium\\)/');
+
+        self::invokeSodiumExpansion(false, self::bytes(self::SEED));
+    }
+
+    public function test_expandSeedToSecret_positive_arm_is_the_reference_expansion(): void
+    {
+        // The guard must not change the byte result on a capable runtime:
+        // same seed in, same 64-byte secret out as the direct sodium call.
+        $expanded = self::invokeSodiumExpansion(true, self::bytes(self::SEED));
+
+        $this->assertSame(self::secretKey(), $expanded);
+    }
+
+    public function test_hasSodiumSupport_is_a_static_probe_answering_true_on_host(): void
+    {
+        // LW-056's third leg shape: the probe exists as a static on the class
+        // and reports the host truth, so the fail-loud arm is a decision
+        // surface, not a tautology over a missing-extension fixture.
+        $probe = new ReflectionMethod(Ed25519Pem::class, 'hasSodiumSupport');
+
+        $this->assertTrue($probe->isStatic());
+        $this->assertTrue($probe->invoke(null));
+    }
+
+    public function test_sodium_calls_are_confined_to_the_guarded_expansion_seam(): void
+    {
+        // Wiring census: parsePkcs8Pem reaches libsodium only through the
+        // seam and asks the probe first; every other method stays
+        // sodium-free, which is what keeps the native dialect and the
+        // seed-only extractor the documented escape hatches.
+        $expansion = self::methodBody('expandSeedToSecret');
+        $this->assertStringContainsString('sodium_crypto_sign_seed_keypair(', $expansion);
+        $this->assertStringContainsString('sodium_crypto_sign_secretkey(', $expansion);
+        $this->assertStringContainsString('throw new RuntimeException(', $expansion);
+
+        $pkcs8 = self::methodBody('parsePkcs8Pem');
+        $this->assertStringContainsString('self::expandSeedToSecret(self::hasSodiumSupport(', $pkcs8);
+        $this->assertStringNotContainsString('sodium_crypto_sign', $pkcs8);
+
+        foreach (
+            [
+                'buildPem',
+                'extractSeedFromPkcs8',
+                'fingerprint',
+                'parseNativePem',
+                'parsePem',
+                'parsePemByteExact',
+                'toJwk',
+            ] as $method
+        ) {
+            $this->assertStringNotContainsString(
+                'sodium_crypto_sign',
+                self::methodBody($method),
+                $method . '() must stay sodium-free (escape hatches load without the extension)'
+            );
+        }
+    }
+
+    /**
      * Fixture bytes for a hex literal, narrowed away from hex2bin's false
      * arm so the level-9 suite sees a plain non-empty string everywhere.
      *
@@ -315,5 +386,46 @@ final class Ed25519PemTest extends TestCase
     private static function secretKey(): string
     {
         return sodium_crypto_sign_secretkey(sodium_crypto_sign_seed_keypair(self::bytes(self::SEED)));
+    }
+
+    /**
+     * Reach the class's private expansion seam exactly as the parse path
+     * reaches it, with a chosen probe verdict (reflection, not a fixture
+     * that fakes the extension away).
+     */
+    private static function invokeSodiumExpansion(bool $sodiumSupported, string $seed): string
+    {
+        $seam = new ReflectionMethod(Ed25519Pem::class, 'expandSeedToSecret');
+
+        $result = $seam->invoke(null, $sodiumSupported, $seed);
+        if (!is_string($result)) {
+            self::fail('expandSeedToSecret() must return a string, got ' . get_debug_type($result));
+        }
+
+        return $result;
+    }
+
+    /**
+     * Source slice of one Ed25519Pem method: declaration line through its
+     * closing brace (the reflection bracket excludes the docblock), so the
+     * wiring census greps bodies, not prose.
+     */
+    private static function methodBody(string $method): string
+    {
+        $reflection = new ReflectionMethod(Ed25519Pem::class, $method);
+
+        $file = $reflection->getFileName();
+        $start = $reflection->getStartLine();
+        $end = $reflection->getEndLine();
+        if (!is_string($file) || !is_int($start) || !is_int($end)) {
+            self::fail('No source line range for ' . $method . '()');
+        }
+
+        $lines = file($file);
+        if (!is_array($lines)) {
+            self::fail('Cannot read ' . $file);
+        }
+
+        return implode('', array_slice($lines, $start - 1, $end - $start + 1));
     }
 }

@@ -41,6 +41,24 @@ Added: `schemas/hub-settings.schema.json` admits the `auth.cookie.*` pair
   battery (default flip, deletion, type flip) convicted on exactly the
   new pins (S-shared-08).
 
+Added: `ext-sodium` declared in `composer.json` `suggest` with its scope
+  spelled out — `Security\Ed25519Pem` reaches libsodium only to expand an
+  RFC 8410 PKCS#8 seed into its 64-byte secret key; the native
+  `ED25519 PRIVATE KEY` dialect and `extractSeedFromPkcs8()` are
+  sodium-free. The README Requirements list carries the matching
+  one-bullet mention (phlix-shared-023, S-shared-22).
+
+Fixed: a sodium-less build no longer dies with a fatal undefined-function
+  error mid-parse. `Ed25519Pem::parsePkcs8Pem()` now routes both sodium
+  calls through one guarded expansion seam (`expandSeedToSecret()` behind
+  a `hasSodiumSupport()` probe — the AbstractArrClient ext-curl idiom)
+  that throws a named `RuntimeException` carrying the install hint and
+  the native-dialect escape hatch; `RuntimeException` is inside both
+  hosts' documented catch shape for key-load refusals. Pinned in
+  `tests/Security/Ed25519PemTest.php`: refusal arm, byte-identical
+  positive arm, probe shape/host truth, and a wiring census confining the
+  sodium tokens to the seam (phlix-shared-023, S-shared-22).
+
 ## [0.59.0] - 2026-11-21
 
 Minor: v0.59.0 release cut (program `refactor-1119`, owner order

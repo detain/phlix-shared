@@ -291,6 +291,11 @@ this runbook is those steps written down before you hit them:
 - `psr/container ^2.0`
 - `psr/event-dispatcher ^1.0`
 - `psr/log ^3.0`
+- Optional (`suggest`): `ext-sodium` — needed only to load standard RFC 8410
+  PKCS#8 Ed25519 private keys through `Security\Ed25519Pem` (the native
+  `ED25519 PRIVATE KEY` dialect and seed-only extraction parse without it;
+  an extension-less build gets a named `RuntimeException`, never an
+  undefined-function fatal).
 - Contributors only (`require-dev`): `ext-curl` — the test suite exercises `CurlArrTransport`.
 
 `psr/event-dispatcher` is deliberately declarative: no class in `src/`

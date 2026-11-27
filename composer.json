@@ -20,6 +20,7 @@
     "suggest": {
         "ext-curl": "Required only for the bundled blocking Arr\\Transport\\CurlArrTransport (CLI/test use). Event-loop (Workerman/Webman) consumers should inject an async ArrTransportInterface instead and do not need ext-curl.",
         "ext-pdo": "The Database\\ transaction-mutex machine throws PDOException for catch-shape parity with the estate connections it was extracted from; the class itself performs no I/O, so the extension is only needed by consumers catching its refusals with the MySQL layer.",
+        "ext-sodium": "Required by Security\\Ed25519Pem to expand an RFC 8410 PKCS#8 Ed25519 seed into its 64-byte libsodium secret key; the native ED25519 PRIVATE KEY dialect and extractSeedFromPkcs8() work without it, and an extension-less runtime gets a named RuntimeException from the guarded expansion seam instead of a fatal undefined-function error.",
         "workerman/http-client": "Event-loop (Workerman/Webman) consumers should inject a workerman/http-client-backed Arr\\Transport\\ArrTransportInterface so *arr API calls do not block the worker; the bundled CurlArrTransport is blocking and for CLI/test only."
     },
     "autoload": {
