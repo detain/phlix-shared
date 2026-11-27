@@ -757,10 +757,13 @@ class TrashGuidesProvider
         /** @var list<string> $http_response_header */
         $http_response_header = [];
 
-        // The leading '@' is load-bearing (asserted by the SHR-2 source pin
-        // below and the handler-neutrality test): the wrapper warning is
-        // suppressed from the log stream, then recovered from error_get_last()
-        // for the exception chain — WITHOUT swapping the global error handler.
+        // The leading '@' is load-bearing: it is carried by the SHR-2
+        // source-pin needle in tests/Arr/TrashGuidesProviderTest.php
+        // (readUrlBody byte-cap test) and pinned behaviorally by the
+        // failOnWarning harness — the memo-refetch and captured-error tests
+        // trip on the raw wrapper warning without it. The handler-neutrality
+        // lex keeps the global set_error_handler/restore_error_handler swap
+        // dead; it does NOT observe the '@'.
         /** @var string|false $body */
         $body = @file_get_contents($url, false, $context, 0, $maxBytes + 1);
         /** @var list<string> $responseHeaders */
