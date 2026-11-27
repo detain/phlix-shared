@@ -22,8 +22,30 @@
         `phpcbf --standard=PSR12 tests/` reports "No fixable errors were found"
         — not one of the 360 errors is tooling-fixable, so "run phpcbf and
         commit" was never on the table. The two sniff exclusions below account
-        for ALL 360 errors; with them applied the corpus is 0 errors and 28
-        warnings. There is no baseline and no ignore list beyond these two lines.
+        for ALL 360 errors. There is no baseline and no ignore list beyond
+        these two lines.
+
+        THE CURRENT SELF-PIN, re-derived 2026-11-27 at master @ 184b775 on
+        the pinned phpcs 4.0.4 (first measured at the 2d5b4e2 base, then
+        re-measured at each landing tip as the S-shared-18, S-shared-39 and
+        S-shared-12 commits landed — figures identical at all). (Finding phlix-shared-018: the corpus figure
+        drifted silently after the 1880888-era measurement above — later
+        test waves added long data-pin lines while this prose still claimed
+        "0 errors and 28 warnings", so the tripwire measured nothing.) The
+        gate now reports:
+
+            A TOTAL OF 0 ERRORS AND 237 WARNINGS WERE FOUND IN 16 FILES
+
+        with `--report=source` attributing all 237 to a single sniff,
+        Generic.Files.LineLength, and zero fixable markers in the full
+        report — long lines in generated-pin fixtures dominate (104
+        ServerSettingsSchemaTest, 41 OriginPolicyTest, 35 HubSettingsSchemaTest,
+        21 SettingsSchemaAssertions, 36 spread over the remaining 12 files).
+        DRIFT RITUAL: every step that adds test lines rotates the figure
+        above. Re-measure with `phpcs --standard=phpcs-tests.xml
+        --report=summary` from the repo root and correct this prose in the
+        same commit. A drifted figure here is a documentation bug; the fix
+        is the number, never a sniff exclusion (ceiling-silence law).
 
         1. PSR1.Methods.CamelCapsMethodName — 354 errors, and all 354 were
            classified rather than assumed: 304 distinct method names, 348 hits
@@ -53,11 +75,21 @@
         so WARNINGS ALONE exit non-zero — a lone non-fixable LineLength
         warning exits 1 — and the 1-vs-2 split is FIXABILITY, not
         warning-vs-error (1 = violations found, none phpcbf-fixable;
-        2 = at least one fixable). A gate that trusts its exit code would
-        therefore be permanently red here at exit 1 over the 28 pre-existing
-        LineLength warnings (long lines in generated-pin fixtures, none of
-        them fixable), and the next person would silence it with `-n`.
-        Re-measure this sentence on any phpcs major bump. That is precisely the defect this
+        2 = at least one fixable). The dev-toolchain upgrade 0fb7e48 moved
+        the pin to phpcs 4.0.4, so the re-measurement ritual at the end of
+        this paragraph was EXECUTED on 2026-11-27 with fresh throwaway
+        probes: 4.x replaced the
+        1-vs-2 ladder with a bitmask (src/Util/ExitCode.php — OKAY=0,
+        FIXABLE=1, NON_FIXABLE=2, FAILED_TO_FIX=4), a lone non-fixable
+        LineLength warning now exits 2, a fixable-errors-only file exits 1,
+        and `-n` still exits 0 while deleting warnings from the report. Run
+        this ruleset's own corpus without the config line below, phpcs
+        4.0.4 exits 2. A gate that trusts its exit code would therefore be
+        permanently red here over the 237 pre-existing LineLength warnings
+        (long lines in generated-pin fixtures, none of them fixable), and
+        the next person would silence it with `-n`. Re-measure this sentence
+        on any phpcs major bump (the 3.13.6-to-4.0.4 bump above is that
+        re-measurement). That is precisely the defect this
         ruleset's existence prevents: `-n` on the src/ CI step SUPPRESSED
         warnings from both the report and the exit math until 2026-10-02. So the
         `ignore_warnings_on_exit` config below is set instead — it changes only
