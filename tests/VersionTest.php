@@ -271,6 +271,125 @@ final class VersionTest extends TestCase
         );
     }
 
+    /**
+     * phlix-shared-022 (S-shared-21): historical release tags cut without a
+     * CHANGELOG heading, each verified heading-less at its own commit on
+     * 2026-11-27 — the date the census arm below went live. Verbatim history
+     * forbids retro-inserting release sections, so the gaps live here, dated
+     * and non-growable. v0.55.1 is the finding's own tag (annotated, peels to
+     * eba4a21, the direct child of the v0.55.0 cut; tag-time Version::VERSION
+     * was still '0.55.0' and its schema-copy change is narrated under
+     * [0.57.0]) — its record is the dated erratum under [Unreleased] in
+     * CHANGELOG.md. The four June–July 2026 cuts (all ancestors of master)
+     * predate this repository's release-ritual discipline.
+     */
+    private const HEADING_EXEMPT_TAGS = ['v0.55.1', 'v0.7.1', 'v0.8.1', 'v0.9.2', 'v0.17.0'];
+
+    /**
+     * phlix-shared-022 (S-shared-21): the release-ritual heading check.
+     *
+     * AGENTS.md "Versioning" puts the git tag in a four-way lockstep with
+     * Version::VERSION, the CHANGELOG heading, and the README stamp. The
+     * sibling pins above cover the working-tip triangle; nothing here could
+     * see the past, and the census this step ran shows what that let
+     * through: v0.55.1 was tagged with only the tag leg moved, and four
+     * older tags shipped the same way. This guard makes the ritual
+     * executable in three arms:
+     *
+     *  1. release-ritual arm — the exact shape the finding prescribes:
+     *     `git tag --points-at HEAD`. On the day a cut is tagged, its
+     *     heading must already be in the file at that very commit; a
+     *     mid-cycle untagged HEAD leaves this arm quiet by design.
+     *  2. census arm — every version-shaped tag the checkout can see must
+     *     own a `## [x.y.z]` heading unless it is one of the five dated
+     *     historical gaps in HEADING_EXEMPT_TAGS. No guard may fabricate a
+     *     heading for a shipped release; it pins the record and refuses
+     *     every new gap.
+     *  3. exemption-integrity arm — the skip list is two-directional: an
+     *     entry whose tag has vanished from the checkout reddens too, so
+     *     the list can neither silently widen nor rot.
+     *
+     * Vacuity posture follows the census-guard house idiom: a CHANGELOG
+     * exposing zero version headings fails loud (wrong or emptied file).
+     * The git legs degrade to an honest skip only where git cannot answer
+     * at all — dist installs and shallow fetches — exactly as the sibling
+     * tag pins do; every non-git leg still runs.
+     */
+    public function test_every_version_tag_carries_a_changelog_heading(): void
+    {
+        $changelogPath = __DIR__ . '/../CHANGELOG.md';
+        $this->assertFileExists($changelogPath, 'CHANGELOG.md must exist at the package root.');
+        $contents = (string) file_get_contents($changelogPath);
+
+        $headingTotal = preg_match_all('/^## \[\d+\.\d+\.\d+\]/m', $contents, $headingMatches);
+        if ($headingTotal === false) {
+            $this->fail('preg_match_all over CHANGELOG.md must succeed.');
+        }
+        if ($headingTotal === 0) {
+            $this->fail(
+                'CHANGELOG.md exposes zero version headings — the release-ritual census has no ground truth to check against; refusing vacuous green.'
+            );
+        }
+
+        $allTags = self::gitTagNames();
+        $headTags = self::gitTagNames('HEAD');
+        if ($allTags === null || $headTags === null) {
+            $this->markTestSkipped(
+                'This checkout cannot answer git tags (dist install or shallow clone); the working-tip lockstep pins above still ran.'
+            );
+        }
+
+        $versionTags = array_values(array_filter(
+            $allTags,
+            static fn (string $tag): bool => preg_match('/^v\d+\.\d+\.\d+$/', $tag) === 1
+        ));
+        if ($versionTags === []) {
+            $this->markTestSkipped(
+                'git answers, but this checkout carries no version tags (a shallow fetch stopped short of them); the census arm needs tag objects to mean anything.'
+            );
+        }
+
+        $uncited = [];
+        foreach ($versionTags as $tag) {
+            if (in_array($tag, self::HEADING_EXEMPT_TAGS, true)) {
+                continue;
+            }
+            if (!self::changelogHasHeading($contents, $tag)) {
+                $uncited[] = $tag;
+            }
+        }
+        $this->assertSame(
+            [],
+            $uncited,
+            'Every release tag must carry a matching `## [x.y.z]` heading in CHANGELOG.md (AGENTS.md Versioning lockstep). A historical cut that genuinely shipped without one belongs in VersionTest::HEADING_EXEMPT_TAGS only with a dated record — never in a retro-inserted heading.'
+        );
+
+        $staleExemptions = array_values(array_diff(self::HEADING_EXEMPT_TAGS, $versionTags));
+        $this->assertSame(
+            [],
+            $staleExemptions,
+            'HEADING_EXEMPT_TAGS names tags this checkout cannot see — retire each exemption deliberately in the same commit that removes the tag, or the list stops being a census of real gaps.'
+        );
+
+        $ritualMisses = [];
+        foreach ($headTags as $tag) {
+            if (preg_match('/^v\d+\.\d+\.\d+$/', $tag) !== 1) {
+                continue;
+            }
+            if (in_array($tag, self::HEADING_EXEMPT_TAGS, true)) {
+                continue;
+            }
+            if (!self::changelogHasHeading($contents, $tag)) {
+                $ritualMisses[] = $tag;
+            }
+        }
+        $this->assertSame(
+            [],
+            $ritualMisses,
+            'A tag pointing at HEAD was cut without its `## [x.y.z]` CHANGELOG heading present at this commit — the exact defect class of v0.55.1 (phlix-shared-022).'
+        );
+    }
+
     private static function repoFile(string $relative): string
     {
         return dirname(__DIR__) . '/' . $relative;
@@ -377,5 +496,54 @@ final class VersionTest extends TestCase
         }
         $bytes = shell_exec('git -C ' . escapeshellarg($root) . ' show ' . escapeshellarg($spec) . ' 2>/dev/null');
         return is_string($bytes) ? $bytes : null;
+    }
+
+    /**
+     * Tag names visible to this checkout — `git tag -l`, restricted to those
+     * pointing at $pointsAt when given (the shape `git tag --points-at HEAD`
+     * the release ritual prescribes). Null when git cannot answer at all,
+     * mirroring gitBlobAt's degradation law.
+     *
+     * @return list<string>|null
+     */
+    private static function gitTagNames(?string $pointsAt = null): ?array
+    {
+        if (!function_exists('exec')) {
+            return null;
+        }
+        $root = dirname(__DIR__);
+        if (!is_dir($root . '/.git')) {
+            return null;
+        }
+        $command = 'git -C ' . escapeshellarg($root) . ' tag -l';
+        if ($pointsAt !== null) {
+            $command .= ' --points-at ' . escapeshellarg($pointsAt);
+        }
+        $lines = [];
+        $exit = 0;
+        exec($command . ' 2>/dev/null', $lines, $exit);
+        if ($exit !== 0) {
+            return null;
+        }
+        return array_values(array_filter(
+            $lines,
+            static fn (string $line): bool => $line !== ''
+        ));
+    }
+
+    /**
+     * True when CHANGELOG.md carries the `## [x.y.z]` heading for the
+     * version-shaped tag name $tag. The heading must start a line; released
+     * sections use `-` or `—` date separators, both of which live behind the
+     * closing bracket, so the match stops there.
+     */
+    private static function changelogHasHeading(string $contents, string $tag): bool
+    {
+        $matched = preg_match('/^v(\d+\.\d+\.\d+)$/', $tag, $parts);
+        if ($matched !== 1) {
+            self::fail(sprintf('The heading census received a non-version-shaped tag name: %s', $tag));
+        }
+        $heading = preg_match('/^## \[' . preg_quote($parts[1], '/') . '\]/m', $contents);
+        return $heading === 1;
     }
 }

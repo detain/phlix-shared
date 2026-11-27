@@ -116,6 +116,37 @@ Tests: `HmacTest` pins the guard in both modes — both frozen constants pass
   trip), while the compiled-out mode pins the tolerant pre-guard envelope
   byte-for-byte (phlix-shared-039, S-shared-33).
 
+Docs: dated erratum (2026-11-27) for `v0.55.1` — the annotated tag `v0.55.1`,
+  peeling to commit eba4a21 (the direct child of the `v0.55.0` release commit,
+  tagged 2026-11-12), moved the git-tag leg of the Versioning lockstep without
+  the other three: the tag-time `src/Version.php` still reads
+  `public const VERSION = '0.55.0'`, the tag-time README status stamp still
+  reads `**v0.55.0**`, and this file carries no `## [0.55.1]` heading — the
+  change it shipped (HUB-S47/HUB-35 plain-language `helpText` reword of
+  `schemas/hub-settings.schema.json`) is narrated here only inside the
+  `[0.57.0]` section. The same audit, run for the release-ritual guard this
+  step adds, found four further heading-less historical tags — `v0.7.1`,
+  `v0.8.1`, `v0.9.2`, `v0.17.0` (June–July 2026 cuts, all ancestors of master,
+  each verified heading-less at its own commit on 2026-11-27). Verbatim
+  history forbids retro-inserting release sections, so the five gaps are
+  recorded here, dated, and exempted with the same date in
+  `tests/VersionTest.php`'s skip list — the guard pins the census and refuses
+  every new gap. (phlix-shared-022, S-shared-21.)
+
+Tests: `VersionTest::test_every_version_tag_carries_a_changelog_heading` makes
+  the release ritual executable in three arms: a `git tag --points-at HEAD`
+  arm convicts a cut whose `## [x.y.z]` heading was not in the file at the
+  tagged commit (the exact v0.55.1 class, caught at cut time); a census arm
+  walks every version-shaped tag the checkout can see against the CHANGELOG
+  headings; and the five dated exemptions are two-directional — a skip-list
+  entry whose tag has vanished from the checkout reddens too, so the list can
+  neither silently widen nor rot. The CHANGELOG leg fails loud on an empty
+  heading corpus, and the git legs degrade to the family's honest skip only
+  where git cannot answer at all. Mutation-convicted in a scratch clone:
+  stripping the exemption list convicts exactly the five historical gaps, a
+  minted heading-less `v9.9.9` convicts alone, and deleting one exempted tag
+  convicts exactly its stale exemption. (phlix-shared-022, S-shared-21.)
+
 ## [0.59.0] - 2026-11-21
 
 Minor: v0.59.0 release cut (program `refactor-1119`, owner order
